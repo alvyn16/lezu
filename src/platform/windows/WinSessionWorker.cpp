@@ -5,6 +5,7 @@
 #include <QUuid>
 
 #include "tracking/ProcFs.h"
+#include "tracking/SessionDatabase.h"
 
 WinSessionWorker::WinSessionWorker(const QString& databasePath,
                                    const QString& profilesPath,

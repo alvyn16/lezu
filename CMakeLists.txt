@@ -424,11 +424,15 @@ qt_add_resources(omakade "lezu_profiles"
 )
 
 if(WIN32)
-  set_source_files_properties(src/platform/windows/lezu.rc PROPERTIES
-    COMPILE_FLAGS "/I \"${CMAKE_CURRENT_SOURCE_DIR}\""
+  set(LEZU_ICON_ESCAPED "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/lezu.ico")
+  string(REPLACE "/" "\\\\" LEZU_ICON_ESCAPED "${LEZU_ICON_ESCAPED}")
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/lezu.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/lezu.rc"
+    @ONLY
   )
   target_sources(omakade PRIVATE
-    src/platform/windows/lezu.rc
+    "${CMAKE_CURRENT_BINARY_DIR}/lezu.rc"
   )
 endif()
 

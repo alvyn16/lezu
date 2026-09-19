@@ -1,6 +1,6 @@
 #include <windows.h>
 
-IDI_ICON1 ICON DISCARDABLE "resources/icons/lezu.ico"
+IDI_ICON1 ICON DISCARDABLE "@LEZU_ICON_ESCAPED@"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION     1,0,0,0
@@ -19,7 +19,7 @@ BEGIN
             VALUE "FileDescription",  "Lezu Game Library Manager"
             VALUE "FileVersion",      "1.0.0.0"
             VALUE "InternalName",     "lezu"
-            VALUE "LegalCopyright",   "Copyright (c) 2026 Lezu Contributors"
+            VALUE "LegalCopyright",   "Copyright (c) 2026 Lezu"
             VALUE "OriginalFilename", "lezu.exe"
             VALUE "ProductName",      "Lezu"
             VALUE "ProductVersion",   "1.0.0.0"
