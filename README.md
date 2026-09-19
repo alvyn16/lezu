@@ -27,7 +27,7 @@ Lezu is a Windows game library that brings your installed Steam, Epic Games, GOG
 
 ## Download
 
-Download the latest `lezu-windows-x64` artifact from the [Actions page](https://github.com/alvyn16/lezu/actions/workflows/ci-windows.yml).
+Download the latest `lezu-windows-x64` 
 
 Extract the ZIP and run **`lezu.exe`**.
 
