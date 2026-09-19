@@ -209,6 +209,8 @@ bool readableCore(const QString& path) {
   return file.isFile() && file.isReadable();
 }
 
+QString findStandalone(const QStringList& executables); // forward declaration
+
 QString findRetroArchCore(const QStringList& coreNames) {
 #if defined(Q_OS_WIN)
   const QString appData = qEnvironmentVariable("APPDATA");

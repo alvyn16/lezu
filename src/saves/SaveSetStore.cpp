@@ -119,7 +119,11 @@ bool collect(const SaveLayout& l, QMap<QString, QByteArray>* result, QString* er
       continue; // A not-yet-created save bank is a legitimate empty set.
     int visited = 0;
     while (!scanError && it != end) {
+#ifdef Q_OS_WIN
+      const QFileInfo entry(QString::fromStdWString(it->path().wstring()));
+#else
       const QFileInfo entry(QFile::decodeName(it->path().c_str()));
+#endif
       if (++visited > fileLimit || entry.isSymLink()) {
         *error = "The save folder contains redirected paths or too many files.";
         return false;
