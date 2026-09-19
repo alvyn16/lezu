@@ -11,8 +11,11 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+#include <shellapi.h>
 
 #include <QFileInfo>
+
+using NtStatus = LONG;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +62,7 @@ static bool readProcessInfo(DWORD pid,
     // this purpose but stable; QueryFullProcessImageNameW handles the exe name already.
     // For arguments we attempt to read the RTL_USER_PROCESS_PARAMETERS.CommandLine.
     // If access is denied we accept the partial info (comm + start) — enough for matching.
-    using NtQueryInformationProcessFn = NTSTATUS(WINAPI*)(
+    using NtQueryInformationProcessFn = NtStatus(WINAPI*)(
         HANDLE, UINT, PVOID, ULONG, PULONG);
     static auto NtQueryInformationProcess =
         reinterpret_cast<NtQueryInformationProcessFn>(
@@ -76,7 +79,7 @@ static bool readProcessInfo(DWORD pid,
             PVOID Reserved3;
         } pbi{};
         ULONG returnLength = 0;
-        NTSTATUS status = NtQueryInformationProcess(
+        NtStatus status = NtQueryInformationProcess(
             hProcess, 0 /*ProcessBasicInformation*/, &pbi, sizeof(pbi), &returnLength);
         if (status == 0 && pbi.PebBaseAddress) {
             // Read PEB.ProcessParameters offset (0x20 on x64, 0x10 on x86)
