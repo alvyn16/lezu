@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+
+      - name: Install dependencies via vcpkg
+        run: |
+          vcpkg integrate install
+          vcpkg install sdl3:x64-windows zstd:x64-windows libzip:x64-windows openssl:x64-windows
+
+      - name: Configure CMake
+        run: |
+          $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { "C:/vcpkg" }
+          cmake -B build -S . `
+            -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_TESTING=OFF `
+            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build Lezu
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Deploy Runtime Dependencies
+        run: |
+          $LEZU_EXE = "build/Release/lezu.exe"
+          windeployqt --qmldir qml --release $LEZU_EXE
+          $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { "C:/vcpkg" }
+          $vcpkgBin = "$vcpkgRoot/installed/x64-windows/bin"
+          if (Test-Path $vcpkgBin) {
+            Copy-Item "$vcpkgBin/*.dll" -Destination "build/Release/" -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Create ZIP
+        run: |
+          Compress-Archive -Path build/Release/* -DestinationPath lezu-windows-x64.zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: lezu-windows-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
