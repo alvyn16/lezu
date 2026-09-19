@@ -1,0 +1,12 @@
+/build/
+/build-*/
+/build.log
+/cfg.log
+/.cache/
+/.qt/
+compile_commands.json
+__pycache__/
+/shadps4-bin/
+
+/output/
+/stage/

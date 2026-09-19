@@ -1,0 +1,1043 @@
+#include "app/AppSettings.h"
+#include "backup/BackupArchive.h"
+#include <QDateTime>
+
+#include "library/ConsoleCatalog.h"
+
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QUrl>
+#include <QRegularExpression>
+#include <QSaveFile>
+#include <QStandardPaths>
+#include <QUrl>
+
+namespace {
+QString normalizedLibraryPath(QString path) {
+  if (path.startsWith(QStringLiteral("file:"))) {
+    const QUrl url(path);
+    if (!url.isLocalFile() || !url.host().isEmpty()) return {};
+    path = url.toLocalFile();
+  }
+  if (path.startsWith(QStringLiteral("~/"))) path = QDir::homePath() + path.mid(1);
+  if (!QDir::isAbsolutePath(path) || path.size() > 4096) return {};
+  for (QChar c : path) {
+    if (c.category() == QChar::Other_Control) return {};
+  }
+  return QDir::cleanPath(path);
+}
+QString normalizedRommUrl(const QString& value) {
+  QUrl url(value.trimmed(), QUrl::StrictMode);
+  const QString scheme = url.scheme().toLower();
+  if (!url.isValid() || (scheme != QStringLiteral("http") && scheme != QStringLiteral("https")) ||
+      url.host().isEmpty() || !url.userName().isEmpty() || !url.password().isEmpty() ||
+      !url.query().isEmpty() || !url.fragment().isEmpty()) {
+    return {};
+  }
+  QString path = url.path();
+  while (path.size() > 1 && path.endsWith(QLatin1Char('/')))
+    path.chop(1);
+  if (path == QStringLiteral("/"))
+    path.clear();
+  url.setPath(path);
+  return url.toString(QUrl::FullyEncoded);
+}
+}
+
+QStringList AppSettings::gogLibraryPaths() const { return m_gogLibraryPaths; }
+
+bool AppSettings::addGogLibraryPath(const QString& value) {
+  const QString path = normalizedLibraryPath(value);
+  if (path.isEmpty() || m_gogLibraryPaths.size() >= 64) return false;
+  if (m_gogLibraryPaths.contains(path)) return true;
+  m_gogLibraryPaths.append(path);
+  if (!save()) {
+    m_gogLibraryPaths.removeLast();
+    return false;
+  }
+  emit gogLibraryPathsChanged();
+  return true;
+}
+
+bool AppSettings::removeGogLibraryPath(const QString& path) {
+  const int index = m_gogLibraryPaths.indexOf(path);
+  if (index < 0) return false;
+  m_gogLibraryPaths.removeAt(index);
+  if (!save()) {
+    m_gogLibraryPaths.insert(index, path);
+    return false;
+  }
+  emit gogLibraryPathsChanged();
+  return true;
+}
+
+QString AppSettings::gogLibraryPathStatus(const QString& path) const {
+  const QFileInfo directory(path);
+  if (!directory.exists()) return QStringLiteral("Unavailable. Reconnect the drive to scan this folder.");
+  if (!directory.isDir()) return QStringLiteral("This path is not a folder.");
+  if (!QDir(path).isReadable()) return QStringLiteral("This folder cannot be read. Check its permissions.");
+  return QStringLiteral("Available");
+}
+
+AppSettings::AppSettings(const QString& path, QObject* parent)
+    : QObject(parent), m_path(path.isEmpty() ? defaultPath() : path) {
+  load();
+}
+
+namespace {
+// Rating and popularity were added with IGDB sorting; keep this list and the QML sort cycle
+// in step, and keep it above backupSettings(), which maps the stored name.
+const QStringList kSortModeNames = {QStringLiteral("title"), QStringLiteral("recent"),
+                                    QStringLiteral("playtime"), QStringLiteral("rating"),
+                                    QStringLiteral("popularity")};
+}  // namespace
+
+QJsonObject AppSettings::backupSettings() const {
+  return {{"shadps4_enabled", m_shadps4Enabled},
+          {"cemu_enabled", m_cemuEnabled},
+          {"dolphin_enabled", m_dolphinEnabled},
+          {"shadps4_auto", m_shadps4Auto},
+          {"cemu_auto", m_cemuAuto},
+          {"dolphin_auto", m_dolphinAuto},
+          {"console_portals_enabled", m_consolePortalsEnabled},
+          {"expand_consoles", m_expandConsoles},
+          {"prefer_standalone_emulators", m_preferStandaloneEmulators},
+          {"track_play_sessions", m_trackPlaySessions},
+          {"cover_size", m_coverSize},
+          {"couch_cover_size", m_couchCoverSize},
+          {"console_expand_limit", m_consoleExpandLimit},
+          {"rom_folders", QJsonArray::fromStringList(m_romFolders)},
+          {"console_layouts", QJsonArray::fromStringList(m_consoleLayouts)},
+          {"reduced_motion", m_reducedMotion},
+          {"artwork_cache_limit_mb", m_artworkCacheLimitMb},
+          {"steam_enabled", m_steamEnabled},
+          {"epic_enabled", m_epicEnabled},
+          {"lutris_enabled", m_lutrisEnabled},
+          {"heroic_enabled", m_heroicEnabled},
+          {"gog_enabled", m_gogEnabled},
+          {"faugus_enabled", m_faugusEnabled},
+          {"retroarch_enabled", m_retroArchEnabled},
+          {"pcsx2_enabled", m_pcsx2Enabled},
+          {"ryujinx_enabled", m_ryujinxEnabled},
+          {"pcsx2_auto", m_pcsx2Auto},
+          {"ryujinx_auto", m_ryujinxAuto},
+          {"battlenet_enabled", m_battleNetEnabled},
+          {"close_after_launch", m_closeAfterLaunch},
+          {"couch_mode", m_couchModeEnabled},
+          {"couch_library_view", m_couchLibraryView},
+          {"library_sort_mode", kSortModeNames.value(m_librarySortMode)},
+          {"gog_library_paths", QJsonArray::fromStringList(m_gogLibraryPaths)}};
+}
+
+void AppSettings::assignBackupSettings(const QJsonObject& settings) {
+  m_shadps4Enabled = settings.value("shadps4_enabled").toBool();
+  m_cemuEnabled = settings.value("cemu_enabled").toBool();
+  m_dolphinEnabled = settings.value("dolphin_enabled").toBool();
+  m_shadps4Auto = settings.value("shadps4_auto").toBool();
+  m_cemuAuto = settings.value("cemu_auto").toBool();
+  m_dolphinAuto = settings.value("dolphin_auto").toBool();
+  m_consolePortalsEnabled = settings.value("console_portals_enabled").toBool();
+  m_expandConsoles = settings.value("expand_consoles").toBool();
+  m_preferStandaloneEmulators = settings.value("prefer_standalone_emulators").toBool();
+  m_trackPlaySessions = settings.value("track_play_sessions").toBool();
+  m_coverSize = settings.value("cover_size").toInt();
+  m_couchCoverSize = settings.value("couch_cover_size").toInt();
+  m_consoleExpandLimit = settings.value("console_expand_limit").toInt();
+  m_romFolders.clear();
+  for (const auto& value : settings.value("rom_folders").toArray())
+    m_romFolders.append(value.toString());
+  m_consoleLayouts.clear();
+  for (const auto& value : settings.value("console_layouts").toArray())
+    m_consoleLayouts.append(value.toString());
+
+  m_reducedMotion = settings.value("reduced_motion").toBool();
+  m_artworkCacheLimitMb = settings.value("artwork_cache_limit_mb").toInt();
+  m_steamEnabled = settings.value("steam_enabled").toBool();
+  m_epicEnabled = settings.value("epic_enabled").toBool(true);
+  m_lutrisEnabled = settings.value("lutris_enabled").toBool();
+  m_heroicEnabled = settings.value("heroic_enabled").toBool();
+  m_gogEnabled = settings.value("gog_enabled").toBool();
+  m_faugusEnabled = settings.value("faugus_enabled").toBool();
+  m_retroArchEnabled = settings.value("retroarch_enabled").toBool();
+  m_pcsx2Enabled = settings.value("pcsx2_enabled").toBool();
+  m_ryujinxEnabled = settings.value("ryujinx_enabled").toBool();
+  m_pcsx2Auto = settings.value("pcsx2_auto").toBool();
+  m_ryujinxAuto = settings.value("ryujinx_auto").toBool();
+  m_battleNetEnabled = settings.value("battlenet_enabled").toBool();
+  m_closeAfterLaunch = settings.value("close_after_launch").toBool();
+  m_couchModeEnabled = settings.value("couch_mode").toBool();
+  m_couchLibraryView = settings.value("couch_library_view").toString();
+  m_librarySortMode =
+      qMax(0, static_cast<int>(kSortModeNames.indexOf(settings.value("library_sort_mode").toString())));
+  m_gogLibraryPaths.clear();
+  for (const auto& path : settings.value("gog_library_paths").toArray()) {
+    const QString normalized = normalizedLibraryPath(path.toString());
+    if (!normalized.isEmpty() && !m_gogLibraryPaths.contains(normalized)) m_gogLibraryPaths.append(normalized);
+  }
+}
+
+bool AppSettings::applyBackupSettings(const QJsonObject& settings, bool replace) {
+  BackupPayload check;
+  check.createdAt = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+  check.settings = settings;
+  if (!BackupArchive::validate(check)) return false;
+  const auto before = backupSettings();
+  AppSettings defaults(UnloadedSettings{});
+  auto merged = replace ? defaults.backupSettings() : before;
+  // Archives written before these settings existed have no opinion about them.
+  for (const auto& key :
+       QStringList{"shadps4_enabled", "cemu_enabled", "dolphin_enabled", "shadps4_auto",
+                   "cemu_auto", "dolphin_auto", "console_portals_enabled", "expand_consoles",
+                   "prefer_standalone_emulators", "track_play_sessions", "cover_size",
+                   "couch_cover_size", "console_expand_limit", "rom_folders", "console_layouts"})
+    if (!settings.contains(key))
+      merged.insert(key, before.value(key));
+  for (auto value = settings.begin(); value != settings.end(); ++value) merged.insert(value.key(), value.value());
+  assignBackupSettings(merged);
+  if (!save()) { assignBackupSettings(before); return false; }
+  emit reducedMotionChanged(); emit artworkCacheLimitMbChanged(); emit sourcesChanged();
+  emit closeAfterLaunchChanged(); emit couchModeEnabledChanged(); emit couchLibraryViewChanged();
+  emit librarySortModeChanged(); emit gogLibraryPathsChanged();
+  emit consolePortalsEnabledChanged();
+  emit expandConsolesChanged();
+  emit preferStandaloneEmulatorsChanged();
+  emit trackPlaySessionsChanged();
+  emit coverSizeChanged();
+  emit couchCoverSizeChanged();
+  emit consoleExpandLimitChanged();
+  emit romFoldersChanged();
+  emit consoleLayoutsChanged();
+  return true;
+}
+
+void AppSettings::setProtonDbEnabled(bool value) {
+  if (m_protonDbEnabled == value) return;
+  const bool previous = m_protonDbEnabled;
+  m_protonDbEnabled = value;
+  if (!save()) { m_protonDbEnabled = previous; return; }
+  emit protonDbEnabledChanged();
+}
+
+void AppSettings::setProtonDbBadges(bool value) {
+  if (m_protonDbBadges == value) return;
+  const bool previous = m_protonDbBadges;
+  m_protonDbBadges = value;
+  if (!save()) { m_protonDbBadges = previous; return; }
+  emit protonDbBadgesChanged();
+}
+
+bool AppSettings::reducedMotion() const { return m_reducedMotion; }
+
+void AppSettings::setReducedMotion(bool value) {
+  if (m_reducedMotion == value) {
+    return;
+  }
+  m_reducedMotion = value;
+  save();
+  emit reducedMotionChanged();
+}
+
+int AppSettings::artworkCacheLimitMb() const { return m_artworkCacheLimitMb; }
+
+void AppSettings::setArtworkCacheLimitMb(int value) {
+  value = qBound(128, value, 8192);
+  if (m_artworkCacheLimitMb == value) {
+    return;
+  }
+  m_artworkCacheLimitMb = value;
+  save();
+  emit artworkCacheLimitMbChanged();
+}
+
+QString AppSettings::steamId() const { return m_steamId; }
+
+void AppSettings::setSteamId(const QString& value) {
+  static const QRegularExpression valid(QStringLiteral("^7656119[0-9]{10}$"));
+  const QString normalized = value.trimmed();
+  if ((!normalized.isEmpty() && !valid.match(normalized).hasMatch()) || m_steamId == normalized) {
+    return;
+  }
+  m_steamId = normalized;
+  save();
+  emit steamIdChanged();
+}
+
+QString AppSettings::igdbClientId() const { return m_igdbClientId; }
+
+void AppSettings::setIgdbClientId(const QString& value) {
+  static const QRegularExpression valid(QStringLiteral("^[A-Za-z0-9]{5,64}$"));
+  const QString normalized = value.trimmed();
+  if ((!normalized.isEmpty() && !valid.match(normalized).hasMatch()) ||
+      m_igdbClientId == normalized) {
+    return;
+  }
+  m_igdbClientId = normalized;
+  save();
+  emit igdbClientIdChanged();
+}
+
+QString AppSettings::retroAchievementsUsername() const { return m_retroAchievementsUsername; }
+
+void AppSettings::setRetroAchievementsUsername(const QString& value) {
+  static const QRegularExpression valid(QStringLiteral("^[A-Za-z0-9_-]{2,20}$"));
+  const QString normalized = value.trimmed();
+  if ((!normalized.isEmpty() && !valid.match(normalized).hasMatch()) ||
+      m_retroAchievementsUsername == normalized) {
+    return;
+  }
+  m_retroAchievementsUsername = normalized;
+  save();
+  emit retroAchievementsUsernameChanged();
+}
+
+bool AppSettings::steamEnabled() const { return m_steamEnabled; }
+
+void AppSettings::setSteamEnabled(bool value) {
+  if (m_steamEnabled == value) {
+    return;
+  }
+  m_steamEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::epicEnabled() const { return m_epicEnabled; }
+
+void AppSettings::setEpicEnabled(bool value) {
+  if (m_epicEnabled == value) {
+    return;
+  }
+  m_epicEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::lutrisEnabled() const { return m_lutrisEnabled; }
+
+void AppSettings::setLutrisEnabled(bool value) {
+  if (m_lutrisEnabled == value) {
+    return;
+  }
+  m_lutrisEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::heroicEnabled() const { return m_heroicEnabled; }
+
+void AppSettings::setHeroicEnabled(bool value) {
+  if (m_heroicEnabled == value) {
+    return;
+  }
+  m_heroicEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::gogEnabled() const { return m_gogEnabled; }
+
+void AppSettings::setGogEnabled(bool value) {
+  if (m_gogEnabled == value) {
+    return;
+  }
+  m_gogEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::faugusEnabled() const { return m_faugusEnabled; }
+
+void AppSettings::setFaugusEnabled(bool value) {
+  if (m_faugusEnabled == value) {
+    return;
+  }
+  m_faugusEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::retroArchEnabled() const { return m_retroArchEnabled; }
+
+void AppSettings::setRetroArchEnabled(bool value) {
+  if (m_retroArchEnabled == value) {
+    return;
+  }
+  m_retroArchEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::pcsx2Enabled() const { return m_pcsx2Enabled; }
+
+void AppSettings::setPcsx2Enabled(bool value) {
+  const bool wasAuto = m_pcsx2Auto;
+  m_pcsx2Auto = false;  // an explicit user choice disables automatic detection
+  if (m_pcsx2Enabled == value && !wasAuto) {
+    return;
+  }
+  m_pcsx2Enabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::battleNetEnabled() const { return m_battleNetEnabled; }
+
+void AppSettings::setBattleNetEnabled(bool value) {
+  if (m_battleNetEnabled == value) {
+    return;
+  }
+  m_battleNetEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+void AppSettings::setRommEnabled(bool value) {
+  if (m_rommEnabled == value)
+    return;
+  const bool previous = m_rommEnabled;
+  m_rommEnabled = value;
+  if (!save()) {
+    m_rommEnabled = previous;
+    return;
+  }
+  emit sourcesChanged();
+}
+
+void AppSettings::setRommUrl(const QString& value) {
+  const QString normalized = value.trimmed().isEmpty() ? QString{} : normalizedRommUrl(value);
+  if ((!value.trimmed().isEmpty() && normalized.isEmpty()) || normalized == m_rommUrl)
+    return;
+  const QString previous = m_rommUrl;
+  m_rommUrl = normalized;
+  if (!save()) {
+    m_rommUrl = previous;
+    return;
+  }
+  emit rommConfigurationChanged();
+}
+
+void AppSettings::setRommLibraryRoot(const QString& value) {
+  const QString normalized =
+      value.trimmed().isEmpty() ? QString{} : normalizedLibraryPath(value);
+  if ((!value.trimmed().isEmpty() && normalized.isEmpty()) || normalized == m_rommLibraryRoot)
+    return;
+  const QString previous = m_rommLibraryRoot;
+  m_rommLibraryRoot = normalized;
+  if (!save()) {
+    m_rommLibraryRoot = previous;
+    return;
+  }
+  emit rommConfigurationChanged();
+}
+
+bool AppSettings::ryujinxEnabled() const { return m_ryujinxEnabled; }
+
+void AppSettings::setRyujinxEnabled(bool value) {
+  const bool wasAuto = m_ryujinxAuto;
+  m_ryujinxAuto = false;  // an explicit user choice disables automatic detection
+  if (m_ryujinxEnabled == value && !wasAuto) {
+    return;
+  }
+  m_ryujinxEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::pcsx2AutoEnabled() const { return m_pcsx2Auto; }
+
+void AppSettings::setPcsx2AutoEnabled(bool value) { m_pcsx2Auto = value; }
+
+bool AppSettings::ryujinxAutoEnabled() const { return m_ryujinxAuto; }
+
+void AppSettings::setRyujinxAutoEnabled(bool value) { m_ryujinxAuto = value; }
+
+bool AppSettings::shadps4Enabled() const { return m_shadps4Enabled; }
+
+void AppSettings::setShadps4Enabled(bool value) {
+  const bool wasAuto = m_shadps4Auto;
+  m_shadps4Auto = false;
+  if (m_shadps4Enabled == value && !wasAuto) {
+    return;
+  }
+  m_shadps4Enabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::cemuEnabled() const { return m_cemuEnabled; }
+
+void AppSettings::setCemuEnabled(bool value) {
+  const bool wasAuto = m_cemuAuto;
+  m_cemuAuto = false;
+  if (m_cemuEnabled == value && !wasAuto) {
+    return;
+  }
+  m_cemuEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::xeniaEnabled() const { return m_xeniaEnabled; }
+
+void AppSettings::setXeniaEnabled(bool value) {
+  const bool wasAuto = m_xeniaAuto;
+  m_xeniaAuto = false;
+  if (m_xeniaEnabled == value && !wasAuto) {
+    return;
+  }
+  m_xeniaEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::dolphinEnabled() const { return m_dolphinEnabled; }
+
+void AppSettings::setDolphinEnabled(bool value) {
+  const bool wasAuto = m_dolphinAuto;
+  m_dolphinAuto = false;
+  if (m_dolphinEnabled == value && !wasAuto) {
+    return;
+  }
+  m_dolphinEnabled = value;
+  save();
+  emit sourcesChanged();
+}
+
+bool AppSettings::dolphinAutoEnabled() const { return m_dolphinAuto; }
+
+void AppSettings::setDolphinAutoEnabled(bool value) { m_dolphinAuto = value; }
+
+bool AppSettings::shadps4AutoEnabled() const { return m_shadps4Auto; }
+
+void AppSettings::setShadps4AutoEnabled(bool value) { m_shadps4Auto = value; }
+
+bool AppSettings::cemuAutoEnabled() const { return m_cemuAuto; }
+
+void AppSettings::setCemuAutoEnabled(bool value) { m_cemuAuto = value; }
+
+bool AppSettings::xeniaAutoEnabled() const { return m_xeniaAuto; }
+
+void AppSettings::setXeniaAutoEnabled(bool value) { m_xeniaAuto = value; }
+
+bool AppSettings::consolePortalsEnabled() const { return m_consolePortalsEnabled; }
+
+void AppSettings::setConsolePortalsEnabled(bool value) {
+  if (m_consolePortalsEnabled == value) {
+    return;
+  }
+  m_consolePortalsEnabled = value;
+  save();
+  emit consolePortalsEnabledChanged();
+}
+
+QStringList AppSettings::romFolders() const { return m_romFolders; }
+
+void AppSettings::setRomFolders(const QStringList& value) {
+  QStringList normalized;
+  for (const QString& entry : value) {
+    const QString trimmed = entry.trimmed();
+    if (!trimmed.isEmpty() && !normalized.contains(trimmed)) {
+      normalized.append(trimmed);
+    }
+  }
+  if (m_romFolders == normalized) {
+    return;
+  }
+  m_romFolders = normalized;
+  save();
+  emit romFoldersChanged();
+}
+
+void AppSettings::addRomFolder(const QString& path, const QString& system) {
+  QString local = path.trimmed();
+  if (local.startsWith(QLatin1String("file:"))) {
+    local = QUrl(local).toLocalFile();
+  }
+  local = QDir::cleanPath(local);
+  const QString console = system.trimmed();
+  if (local.isEmpty() || console.isEmpty() || !QFileInfo::exists(local)) {
+    return;
+  }
+  QStringList next = m_romFolders;
+  const QString encoded = local + QLatin1Char('|') + console;
+  if (next.contains(encoded)) {
+    return;
+  }
+  next.append(encoded);
+  setRomFolders(next);
+}
+
+void AppSettings::removeRomFolderAt(int index) {
+  if (index < 0 || index >= m_romFolders.size()) {
+    return;
+  }
+  QStringList next = m_romFolders;
+  next.removeAt(index);
+  setRomFolders(next);
+}
+
+QStringList AppSettings::consoleLayouts() const { return m_consoleLayouts; }
+
+QString AppSettings::consoleLayout(const QString& system) const {
+  const QString id = ConsoleCatalog::idFor(system);
+  for (const QString& entry : m_consoleLayouts) {
+    const qsizetype split = entry.indexOf(QLatin1Char('='));
+    if (split > 0 && entry.left(split) == id) {
+      return entry.mid(split + 1) == QLatin1String("library") ? QStringLiteral("library")
+                                                               : QStringLiteral("card");
+    }
+  }
+  return QStringLiteral("follow");
+}
+
+void AppSettings::setConsoleLayout(const QString& system, const QString& layout) {
+  const QString id = ConsoleCatalog::idFor(system);
+  const QString normalized = layout == QLatin1String("card") ? QStringLiteral("card")
+                           : layout == QLatin1String("library") ? QStringLiteral("library")
+                                                               : QStringLiteral("follow");
+  if (id.isEmpty() || consoleLayout(id) == normalized) return;
+  QStringList next;
+  for (const QString& entry : m_consoleLayouts) {
+    if (!entry.startsWith(id + QLatin1Char('='))) next.append(entry);
+  }
+  if (normalized != QLatin1String("follow")) next.append(id + QLatin1Char('=') + normalized);
+  m_consoleLayouts = next;
+  save();
+  emit consoleLayoutsChanged();
+}
+
+QStringList AppSettings::cardSystems() const {
+  QStringList systems;
+  for (const ConsoleDefinition& console : ConsoleCatalog::all()) {
+    if (consoleLayout(console.id) != QLatin1String("library")) {
+      systems.append(console.id);
+    }
+  }
+  return systems;
+}
+
+QStringList AppSettings::fixedCardSystems() const {
+  QStringList systems;
+  for (const ConsoleDefinition& console : ConsoleCatalog::all()) {
+    if (consoleLayout(console.id) == QLatin1String("card")) systems.append(console.id);
+  }
+  return systems;
+}
+
+QVariantList AppSettings::consoleSystems() const {
+  QVariantList systems;
+  for (const ConsoleDefinition& console : ConsoleCatalog::all()) {
+    systems.append(QVariantMap{{QStringLiteral("id"), console.id},
+                               {QStringLiteral("name"), console.displayName},
+                               {QStringLiteral("layout"), consoleLayout(console.id)}});
+  }
+  return systems;
+}
+
+bool AppSettings::expandConsoles() const { return m_expandConsoles; }
+
+void AppSettings::setExpandConsoles(bool value) {
+  if (m_expandConsoles == value) {
+    return;
+  }
+  m_expandConsoles = value;
+  save();
+  emit expandConsolesChanged();
+}
+
+int AppSettings::consoleExpandLimit() const { return m_consoleExpandLimit; }
+
+void AppSettings::setConsoleExpandLimit(int value) {
+  value = qBound(10, value, 100000);
+  if (m_consoleExpandLimit == value) {
+    return;
+  }
+  m_consoleExpandLimit = value;
+  save();
+  emit consoleExpandLimitChanged();
+}
+
+bool AppSettings::preferStandaloneEmulators() const { return m_preferStandaloneEmulators; }
+
+void AppSettings::setPreferStandaloneEmulators(bool value) {
+  if (m_preferStandaloneEmulators == value) {
+    return;
+  }
+  m_preferStandaloneEmulators = value;
+  save();
+  emit preferStandaloneEmulatorsChanged();
+}
+
+bool AppSettings::closeAfterLaunch() const { return m_closeAfterLaunch; }
+
+void AppSettings::setCloseAfterLaunch(bool value) {
+  if (m_closeAfterLaunch == value) {
+    return;
+  }
+  m_closeAfterLaunch = value;
+  save();
+  emit closeAfterLaunchChanged();
+}
+
+void AppSettings::setProtectRetroArchSaves(bool value) {
+  if (m_protectRetroArchSaves == value) return;
+  m_protectRetroArchSaves = value;
+  save();
+  emit protectRetroArchSavesChanged();
+}
+
+bool AppSettings::trackPlaySessions() const { return m_trackPlaySessions; }
+
+void AppSettings::setTrackPlaySessions(bool value) {
+  if (m_trackPlaySessions == value) {
+    return;
+  }
+  m_trackPlaySessions = value;
+  save();
+  emit trackPlaySessionsChanged();
+}
+
+bool AppSettings::couchModeEnabled() const { return m_couchModeEnabled; }
+
+void AppSettings::setCouchModeEnabled(bool value) {
+  if (m_couchModeEnabled == value) {
+    return;
+  }
+  m_couchModeEnabled = value;
+  save();
+  emit couchModeEnabledChanged();
+}
+
+QString AppSettings::couchLibraryView() const { return m_couchLibraryView; }
+
+void AppSettings::setCouchLibraryView(const QString& value) {
+  const QString normalized = value == QStringLiteral("grid") ? value : QStringLiteral("detail");
+  if (m_couchLibraryView == normalized) {
+    return;
+  }
+  m_couchLibraryView = normalized;
+  save();
+  emit couchLibraryViewChanged();
+}
+
+int AppSettings::librarySortMode() const { return m_librarySortMode; }
+
+void AppSettings::setLibrarySortMode(int value) {
+  if (value < 0 || value >= kSortModeNames.size()) {
+    value = 0;
+  }
+  if (m_librarySortMode == value) {
+    return;
+  }
+  m_librarySortMode = value;
+  save();
+  emit librarySortModeChanged();
+}
+
+QString AppSettings::defaultPath() {
+#if defined(Q_OS_WIN)
+  const QString configDir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+  QDir().mkpath(configDir);
+  return configDir + QStringLiteral("/config.toml");
+#else
+  return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) +
+         QStringLiteral("/lezu/config.toml");
+#endif
+}
+
+void AppSettings::load() {
+  QFile file(m_path);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    return;
+  }
+  const QString contents = QString::fromUtf8(file.readAll());
+  const QRegularExpression pathsExpression(QStringLiteral("(?m)^gog_library_paths[ \t]*=[ \t]*(\\[[^\\r\\n]*\\])[ \t]*$"));
+  const auto pathsMatch = pathsExpression.match(contents);
+  if (pathsMatch.hasMatch()) {
+    const auto paths = QJsonDocument::fromJson(pathsMatch.captured(1).toUtf8()).array();
+    for (const auto& value : paths) {
+      if (!value.isString()) continue;
+      const QString path = normalizedLibraryPath(value.toString());
+      if (!path.isEmpty() && !m_gogLibraryPaths.contains(path) && m_gogLibraryPaths.size() < 64)
+        m_gogLibraryPaths.append(path);
+    }
+  }
+  const QRegularExpression motion(QStringLiteral("(?m)^reduced_motion\\s*=\\s*(true|false)\\s*$"));
+  const QRegularExpressionMatch motionMatch = motion.match(contents);
+  if (motionMatch.hasMatch()) {
+    m_reducedMotion = motionMatch.captured(1) == QStringLiteral("true");
+  }
+  const QRegularExpression limit(QStringLiteral("(?m)^artwork_cache_limit_mb\\s*=\\s*(\\d+)\\s*$"));
+  const QRegularExpressionMatch limitMatch = limit.match(contents);
+  if (limitMatch.hasMatch()) {
+    m_artworkCacheLimitMb = qBound(128, limitMatch.captured(1).toInt(), 8192);
+  }
+  const QRegularExpression steamId(
+      QStringLiteral("(?m)^steam_id\\s*=\\s*\"(7656119[0-9]{10})\"\\s*$"));
+  const QRegularExpressionMatch steamIdMatch = steamId.match(contents);
+  if (steamIdMatch.hasMatch()) {
+    m_steamId = steamIdMatch.captured(1);
+  }
+  const QRegularExpression igdbClientId(
+      QStringLiteral("(?m)^igdb_client_id\\s*=\\s*\"([A-Za-z0-9]{5,64})\"\\s*$"));
+  const QRegularExpressionMatch igdbClientIdMatch = igdbClientId.match(contents);
+  if (igdbClientIdMatch.hasMatch()) {
+    m_igdbClientId = igdbClientIdMatch.captured(1);
+  }
+  const QRegularExpression retroAchievementsUsername(
+      QStringLiteral("(?m)^retroachievements_username\\s*=\\s*\"([A-Za-z0-9_-]{2,20})\"\\s*$"));
+  const QRegularExpressionMatch retroAchievementsUsernameMatch =
+      retroAchievementsUsername.match(contents);
+  if (retroAchievementsUsernameMatch.hasMatch()) {
+    m_retroAchievementsUsername = retroAchievementsUsernameMatch.captured(1);
+  }
+  const auto readJsonString = [&contents](const QString& key) {
+    const auto match =
+        QRegularExpression(QStringLiteral("(?m)^%1\\s*=\\s*(\"[^\\r\\n]*\")\\s*$").arg(key))
+            .match(contents);
+    if (!match.hasMatch())
+      return QString{};
+    return QJsonDocument::fromJson(
+               QByteArrayLiteral("[") + match.captured(1).toUtf8() + QByteArrayLiteral("]"))
+        .array()
+        .at(0)
+        .toString();
+  };
+  m_rommUrl = normalizedRommUrl(readJsonString(QStringLiteral("romm_url")));
+  m_rommLibraryRoot =
+      normalizedLibraryPath(readJsonString(QStringLiteral("romm_library_root")));
+  const auto readEnabled = [&contents](const QString& key, bool fallback) {
+    const QRegularExpression expression(
+        QStringLiteral("(?m)^%1\\s*=\\s*(true|false)\\s*$").arg(key));
+    const QRegularExpressionMatch match = expression.match(contents);
+    return match.hasMatch() ? match.captured(1) == QStringLiteral("true") : fallback;
+  };
+#ifdef Q_OS_WIN
+  m_steamEnabled = readEnabled(QStringLiteral("steam_enabled"), true);
+  m_epicEnabled = readEnabled(QStringLiteral("epic_enabled"), true);
+  m_gogEnabled = readEnabled(QStringLiteral("gog_enabled"), true);
+  m_lutrisEnabled = readEnabled(QStringLiteral("lutris_enabled"), false);
+  m_heroicEnabled = readEnabled(QStringLiteral("heroic_enabled"), false);
+  m_faugusEnabled = readEnabled(QStringLiteral("faugus_enabled"), false);
+#else
+  m_steamEnabled = readEnabled(QStringLiteral("steam_enabled"), true);
+  m_epicEnabled = readEnabled(QStringLiteral("epic_enabled"), false);
+  m_lutrisEnabled = readEnabled(QStringLiteral("lutris_enabled"), true);
+  m_heroicEnabled = readEnabled(QStringLiteral("heroic_enabled"), true);
+  m_gogEnabled = readEnabled(QStringLiteral("gog_enabled"), true);
+  m_faugusEnabled = readEnabled(QStringLiteral("faugus_enabled"), true);
+#endif
+  m_retroArchEnabled = readEnabled(QStringLiteral("retroarch_enabled"), true);
+  const QRegularExpression pcsx2Key(
+      QStringLiteral("(?m)^pcsx2_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_pcsx2Auto = !pcsx2Key.match(contents).hasMatch();
+  m_pcsx2Enabled = readEnabled(QStringLiteral("pcsx2_enabled"), false);
+  const QRegularExpression ryujinxKey(
+      QStringLiteral("(?m)^ryujinx_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_ryujinxAuto = !ryujinxKey.match(contents).hasMatch();
+  m_ryujinxEnabled = readEnabled(QStringLiteral("ryujinx_enabled"), false);
+  const QRegularExpression shadps4Key(
+      QStringLiteral("(?m)^shadps4_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_shadps4Auto = !shadps4Key.match(contents).hasMatch();
+  m_shadps4Enabled = readEnabled(QStringLiteral("shadps4_enabled"), false);
+  const QRegularExpression cemuKey(
+      QStringLiteral("(?m)^cemu_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_cemuAuto = !cemuKey.match(contents).hasMatch();
+  m_cemuEnabled = readEnabled(QStringLiteral("cemu_enabled"), false);
+  const QRegularExpression xeniaKey(
+      QStringLiteral("(?m)^xenia_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_xeniaAuto = !xeniaKey.match(contents).hasMatch();
+  m_xeniaEnabled = readEnabled(QStringLiteral("xenia_enabled"), false);
+  const QRegularExpression dolphinKey(QStringLiteral("(?m)^dolphin_enabled\\s*=\\s*(true|false)\\s*$"));
+  m_dolphinAuto = !dolphinKey.match(contents).hasMatch();
+  m_dolphinEnabled = readEnabled(QStringLiteral("dolphin_enabled"), false);
+  m_consolePortalsEnabled = readEnabled(QStringLiteral("console_portals_enabled"), true);
+  m_preferStandaloneEmulators = readEnabled(QStringLiteral("prefer_standalone_emulators"), false);
+  const QRegularExpression consoleLayouts(
+      QStringLiteral("(?ms)^console_layouts\\s*=\\s*\"\"\"(.*?)\"\"\"\\s*$"));
+  const QRegularExpressionMatch consoleLayoutsMatch = consoleLayouts.match(contents);
+  if (consoleLayoutsMatch.hasMatch()) {
+    static const QRegularExpression valid(QStringLiteral("^[a-z0-9]+=(card|library)$"));
+    for (const QString& entry : consoleLayoutsMatch.captured(1).split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+      if (valid.match(entry.trimmed()).hasMatch()) {
+        m_consoleLayouts.append(entry.trimmed());
+      }
+    }
+  }
+  m_expandConsoles = readEnabled(QStringLiteral("expand_consoles"), false);
+  const QRegularExpression expandLimit(QStringLiteral("(?m)^console_expand_limit\\s*=\\s*(\\d+)\\s*$"));
+  const QRegularExpressionMatch expandLimitMatch = expandLimit.match(contents);
+  if (expandLimitMatch.hasMatch()) {
+    m_consoleExpandLimit = qBound(10, expandLimitMatch.captured(1).toInt(), 100000);
+  }
+  const QRegularExpression romFolders(
+      QStringLiteral("(?ms)^rom_folders\\s*=\\s*\"\"\"(.*?)\"\"\"\\s*$"));
+  const QRegularExpressionMatch romFoldersMatch = romFolders.match(contents);
+  if (romFoldersMatch.hasMatch()) {
+    m_romFolders = romFoldersMatch.captured(1).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+  }
+  m_battleNetEnabled = readEnabled(QStringLiteral("battlenet_enabled"), true);
+  m_rommEnabled = readEnabled(QStringLiteral("romm_enabled"), false);
+  m_protonDbEnabled = readEnabled(QStringLiteral("protondb_enabled"), false);
+  m_protonDbBadges = readEnabled(QStringLiteral("protondb_badges"), false);
+  m_closeAfterLaunch = readEnabled(QStringLiteral("close_after_launch"), false);
+  m_protectRetroArchSaves = readEnabled(QStringLiteral("protect_retroarch_saves"), true);
+  m_trackPlaySessions = readEnabled(QStringLiteral("track_play_sessions"), true);
+  m_couchModeEnabled = readEnabled(QStringLiteral("couch_mode_enabled"), false);
+  for (const auto& name : {QStringLiteral("cover_size"), QStringLiteral("couch_cover_size")}) {
+    const auto match = QRegularExpression(QStringLiteral("(?m)^%1\\s*=\\s*(-?[0-9]+)\\s*$").arg(name)).match(contents);
+    if (match.hasMatch()) {
+      bool valid = false; const int value = match.captured(1).toInt(&valid);
+      if (valid) (name == QStringLiteral("cover_size") ? m_coverSize : m_couchCoverSize) = qBound(60, value, 160);
+    }
+  }
+  const QRegularExpression couchLibraryView(
+      QStringLiteral("(?m)^couch_library_view\\s*=\\s*\"(detail|grid)\"\\s*$"));
+  const QRegularExpressionMatch couchLibraryViewMatch = couchLibraryView.match(contents);
+  if (couchLibraryViewMatch.hasMatch()) {
+    m_couchLibraryView = couchLibraryViewMatch.captured(1);
+  }
+  const QRegularExpression sortMode(
+      QStringLiteral("(?m)^library_sort_mode\\s*=\\s*\"(title|recent|playtime|rating|popularity)\"\\s*$"));
+  const QRegularExpressionMatch sortModeMatch = sortMode.match(contents);
+  if (sortModeMatch.hasMatch()) {
+    m_librarySortMode = static_cast<int>(kSortModeNames.indexOf(sortModeMatch.captured(1)));
+  }
+  m_sunshineOmakadeApp = readEnabled(QStringLiteral("sunshine_omakade_app"), false);
+  m_sunshineGameApps = readEnabled(QStringLiteral("sunshine_game_apps"), false);
+}
+
+bool AppSettings::sunshineOmakadeApp() const { return m_sunshineOmakadeApp; }
+
+void AppSettings::setSunshineOmakadeApp(bool value) {
+  if (m_sunshineOmakadeApp == value) {
+    return;
+  }
+  m_sunshineOmakadeApp = value;
+  save();
+  emit sunshineChanged();
+}
+
+bool AppSettings::sunshineGameApps() const { return m_sunshineGameApps; }
+
+void AppSettings::setSunshineGameApps(bool value) {
+  if (m_sunshineGameApps == value) {
+    return;
+  }
+  m_sunshineGameApps = value;
+  save();
+  emit sunshineChanged();
+}
+
+bool AppSettings::save() {
+  const auto failed = [this] {
+    emit saveFailed(QStringLiteral("Settings could not be saved. Recent changes may be lost when Omakade closes."));
+    return false;
+  };
+  QDir().mkpath(QFileInfo(m_path).absolutePath());
+  QSaveFile file(m_path);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    return failed();
+  }
+  // Emulator source keys are written only once their state is explicit (detection
+  // completed or the user chose a value); while auto-detection is pending the keys
+  // stay absent so a later emulator installation can still enable its source.
+  QString contents =
+      QStringLiteral("reduced_motion = %1\nartwork_cache_limit_mb = %2\nsteam_id = \"%3\"\n"
+                     "igdb_client_id = \"%4\"\nretroachievements_username = \"%5\"\n"
+                     "steam_enabled = %6\nepic_enabled = %7\nlutris_enabled = %8\nheroic_enabled = %9\n"
+                     "gog_enabled = %10\nfaugus_enabled = %11\nretroarch_enabled = %12\n"
+                     "battlenet_enabled = %13\n")
+          .arg(m_reducedMotion ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_artworkCacheLimitMb)
+          .arg(m_steamId)
+          .arg(m_igdbClientId)
+          .arg(m_retroAchievementsUsername)
+          .arg(m_steamEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_epicEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_lutrisEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_heroicEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_gogEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_faugusEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_retroArchEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+          .arg(m_battleNetEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  if (!m_pcsx2Auto) {
+    contents += QStringLiteral("pcsx2_enabled = %1\n")
+                    .arg(m_pcsx2Enabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  if (!m_ryujinxAuto) {
+    contents += QStringLiteral("ryujinx_enabled = %1\n")
+                    .arg(m_ryujinxEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  if (!m_shadps4Auto) {
+    contents += QStringLiteral("shadps4_enabled = %1\n")
+                    .arg(m_shadps4Enabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  if (!m_cemuAuto) {
+    contents += QStringLiteral("cemu_enabled = %1\n")
+                    .arg(m_cemuEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  if (!m_xeniaAuto) {
+    contents += QStringLiteral("xenia_enabled = %1\n")
+                    .arg(m_xeniaEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  if (!m_dolphinAuto) {
+    contents += QStringLiteral("dolphin_enabled = %1\n")
+                    .arg(m_dolphinEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  }
+  contents += QStringLiteral("console_portals_enabled = %1\n")
+                  .arg(m_consolePortalsEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  contents += QStringLiteral("prefer_standalone_emulators = %1\n")
+                  .arg(m_preferStandaloneEmulators ? QStringLiteral("true")
+                                                   : QStringLiteral("false"));
+  contents += QStringLiteral("protect_retroarch_saves = %1\n").arg(m_protectRetroArchSaves ? "true" : "false");
+  contents += QStringLiteral("rom_folders = \"\"\"\n%1\"\"\"\n").arg(m_romFolders.join('\n'));
+  contents += QStringLiteral("console_layouts = \"\"\"\n%1\"\"\"\n").arg(m_consoleLayouts.join('\n'));
+  contents += QStringLiteral("expand_consoles = %1\nconsole_expand_limit = %2\n")
+                  .arg(m_expandConsoles ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(m_consoleExpandLimit);
+  contents += QStringLiteral("close_after_launch = %1\n"
+                             "track_play_sessions = %7\n"
+                             "couch_mode_enabled = %2\n"
+                             "couch_library_view = \"%3\"\n"
+                             "library_sort_mode = \"%6\"\n"
+                             "sunshine_omakade_app = %4\nsunshine_game_apps = %5\n")
+                  .arg(m_closeAfterLaunch ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(m_couchModeEnabled ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(m_couchLibraryView)
+                  .arg(m_sunshineOmakadeApp ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(m_sunshineGameApps ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(kSortModeNames.value(m_librarySortMode))
+                  .arg(m_trackPlaySessions ? QStringLiteral("true") : QStringLiteral("false"));
+  contents += QStringLiteral("cover_size = %1\ncouch_cover_size = %2\n").arg(m_coverSize).arg(m_couchCoverSize);
+  contents += QStringLiteral("gog_library_paths = ") +
+              QString::fromUtf8(QJsonDocument(QJsonArray::fromStringList(m_gogLibraryPaths))
+                                   .toJson(QJsonDocument::Compact)) + QLatin1Char('\n');
+  contents += QStringLiteral("protondb_enabled = %1\n").arg(m_protonDbEnabled ? QStringLiteral("true") : QStringLiteral("false"));
+  contents += QStringLiteral("protondb_badges = %1\n").arg(m_protonDbBadges ? QStringLiteral("true") : QStringLiteral("false"));
+  const auto jsonString = [](const QString& value) {
+    const QByteArray array = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
+    return QString::fromUtf8(array.mid(1, array.size() - 2));
+  };
+  contents += QStringLiteral("romm_enabled = %1\nromm_url = %2\nromm_library_root = %3\n")
+                  .arg(m_rommEnabled ? QStringLiteral("true") : QStringLiteral("false"),
+                       jsonString(m_rommUrl), jsonString(m_rommLibraryRoot));
+  const QByteArray encoded = contents.toUtf8();
+  if (file.write(encoded) != encoded.size() || !file.commit())
+    return failed();
+  return true;
+}
+
+void AppSettings::setCoverSize(int value) {
+  value = qBound(60, value, 160);
+  if (m_coverSize == value) return;
+  m_coverSize = value; save(); emit coverSizeChanged();
+}
+void AppSettings::setCouchCoverSize(int value) {
+  value = qBound(60, value, 160);
+  if (m_couchCoverSize == value) return;
+  m_couchCoverSize = value; save(); emit couchCoverSizeChanged();
+}

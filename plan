@@ -1,0 +1,76 @@
+# Lezu — Windows Port Execution Plan
+
+This plan documents the roadmap for porting **Omakade** (Linux game library) to Windows as **Lezu**.
+
+## Confirmed Project Decisions
+1. **Application Name**: `Lezu`
+2. **Theme**: Fixed dark mode matching Omakade's cover-focused aesthetic ("Lezu Dark").
+3. **Launchers in Scope**: Steam, Epic Games Store, GOG Galaxy. (Linux-only launchers like Lutris, Faugus, Heroic, and Flatpak are dropped or disabled by default on Windows).
+4. **Emulators in Scope**:
+   - **PS1**: DuckStation
+   - **PS2**: PCSX2
+   - **PS3**: RPCS3
+   - **GB / GBA**: RetroArch
+   - **PSP**: PPSSPP
+   - **N64**: Project64
+   - **DS**: melonDS
+   - **3DS**: Azahar
+5. **Session Tracking Architecture**: Integrated **in-process worker thread** (`WinSessionWorker`) using Win32 Toolhelp32 & PEB inspection rather than a separate `omakade-sessiond` daemon executable.
+
+---
+
+## Phases & Tasks
+
+### Phase 1: Build System & Core Windows Abstractions
+- [x] Cloned upstream repository to `scratch/lezu`.
+- [x] Implemented `WinProcFs.cpp` (Win32 process snapshot and alive check via `CreateToolhelp32Snapshot`, `GetProcessTimes`, `QueryFullProcessImageNameW`, and PEB cmdline parsing).
+- [x] Implemented `WinSecretService.h` and `WinSecretService.cpp` (Windows Credential Manager via `wincred.h`).
+- [x] Patched `SingleInstance.cpp` (replaced `unistd.h` and `getuid()` with Windows username-based named pipe server).
+- [x] Patched `IdleInhibitor.h` and `IdleInhibitor.cpp` (replaced Wayland idle-inhibit protocol with `SetThreadExecutionState`).
+- [x] Implemented cross-platform secret storage adapter in `SecretService.h` and updated call sites (`GameInsightsService.cpp`, `GameMetadata.cpp`, `RommCredentials.cpp`, `RetroAchievementsService.cpp`, `SteamAccountService.cpp`).
+- [x] Updated `CMakeLists.txt`:
+  - Made `libsecret` and Wayland optional/Linux-only.
+  - Linked Windows libraries (`advapi32`, `crypt32`, `shell32`, `user32`).
+  - Wired `WinProcFs`, `WinSecretService`, `WinPaths`, and `WinSessionWorker` when `WIN32`.
+  - Conditioned out Linux-only daemon `omakade-sessiond`.
+  - Configured output executable as `lezu.exe` with `WIN32_EXECUTABLE`.
+
+### Phase 2: Windows Paths & In-Process Session Tracker
+- [x] Created `WinPaths.h` / `WinPaths.cpp` providing Windows paths (`%APPDATA%`, `%LOCALAPPDATA%`, `Program Files`, Registry lookups for Steam, GOG, and all 8 emulators).
+- [x] Implemented `WinSessionWorker.h` / `WinSessionWorker.cpp` to run session tracking inside the main process on Windows instead of relying on `omakade-sessiond`.
+- [x] Replaced hardcoded Linux paths in `SessionDatabase.cpp` and `PlaySessionStore.cpp` with Windows-safe paths.
+- [x] Wired `WinSessionWorker` in `src/app/main.cpp` to start with `preferences.trackPlaySessions()`.
+
+### Phase 3: Launcher & Emulator Integrations for Windows
+- [x] **Steam**: Integrated `WinPaths::steamInstallPath()` in `SteamScanner.cpp` and direct Windows `steam.exe` execution in `SteamLauncher.cpp`.
+- [x] **Epic Games Store**: Implemented `EpicScanner.h` / `EpicScanner.cpp` parsing `%ProgramData%\Epic\EpicGamesLauncher\Data\Manifests\*.item`.
+- [x] **GOG Galaxy**: Implemented `GogWindowsScanner.h` / `GogWindowsScanner.cpp` via registry (`HKLM`/`HKCU\SOFTWARE\GOG.com\Games`) and folder scanning (`goggame-*.info`).
+- [x] Implemented `EpicGameModel` and `GogGameModel` with SQLite caching, favorites, hidden states, and registered into `UnifiedGameModel`.
+- [x] **Emulators**:
+  - DuckStation (PS1)
+  - PCSX2 (PS2)
+  - RPCS3 (PS3)
+  - RetroArch (GB / GBA)
+  - PPSSPP (PSP)
+  - Project64 (N64)
+  - melonDS (DS)
+  - Azahar (3DS)
+- [x] Launch delegation: Native Windows direct execution and protocol launch in `GameLauncher.cpp`.
+
+### Phase 4: Theme, Packaging & CI
+- [x] Configured fallback dark theme "Lezu Dark" in `src/theme/OmarchyTheme.cpp`.
+- [x] Generated multi-size application icon `resources/icons/lezu.ico` (256x256 down to 16x16) and `src/platform/windows/lezu.rc`.
+- [x] Embedded session profiles resource `resources/sessiond-profiles.json` into executable binary.
+- [x] Created Windows CI/CD workflow `.github/workflows/ci-windows.yml` with automated testing, `windeployqt` bundling, and release packaging.
+- [x] Guarded tests in `tests/CMakeLists.txt` and `tests/CoreTests.cpp` for Windows.
+
+### Phase 5: Code Review, Bug Fixes & Dead Code Elimination
+- [x] **Game Process Tracking Fix**: Replaced Linux `/proc/<pid>/stat` in `GameLauncher::processStartTime` with Win32 `OpenProcess` + `GetProcessTimes` + `GetExitCodeProcess`.
+- [x] **Cross-Platform Path Validation**: Fixed `validLaunchPath`, `validShadps4Path`, `validDolphinPath`, and `validBattleNetPrefix` using `QFileInfo::isAbsolute()` instead of Unix `path.startsWith('/')`.
+- [x] **Enhanced Standalone Emulator Search**: Extended `findStandalone` to search `%LOCALAPPDATA%\Programs`, `%ProgramFiles%`, `%ProgramFiles(x86)%`, and `%APPDATA%` subfolders in addition to `PATH`, with casing variants for all 8 emulators.
+- [x] **RetroArch Windows Core Discovery & Execution**: Replaced Linux `.so` and `/usr/lib/libretro` paths in `findRetroArchCore` with `.dll` and Windows directory trees (`%APPDATA%/RetroArch/cores`, install dirs). Resolved standalone executable in `retroArchCommand` and `pcsx2Command`.
+- [x] **GLib Dependency Removed on Windows**: Conditioned `#include <glib.h>` and `.desktop` parsing out of `ManualGameModel.cpp` so Windows builds don't require external GLib.
+- [x] **QML Windows File Dialogs**: Updated `LaunchSetupPanel.qml` and `SaveProtectionPanel.qml` to handle Windows drive letter URL paths and support `.dll` Libretro core filter.
+- [x] **Hardcoded Paths Fixed**: Migrated default database path, configs, and cover caches to `%APPDATA%/Lezu` and `%LOCALAPPDATA%/Lezu`.
+- [x] **Dead Code Eliminated**: Removed `src/sessiond/`, `packaging/` (Linux systemd, desktop, AppStream, Arch PKGBUILD), `skills/omakade-tv-gaming`, `tests/TvGameLauncherTests.py`, and redundant `WinProcFs.h`.
+- [x] **UI & Branding Final Polish**: Cleaned UI titles, headers, dialogs, user agents, SQLite connection names (`lezu-*`), and Sunshine strings to "Lezu". Removed Linux launchers (`LUTRIS`, `HEROIC`, `FAUGUS`) from settings and library filters.

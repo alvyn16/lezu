@@ -1,0 +1,1298 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Window
+
+FocusScope {
+    id: root
+
+    required property var libraryModel
+    property string viewOverride: ""
+    property bool scanning: false
+    property int currentIndex: 0
+    property bool updatingGameViews: false
+    property var currentGame: ({})
+    property var pendingCurrent: null
+    property alias searchKeyboard: couchKeyboard
+    property bool searchOpen: false
+    property string searchInitial: ""
+    property bool browseOpen: false
+    readonly property var sourceOptions: [
+        { label: "ALL SOURCES", value: "" },
+        { label: "EMULATED", value: "Emulated" },
+        { label: "STEAM", value: "Steam", enabled: Preferences.steamEnabled },
+        { label: "EPIC", value: "Epic", enabled: Preferences.epicEnabled },
+        { label: "GOG", value: "GOG", enabled: Preferences.gogEnabled },
+        { label: "BATTLE.NET", value: "Battle.net", enabled: Preferences.battleNetEnabled },
+        { label: "RETROARCH", value: "RetroArch", enabled: Preferences.retroArchEnabled },
+        { label: "PCSX2", value: "PCSX2", enabled: Preferences.pcsx2Enabled },
+        { label: "RYUJINX", value: "Ryujinx", enabled: Preferences.ryujinxEnabled },
+        { label: "SHADPS4", value: "shadPS4", enabled: Preferences.shadps4Enabled },
+        { label: "CEMU", value: "Cemu", enabled: Preferences.cemuEnabled },
+        { label: "XENIA", value: "Xenia", enabled: Preferences.xeniaEnabled },
+        { label: "DOLPHIN", value: "Dolphin", enabled: Preferences.dolphinEnabled },
+        { label: "MANUAL", value: "Manual", enabled: true }
+    ].filter(function(option) { return option.enabled === undefined || option.enabled })
+    readonly property bool detailView: (viewOverride.length > 0
+                                        ? viewOverride : Preferences.couchLibraryView) !== "grid"
+    readonly property bool gridFocused: root.activeGameView().activeFocus
+    readonly property real uiScale: Math.max(0.68, Math.min(2.0,
+                                                           Math.min(width / 1920,
+                                                                    height / 1080)))
+
+    signal gameActivated(int index)
+    signal favoriteToggled(int index)
+    signal organizeRequested()
+    signal savedFiltersRequested()
+    signal randomRequested()
+    signal settingsRequested()
+    signal homeRequested()
+    signal desktopRequested()
+    signal coverRequested(string source, string appId)
+
+    Accessible.name: "Couch library"
+    Accessible.role: Accessible.List
+
+    function alpha(color, value) {
+        return Qt.rgba(color.r, color.g, color.b, value)
+    }
+
+    function refreshCurrentGame() {
+        if (libraryModel && currentIndex >= 0 && currentIndex < libraryModel.rowCount()) {
+            currentGame = libraryModel.get(currentIndex)
+        } else {
+            currentGame = ({})
+        }
+    }
+
+    function activeGameView() {
+        return root.detailView ? gameStrip : gameGrid
+    }
+
+    function syncGameViews() {
+        // Attaching a model initializes the view's index. Keep that temporary
+        // index from replacing the selected game while switching layouts.
+        const selectedIndex = root.currentIndex
+        root.updatingGameViews = true
+        gameStrip.model = root.detailView ? root.libraryModel : null
+        gameGrid.model = root.detailView ? null : root.libraryModel
+        const view = root.activeGameView()
+        view.currentIndex = selectedIndex
+        if (selectedIndex >= 0) {
+            view.positionViewAtIndex(selectedIndex, GridView.Contain)
+        }
+        root.updatingGameViews = false
+    }
+
+    function focusGrid() {
+        const view = root.activeGameView()
+        if (view.count > 0) {
+            view.forceActiveFocus(Qt.TabFocusReason)
+        } else {
+            settingsButton.forceActiveFocus(Qt.TabFocusReason)
+        }
+    }
+
+    function toggleLibraryView() {
+        const hadGameFocus = root.gridFocused
+        Preferences.couchLibraryView = root.detailView ? "grid" : "detail"
+        if (hadGameFocus)
+            root.focusGrid()
+    }
+
+    function toggleControls() {
+        if (searchOpen || browseOpen) {
+            return
+        }
+        if (root.gridFocused) {
+            if (root.detailView) {
+                viewButton.forceActiveFocus(Qt.TabFocusReason)
+            } else {
+                layoutButton.forceActiveFocus(Qt.TabFocusReason)
+            }
+        } else {
+            focusGrid()
+        }
+    }
+
+    readonly property string sourceLabel: {
+        const chosen = root.libraryModel.sourceFilters
+        if (!chosen || chosen.length === 0)
+            return "ALL"
+        if (chosen.length === 1)
+            return chosen[0].toUpperCase()
+        const grouped = root.libraryModel.sourceFilter
+        if (grouped && grouped.toUpperCase() === "EMULATED")
+            return "EMULATED"
+        return chosen.length + " SOURCES"
+    }
+    readonly property string sortLabel:
+        root.libraryModel.sortMode === 1 ? "RECENT"
+      : root.libraryModel.sortMode === 2 ? "PLAYTIME"
+      : root.libraryModel.sortMode === 3 ? "RATING"
+      : root.libraryModel.sortMode === 4 ? "POPULARITY" : "TITLE"
+
+    function selectMode(mode) {
+        libraryModel.mode = mode
+        currentIndex = libraryModel.rowCount() > 0 ? 0 : -1
+    }
+
+    function cycleSource() {
+        const current = root.libraryModel.sourceFilter
+        const index = root.sourceOptions.findIndex(function(option) { return option.value === current })
+        root.libraryModel.sourceFilter = root.sourceOptions[(index + 1) % root.sourceOptions.length].value
+    }
+
+    function openSearch() {
+        searchInitial = libraryModel.searchText
+        couchKeyboard.value = searchInitial
+        searchOpen = true
+        Qt.callLater(couchKeyboard.focusKeyboard)
+    }
+
+    function openBrowse() {
+        couchBrowse.categoryIndex = 0
+        couchBrowse.rebuildOptions()
+        browseOpen = true
+        Qt.callLater(couchBrowse.focusPanel)
+    }
+
+    function closeBrowse() {
+        browseOpen = false
+        currentIndex = libraryModel.rowCount() > 0
+                       ? Math.max(0, Math.min(currentIndex,
+                                             libraryModel.rowCount() - 1))
+                       : -1
+        refreshCurrentGame()
+        Qt.callLater(function() {
+            filtersButton.forceActiveFocus(Qt.TabFocusReason)
+        })
+    }
+
+    function closeSearch(accepted) {
+        if (!accepted) {
+            libraryModel.searchText = searchInitial
+        }
+        searchOpen = false
+        currentIndex = libraryModel.rowCount() > 0 ? 0 : -1
+        Qt.callLater(function() {
+            if (accepted) {
+                root.focusGrid()
+            } else {
+                searchButton.forceActiveFocus(Qt.TabFocusReason)
+            }
+        })
+    }
+
+    onCurrentIndexChanged: refreshCurrentGame()
+    onLibraryModelChanged: {
+        syncGameViews()
+        refreshCurrentGame()
+    }
+    onDetailViewChanged: syncGameViews()
+
+    Connections {
+        target: root.libraryModel
+        function onModelAboutToBeReset() {
+            if (root.currentIndex >= 0 && root.currentIndex < root.libraryModel.rowCount()) {
+                const game = root.libraryModel.get(root.currentIndex)
+                root.pendingCurrent = { source: game.source, runner: game.runner || "",
+                                        appId: game.appId }
+            } else {
+                root.pendingCurrent = null
+            }
+        }
+        function onModelReset() {
+            const needsInitialFocus = root.currentIndex < 0
+            const pending = root.pendingCurrent
+            root.pendingCurrent = null
+            const matched = pending
+                            ? root.libraryModel.indexOf(pending.source, pending.runner,
+                                                        pending.appId)
+                            : -1
+            root.currentIndex = matched >= 0 ? matched
+                                : root.libraryModel.rowCount() > 0
+                                  ? Math.max(0, Math.min(root.currentIndex,
+                                                        root.libraryModel.rowCount() - 1))
+                                  : -1
+            root.refreshCurrentGame()
+            if (needsInitialFocus && root.currentIndex >= 0 && root.visible
+                    && root.gridFocused && !root.searchOpen && !root.browseOpen) {
+                Qt.callLater(root.focusGrid)
+            }
+        }
+        function onRowsInserted() {
+            const needsInitialFocus = root.currentIndex < 0
+            if (needsInitialFocus && root.libraryModel.rowCount() > 0) {
+                root.currentIndex = 0
+            }
+            root.refreshCurrentGame()
+            if (needsInitialFocus && root.currentIndex >= 0 && root.visible
+                    && root.gridFocused && !root.searchOpen && !root.browseOpen) {
+                Qt.callLater(root.focusGrid)
+            }
+        }
+        function onRowsRemoved() {
+            root.currentIndex = root.libraryModel.rowCount() > 0
+                                ? Math.max(0, Math.min(root.currentIndex,
+                                                      root.libraryModel.rowCount() - 1))
+                                : -1
+            root.refreshCurrentGame()
+        }
+        function onDataChanged() { root.refreshCurrentGame() }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: root.alpha(Theme.darkerBackground, Math.max(0.90, Theme.surfaceAlpha))
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: root.currentGame.accentStart
+                       ? root.alpha(root.currentGame.accentStart, 0.38)
+                       : root.alpha(Theme.accent, 0.24)
+            }
+            GradientStop {
+                position: 0.52
+                color: root.alpha(Theme.darkerBackground, 0.74)
+            }
+            GradientStop {
+                position: 1
+                color: root.alpha(Theme.darkerBackground, 0.96)
+            }
+        }
+    }
+
+    Image {
+        id: heroArtwork
+        anchors.fill: parent
+        source: root.currentGame.heroPath || ""
+        asynchronous: true
+        cache: false
+        fillMode: Image.PreserveAspectCrop
+        sourceSize.width: Math.ceil(width * Math.max(1, Screen.devicePixelRatio) / 128) * 128
+        sourceSize.height: Math.ceil(height * Math.max(1, Screen.devicePixelRatio) / 128) * 128
+        opacity: status === Image.Ready ? 0.58 : 0
+
+        Behavior on opacity {
+            enabled: !Preferences.reducedMotion
+            NumberAnimation { duration: 220 }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0; color: root.alpha(Theme.darkerBackground, 0.12) }
+            GradientStop { position: 0.58; color: root.alpha(Theme.darkerBackground, 0.62) }
+            GradientStop { position: 1; color: root.alpha(Theme.darkerBackground, 0.98) }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: root.alpha(Theme.darkerBackground, 0.94) }
+            GradientStop { position: 0.58; color: root.alpha(Theme.darkerBackground, 0.34) }
+            GradientStop { position: 1; color: root.alpha(Theme.darkerBackground, 0.12) }
+        }
+    }
+
+    Rectangle {
+        anchors.left: topBar.left
+        anchors.right: topBar.right
+        anchors.top: topBar.top
+        anchors.bottom: topBar.bottom
+        anchors.margins: -12 * root.uiScale
+        radius: Math.max(12 * root.uiScale, Theme.cornerRadius * 2)
+        color: root.alpha(Theme.background, Math.min(0.78, Theme.surfaceAlpha * 0.78))
+        border.color: root.alpha(Theme.foreground, 0.12)
+    }
+
+    ColumnLayout {
+        id: topBar
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: 32 * root.uiScale
+        anchors.leftMargin: 54 * root.uiScale
+        anchors.rightMargin: 54 * root.uiScale
+        spacing: 12 * root.uiScale
+
+        RowLayout {
+            Layout.fillWidth: true
+            Row {
+                spacing: 12 * root.uiScale
+                Layout.alignment: Qt.AlignVCenter
+
+                Image {
+                    width: 42 * root.uiScale
+                    height: width
+                    source: "qrc:/icons/resources/icons/lezu.svg"
+                    sourceSize: Qt.size(96, 96)
+                    Accessible.ignored: true
+                }
+
+                Column {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 0
+
+                    Text {
+                        text: "LEZU"
+                        color: Theme.brightForeground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 18 * root.uiScale
+                        font.weight: Font.Bold
+                        font.letterSpacing: 2
+                    }
+                    Text {
+                        text: "COUCH MODE"
+                        color: Theme.accent
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 9 * root.uiScale
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.4
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            GlassButton {
+                id: homeButton
+                objectName: "couchHomeButton"
+                text: "HOME"
+                compact: true
+                onClicked: root.homeRequested()
+                KeyNavigation.left: desktopButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: settingsButton
+                objectName: "couchSettingsButton"
+                text: "SETTINGS"
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                onClicked: root.settingsRequested()
+                KeyNavigation.left: filtersButton
+                KeyNavigation.right: desktopButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: desktopButton
+                objectName: "couchDesktopButton"
+                text: "DESKTOP"
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                onClicked: root.desktopRequested()
+                KeyNavigation.left: settingsButton
+                KeyNavigation.right: homeButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+        }
+        Flow {
+            Layout.fillWidth: true
+            spacing: 7 * root.uiScale
+
+            GlassButton {
+                id: consoleButton
+                objectName: "couchConsoleButton"
+                // Inside a console the grid only shows that system's cartridges;
+                // this is the visible way back on a controller.
+                visible: root.libraryModel.consoleTitle.length > 0
+                text: "\u2190 " + root.libraryModel.consoleTitle.toUpperCase()
+                compact: true
+                primary: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                onClicked: {
+                    root.libraryModel.consoleFilter = ""
+                    root.currentIndex = root.libraryModel.rowCount() > 0 ? 0 : -1
+                }
+                KeyNavigation.right: showButton
+                KeyNavigation.down: root.detailView ? viewButton : gameGrid
+            }
+            // What the library is showing, and what it is filtered and sorted by, are stated on
+            // the bar rather than hidden inside Browse. Being unable to tell that only one
+            // source was selected is what made the library look broken.
+            GlassButton {
+                id: showButton
+                objectName: "couchShowButton"
+                text: "SHOW: " + (root.libraryModel.mode === 1 ? "FAVORITES" : root.libraryModel.mode === 2 ? "RECENT" : "ALL")
+                Accessible.name: "Showing " + (root.libraryModel.mode === 1 ? "favorites" : root.libraryModel.mode === 2 ? "recently played" : "all games")
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                selected: root.libraryModel.mode !== 0
+                onClicked: root.selectMode((root.libraryModel.mode + 1) % 3)
+                KeyNavigation.left: consoleButton.visible ? consoleButton : null
+                KeyNavigation.right: sourceButton
+                KeyNavigation.down: root.detailView ? viewButton : gameGrid
+            }
+            GlassButton {
+                id: sourceButton
+                objectName: "couchSourceButton"
+                text: "SOURCE: " + root.sourceLabel
+                Accessible.name: "Source filter: " + root.sourceLabel.toLowerCase()
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                selected: root.libraryModel.sourceFilters.length > 0
+                onClicked: root.cycleSource()
+                KeyNavigation.left: showButton
+                KeyNavigation.right: sortButton
+                KeyNavigation.down: root.detailView ? viewButton : gameGrid
+            }
+            GlassButton {
+                id: sortButton
+                objectName: "couchSortButton"
+                text: "SORT: " + root.sortLabel
+                Accessible.name: "Sorted by " + root.sortLabel.toLowerCase()
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                selected: root.libraryModel.sortMode !== 0
+                onClicked: {
+                    root.libraryModel.sortMode = (root.libraryModel.sortMode + 1) % 5
+                    root.currentIndex = root.libraryModel.rowCount() > 0 ? 0 : -1
+                    root.refreshCurrentGame()
+                }
+                KeyNavigation.left: sourceButton
+                KeyNavigation.right: consoleViewButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: consoleViewButton
+                objectName: "couchConsoleViewButton"
+                text: "CONSOLES"
+                Accessible.name: "Console view: " + (root.libraryModel.expandConsoles ? "games" : "cards")
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                selected: !root.libraryModel.expandConsoles
+                onClicked: {
+                    root.libraryModel.expandConsoles = !root.libraryModel.expandConsoles
+                    root.currentIndex = root.libraryModel.rowCount() > 0 ? 0 : -1
+                    root.refreshCurrentGame()
+                }
+                KeyNavigation.left: sortButton
+                KeyNavigation.right: layoutButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: layoutButton
+                objectName: "couchLayoutButton"
+                text: root.detailView ? "VIEW: DETAIL" : "VIEW: GRID"
+                iconText: root.detailView ? "▤" : "▦"
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                selected: true
+                onClicked: root.toggleLibraryView()
+                KeyNavigation.left: consoleViewButton
+                KeyNavigation.right: searchButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: searchButton
+                objectName: "couchSearchButton"
+                text: root.libraryModel.searchText.length > 0 ? "SEARCH · " + root.libraryModel.searchText.substring(0, 12).toUpperCase() + (root.libraryModel.searchText.length > 12 ? "…" : "") : "SEARCH"
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                onClicked: root.openSearch()
+                KeyNavigation.left: layoutButton
+                KeyNavigation.right: filtersButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+            GlassButton {
+                id: filtersButton
+                objectName: "couchFiltersButton"
+                text: "FILTERS"
+                compact: true
+                displayScale: Math.max(1, root.uiScale * 1.18)
+                onClicked: root.openBrowse()
+                KeyNavigation.left: searchButton
+                KeyNavigation.right: settingsButton
+                KeyNavigation.down: root.detailView ? favoriteButton : gameGrid
+            }
+        }
+    }
+
+    Item {
+        id: heroCoverFrame
+        anchors.top: topBar.bottom
+        anchors.topMargin: 44 * root.uiScale
+        anchors.right: parent.right
+        anchors.rightMargin: 116 * root.uiScale
+        width: 330 * root.uiScale
+        height: width * 1.5
+        visible: root.detailView && gameStrip.count > 0 && root.width >= 1200
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 14 * root.uiScale
+            rotation: 7
+            radius: 18 * root.uiScale
+            color: root.alpha(root.currentGame.accentEnd || Theme.accent, 0.18)
+            border.color: root.alpha(Theme.brightForeground, 0.10)
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 8 * root.uiScale
+            rotation: -4
+            radius: 18 * root.uiScale
+            color: root.alpha(root.currentGame.accentStart || Theme.green, 0.24)
+            border.color: root.alpha(Theme.brightForeground, 0.12)
+        }
+
+        Rectangle {
+            id: featuredCover
+            anchors.fill: parent
+            radius: 16 * root.uiScale
+            clip: true
+            border.width: 2
+            border.color: root.alpha(Theme.brightForeground, 0.22)
+            gradient: Gradient {
+                GradientStop {
+                    position: 0
+                    color: root.currentGame.accentStart || Theme.accent
+                }
+                GradientStop {
+                    position: 1
+                    color: root.currentGame.accentEnd || Theme.darkerBackground
+                }
+            }
+
+            CoverArtwork {
+                anchors.fill: parent
+                source: root.currentGame.coverPath || ""
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                visible: !root.currentGame.coverPath
+                color: "transparent"
+
+                Rectangle {
+                    width: parent.width * 0.9
+                    height: width
+                    radius: width / 2
+                    x: parent.width * 0.44
+                    y: -height * 0.2
+                    color: root.alpha(Theme.brightForeground, 0.11)
+                }
+                Rectangle {
+                    width: parent.width * 0.72
+                    height: width
+                    radius: width / 2
+                    x: -width * 0.38
+                    y: parent.height * 0.5
+                    color: root.alpha(Theme.darkerBackground, 0.2)
+                }
+                Text {
+                    anchors.centerIn: parent
+                    text: root.currentGame.coverMark || "◇"
+                    color: root.alpha(Theme.brightForeground, 0.88)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 92 * root.uiScale
+                    font.weight: Font.Light
+                }
+            }
+        }
+    }
+
+    Column {
+        id: heroCopy
+        anchors.left: parent.left
+        anchors.leftMargin: 64 * root.uiScale
+        anchors.bottom: gameStrip.top
+        anchors.bottomMargin: 42 * root.uiScale
+        width: Math.min(parent.width * 0.58, 920 * root.uiScale)
+        spacing: 12 * root.uiScale
+        visible: root.detailView && gameStrip.count > 0
+
+        Text {
+            width: parent.width
+            text: ((root.currentIndex + 1) + " / " + root.libraryModel.rowCount()
+                   + "  ·  " + (root.currentGame.source || "LIBRARY")
+                   + (root.currentGame.year ? "  ·  " + root.currentGame.year : "")).toUpperCase()
+            textFormat: Text.PlainText
+            color: Theme.accent
+            font.family: Theme.fontFamily
+            font.pixelSize: 13 * root.uiScale
+            font.weight: Font.Bold
+            font.letterSpacing: 1.8
+            elide: Text.ElideRight
+        }
+
+        Image {
+            id: logoArtwork
+            width: Math.min(parent.width * 0.72, 560 * root.uiScale)
+            height: 120 * root.uiScale
+            source: root.currentGame.logoPath || ""
+            fillMode: Image.PreserveAspectFit
+            horizontalAlignment: Image.AlignLeft
+            visible: status === Image.Ready
+            sourceSize.width: Math.ceil(width * Math.max(1, Screen.devicePixelRatio))
+        }
+
+        Text {
+            width: parent.width
+            text: root.currentGame.title || ""
+            textFormat: Text.PlainText
+            color: Theme.brightForeground
+            font.family: Theme.fontFamily
+            font.pixelSize: 50 * root.uiScale
+            font.weight: Font.Bold
+            wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
+            visible: !logoArtwork.visible
+        }
+
+        Text {
+            width: parent.width
+            text: root.currentGame.description || root.currentGame.subtitle || ""
+            textFormat: Text.PlainText
+            color: root.alpha(Theme.brightForeground, 0.78)
+            font.family: Theme.fontFamily
+            font.pixelSize: 17 * root.uiScale
+            lineHeight: 1.22
+            wrapMode: Text.Wrap
+            maximumLineCount: 3
+            elide: Text.ElideRight
+        }
+
+
+        Row {
+            spacing: 10 * root.uiScale
+
+            GlassButton {
+                id: viewButton
+                objectName: "couchViewButton"
+                text: "VIEW GAME"
+                iconText: "▶"
+                primary: true
+                displayScale: Math.max(1, root.uiScale * 1.2)
+                enabled: root.currentIndex >= 0 && root.currentIndex < root.libraryModel.rowCount()
+                onClicked: root.gameActivated(root.currentIndex)
+                KeyNavigation.up: showButton
+                KeyNavigation.right: favoriteButton
+                KeyNavigation.down: gameStrip
+            }
+            GlassButton {
+                id: favoriteButton
+                objectName: "couchFavoriteButton"
+                text: root.currentGame.favorite ? "FAVORITED" : "FAVORITE"
+                iconText: root.currentGame.favorite ? "♥" : "♡"
+                displayScale: Math.max(1, root.uiScale * 1.2)
+                enabled: root.currentIndex >= 0
+                onClicked: root.favoriteToggled(root.currentIndex)
+                KeyNavigation.up: settingsButton
+                KeyNavigation.left: viewButton
+                KeyNavigation.down: gameStrip
+            }
+        }
+    }
+
+    Column {
+        objectName: "couchEmptyState"
+        anchors.centerIn: parent
+        spacing: 14 * root.uiScale
+        visible: root.activeGameView().count === 0
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.scanning ? "SCANNING YOUR LIBRARY" : "NO GAMES HERE"
+            color: Theme.brightForeground
+            font.family: Theme.fontFamily
+            font.pixelSize: 26 * root.uiScale
+            font.weight: Font.Bold
+        }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.scanning ? "Looking for installed games and artwork."
+                                : "Change the library view or rescan from Settings."
+            color: Theme.mutedText
+            font.family: Theme.fontFamily
+            font.pixelSize: 15 * root.uiScale
+        }
+    }
+
+    ListView {
+        id: gameStrip
+        objectName: "couchGameStrip"
+        visible: root.detailView
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: hintBar.top
+        anchors.leftMargin: 52 * root.uiScale
+        anchors.rightMargin: 52 * root.uiScale
+        anchors.bottomMargin: 22 * root.uiScale
+        height: 260 * root.uiScale
+        orientation: ListView.Horizontal
+        spacing: 14 * root.uiScale
+        clip: true
+        cacheBuffer: Math.max(0, width)
+        model: null
+        currentIndex: root.currentIndex
+        keyNavigationEnabled: true
+        highlightFollowsCurrentItem: true
+        highlight: Item {
+            Rectangle {
+                anchors.top: parent.top
+                anchors.topMargin: root.uiScale
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
+                height: 233 * root.uiScale
+                radius: 16 * root.uiScale
+                color: root.alpha(Theme.accent, 0.18)
+                border.width: 2 * root.uiScale
+                border.color: root.alpha(Theme.accent, 0.72)
+            }
+        }
+        highlightMoveDuration: Preferences.reducedMotion ? 0 : 90
+        highlightResizeDuration: Preferences.reducedMotion ? 0 : 90
+        highlightRangeMode: ListView.ApplyRange
+        preferredHighlightBegin: width * 0.08
+        preferredHighlightEnd: width * 0.72
+        boundsBehavior: Flickable.StopAtBounds
+
+        onCurrentIndexChanged: {
+            if (visible && !root.updatingGameViews) {
+                root.currentIndex = currentIndex
+            }
+        }
+
+        Keys.onUpPressed: function(event) {
+            viewButton.forceActiveFocus(Qt.TabFocusReason)
+            event.accepted = true
+        }
+        Keys.onReturnPressed: function(event) {
+            if (currentIndex >= 0 && currentIndex < count) {
+                root.gameActivated(currentIndex)
+            }
+            event.accepted = true
+        }
+        Keys.onEnterPressed: function(event) {
+            if (currentIndex >= 0 && currentIndex < count) {
+                root.gameActivated(currentIndex)
+            }
+            event.accepted = true
+        }
+
+        delegate: FocusScope {
+            id: card
+            required property int index
+            required property string title
+            required property string subtitle
+            required property string coverPath
+            required property string coverMark
+            required property string source
+            required property string appId
+            required property bool favorite
+            required property color accentStart
+            required property color accentEnd
+
+            width: 160 * root.uiScale
+            height: gameStrip.height
+            z: 1
+            Accessible.name: title
+            Accessible.role: Accessible.ListItem
+
+            function requestMissingCover() {
+                if (visible && coverPath.length === 0)
+                    root.coverRequested(source, appId)
+            }
+            Component.onCompleted: requestMissingCover()
+            onAppIdChanged: requestMissingCover()
+            onCoverPathChanged: requestMissingCover()
+            Timer {
+                interval: 1000
+                repeat: true
+                running: root.visible && gameStrip.visible && card.visible && card.coverPath.length === 0
+                         && card.x + card.width > gameStrip.contentX
+                         && card.x < gameStrip.contentX + gameStrip.width
+                onTriggered: card.requestMissingCover()
+            }
+
+            Rectangle {
+                id: cover
+                anchors.top: parent.top
+                anchors.topMargin: 8 * root.uiScale
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 146 * root.uiScale
+                height: width * 1.5
+                radius: 10 * root.uiScale
+                clip: true
+                border.width: gameStrip.currentIndex === card.index ? 5 : 1
+                border.color: gameStrip.currentIndex === card.index
+                              ? Theme.brightForeground : root.alpha(Theme.foreground, 0.16)
+                gradient: Gradient {
+                    GradientStop { position: 0; color: card.accentStart }
+                    GradientStop { position: 1; color: card.accentEnd }
+                }
+
+                CoverArtwork {
+                    anchors.fill: parent
+                    source: card.coverPath
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: card.coverPath.length === 0
+                    text: card.coverMark
+                    color: root.alpha(Theme.brightForeground, 0.86)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 42 * root.uiScale
+                }
+
+                Rectangle {
+                    visible: card.favorite
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 8 * root.uiScale
+                    width: 28 * root.uiScale
+                    height: width
+                    radius: width / 2
+                    color: root.alpha(Theme.darkerBackground, 0.72)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "♥"
+                        color: Theme.brightForeground
+                        font.pixelSize: 12 * root.uiScale
+                    }
+                }
+
+                Rectangle {
+                    visible: gameStrip.currentIndex === card.index
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 8 * root.uiScale
+                    color: Theme.accent
+                }
+            }
+
+            Text {
+                anchors.top: cover.bottom
+                anchors.topMargin: 9 * root.uiScale
+                width: parent.width
+                text: card.title
+                textFormat: Text.PlainText
+                color: gameStrip.currentIndex === card.index
+                       ? Theme.brightForeground : Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: 14 * root.uiScale
+                font.weight: gameStrip.currentIndex === card.index ? Font.Bold : Font.Medium
+                elide: Text.ElideRight
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    gameStrip.currentIndex = card.index
+                    gameStrip.forceActiveFocus(Qt.MouseFocusReason)
+                }
+                onDoubleClicked: if (card.index >= 0) root.gameActivated(card.index)
+            }
+
+            opacity: gameStrip.currentIndex === card.index ? 1 : 0.58
+            Behavior on opacity {
+                enabled: !Preferences.reducedMotion
+                NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: gameGrid
+        anchors.margins: -16 * root.uiScale
+        visible: gameGrid.visible
+        radius: Math.max(16 * root.uiScale, Theme.cornerRadius * 2)
+        color: root.alpha(Theme.background, Math.min(0.64, Theme.surfaceAlpha * 0.64))
+        border.color: root.alpha(Theme.foreground, 0.11)
+    }
+
+    GridView {
+        id: gameGrid
+        objectName: "couchGameGrid"
+        visible: !root.detailView
+        anchors.top: topBar.bottom
+        anchors.bottom: hintBar.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: 38 * root.uiScale
+        anchors.bottomMargin: 24 * root.uiScale
+        anchors.leftMargin: 58 * root.uiScale
+        anchors.rightMargin: 58 * root.uiScale
+        readonly property real coverScale: Preferences.couchCoverSize / 100
+        cellWidth: width / columnCount
+        cellHeight: (258 * coverScale + 92) * root.uiScale
+        onCellWidthChanged: Qt.callLater(function() { if (gameGrid.currentIndex >= 0) gameGrid.positionViewAtIndex(gameGrid.currentIndex, GridView.Contain) })
+        readonly property int columnCount: Math.max(1, Math.floor(width / ((196 * coverScale + 16) * root.uiScale)))
+        model: null
+        currentIndex: root.currentIndex
+        keyNavigationEnabled: true
+        highlightFollowsCurrentItem: true
+        highlight: Item {}
+        highlightMoveDuration: Preferences.reducedMotion ? 0 : 90
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
+        cacheBuffer: Math.max(0, height)
+
+        onCurrentIndexChanged: {
+            if (visible && !root.updatingGameViews) {
+                root.currentIndex = currentIndex
+            }
+        }
+
+        Keys.onUpPressed: function(event) {
+            if (currentIndex >= 0 && currentIndex < columnCount) {
+                showButton.forceActiveFocus(Qt.TabFocusReason)
+                event.accepted = true
+            } else {
+                event.accepted = false
+            }
+        }
+
+        Keys.onReturnPressed: function(event) {
+            if (currentIndex >= 0 && currentIndex < count) {
+                root.gameActivated(currentIndex)
+            }
+            event.accepted = true
+        }
+        Keys.onEnterPressed: function(event) {
+            if (currentIndex >= 0 && currentIndex < count) {
+                root.gameActivated(currentIndex)
+            }
+            event.accepted = true
+        }
+
+        delegate: Item {
+            id: gridCard
+            required property int index
+            required property string title
+            required property string subtitle
+            required property string coverPath
+            required property string coverMark
+            required property string source
+            required property string appId
+            required property bool favorite
+            required property int rating
+            required property int hours
+            required property color accentStart
+            required property color accentEnd
+
+
+            readonly property bool current: gameGrid.currentIndex === index
+
+            width: 196 * gameGrid.coverScale * root.uiScale
+            height: (258 * gameGrid.coverScale + 72) * root.uiScale
+            transform: Translate { x: (gameGrid.cellWidth - gridCard.width) / 2 }
+            transformOrigin: Item.TopLeft
+            scale: current ? 1.025 : 1
+            z: current ? 2 : 1
+            Accessible.name: title
+            Accessible.role: Accessible.ListItem
+
+            Behavior on scale {
+                enabled: !Preferences.reducedMotion
+                NumberAnimation { duration: 90; easing.type: Easing.OutCubic }
+            }
+
+            function requestMissingCover() {
+                if (visible && coverPath.length === 0)
+                    root.coverRequested(source, appId)
+            }
+            Component.onCompleted: requestMissingCover()
+            onAppIdChanged: requestMissingCover()
+            onCoverPathChanged: requestMissingCover()
+            Timer {
+                interval: 1000
+                repeat: true
+                running: root.visible && gameGrid.visible && gridCard.visible && gridCard.coverPath.length === 0
+                         && gridCard.y + gridCard.height > gameGrid.contentY
+                         && gridCard.y < gameGrid.contentY + gameGrid.height
+                onTriggered: gridCard.requestMissingCover()
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: Math.max(12 * root.uiScale, Theme.cornerRadius * 1.5)
+                color: root.alpha(Theme.background, gridCard.current ? 0.90 : 0.58)
+                border.width: gridCard.current ? 4 * root.uiScale : 1
+                border.color: gridCard.current
+                              ? Theme.accent : root.alpha(Theme.foreground, 0.14)
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: gridCard.current ? 7 * root.uiScale : 0
+                    radius: Math.max(8 * root.uiScale, Theme.cornerRadius)
+                    visible: gridCard.current
+                    color: "transparent"
+                    border.width: 1
+                    border.color: root.alpha(Theme.brightForeground, 0.46)
+                }
+            }
+
+            Rectangle {
+                id: gridCover
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 10 * root.uiScale
+                height: 258 * gameGrid.coverScale * root.uiScale
+                radius: Math.max(8 * root.uiScale, Theme.cornerRadius)
+                clip: true
+                gradient: Gradient {
+                    GradientStop { position: 0; color: gridCard.accentStart }
+                    GradientStop { position: 1; color: gridCard.accentEnd }
+                }
+
+                CoverArtwork {
+                    anchors.fill: parent
+                    source: gridCard.coverPath
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: gridCard.coverPath.length === 0
+                    text: gridCard.coverMark
+                    color: root.alpha(Theme.brightForeground, 0.88)
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 48 * root.uiScale
+                }
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: gridCard.current ? 10 * root.uiScale : 4 * root.uiScale
+                    color: gridCard.current ? Theme.accent
+                                            : root.alpha(Theme.brightForeground, 0.20)
+                }
+
+                Rectangle {
+                    visible: gridCard.favorite
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 10 * root.uiScale
+                    width: 32 * root.uiScale
+                    height: width
+                    radius: width / 2
+                    color: root.alpha(Theme.darkerBackground, 0.82)
+                    border.color: root.alpha(Theme.brightForeground, 0.28)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "♥"
+                        color: Theme.brightForeground
+                        font.pixelSize: 14 * root.uiScale
+                    }
+                }
+
+                // Sitting in a fixed corner lets the eye read a column of ratings down the grid,
+                // which a line of text under the card cannot do at television distance. Games
+                // without a rating simply have no badge.
+                Rectangle {
+                    objectName: "couchCardRating"
+                    visible: gridCard.rating >= 0
+                    anchors.bottom: parent.bottom
+                    anchors.right: parent.right
+                    anchors.rightMargin: 10 * root.uiScale
+                    anchors.bottomMargin: 14 * root.uiScale
+                    width: gridRatingText.implicitWidth + 14 * root.uiScale
+                    height: 26 * root.uiScale
+                    radius: 5 * root.uiScale
+                    color: root.alpha(Theme.darkerBackground, 0.86)
+                    border.color: root.alpha(Theme.brightForeground, 0.24)
+
+                    Text {
+                        id: gridRatingText
+                        anchors.centerIn: parent
+                        text: gridCard.rating + "%"
+                        color: Theme.brightForeground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 13 * root.uiScale
+                        font.weight: Font.DemiBold
+                    }
+                }
+
+                Rectangle {
+                    visible: gridCard.current
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.margins: 10 * root.uiScale
+                    width: selectedText.implicitWidth + 16 * root.uiScale
+                    height: 28 * root.uiScale
+                    radius: height / 2
+                    color: Theme.accent
+
+                    Text {
+                        id: selectedText
+                        anchors.centerIn: parent
+                        text: "SELECTED"
+                        color: Theme.darkerBackground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10 * root.uiScale
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.8
+                    }
+                }
+            }
+
+            Text {
+                anchors.top: gridCover.bottom
+                anchors.topMargin: 10 * root.uiScale
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 11 * root.uiScale
+                anchors.rightMargin: 11 * root.uiScale
+                text: gridCard.title
+                textFormat: Text.PlainText
+                color: gridCard.current ? Theme.brightForeground : Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: 16 * root.uiScale
+                font.weight: gridCard.current ? Font.Bold : Font.DemiBold
+                elide: Text.ElideRight
+            }
+
+            Text {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 11 * root.uiScale
+                anchors.rightMargin: 11 * root.uiScale
+                anchors.bottomMargin: 8 * root.uiScale
+                text: (gridCard.source || gridCard.subtitle || "LIBRARY").toUpperCase()
+                      + (gridCard.hours > 0 ? " · " + gridCard.hours + "H" : "")
+                textFormat: Text.PlainText
+                color: gridCard.current ? Theme.accent : Theme.mutedText
+                font.family: Theme.fontFamily
+                font.pixelSize: 10 * root.uiScale
+                font.weight: Font.DemiBold
+                font.letterSpacing: 0.8
+                elide: Text.ElideRight
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (gridCard.index >= 0) gameGrid.currentIndex = gridCard.index
+                    gameGrid.forceActiveFocus(Qt.MouseFocusReason)
+                }
+                onDoubleClicked: if (gridCard.index >= 0) root.gameActivated(gridCard.index)
+            }
+
+            opacity: gridCard.current ? 1 : 0.72
+            Behavior on opacity {
+                enabled: !Preferences.reducedMotion
+                NumberAnimation { duration: 100 }
+            }
+        }
+    }
+
+    Row {
+        id: hintBar
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 54 * root.uiScale
+        anchors.bottomMargin: 22 * root.uiScale
+        spacing: 22 * root.uiScale
+
+        Repeater {
+            model: [
+                { glyph: Controller.primaryGlyph, label: "OPEN" },
+                { glyph: Controller.favoriteGlyph, label: "FAVORITE" },
+                { glyph: Controller.toolbarGlyph, label: "CONTROLS" },
+                { glyph: "START", label: "DESKTOP" }
+            ]
+
+            Row {
+                required property var modelData
+                spacing: 7 * root.uiScale
+
+                Rectangle {
+                    width: Math.max(31 * root.uiScale, glyphText.implicitWidth + 14 * root.uiScale)
+                    height: 31 * root.uiScale
+                    radius: height / 2
+                    color: root.alpha(Theme.foreground, 0.12)
+                    border.color: root.alpha(Theme.foreground, 0.22)
+
+                    Text {
+                        id: glyphText
+                        anchors.centerIn: parent
+                        text: modelData.glyph
+                        color: Theme.brightForeground
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 11 * root.uiScale
+                        font.weight: Font.Bold
+                    }
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.label
+                    color: Theme.mutedText
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12 * root.uiScale
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.8
+                }
+            }
+        }
+    }
+
+    CouchKeyboard {
+        id: couchKeyboard
+        objectName: "couchKeyboard"
+        anchors.fill: parent
+        visible: root.searchOpen
+        enabled: visible
+        z: 50
+
+        onValueEdited: function(value) {
+            root.libraryModel.searchText = value
+            root.currentIndex = root.libraryModel.rowCount() > 0 ? 0 : -1
+        }
+        onAccepted: function(value) {
+            root.libraryModel.searchText = value
+            root.closeSearch(true)
+        }
+        onCanceled: root.closeSearch(false)
+    }
+
+    CouchBrowsePanel {
+        id: couchBrowse
+        objectName: "couchBrowsePanel"
+        anchors.fill: parent
+        visible: root.browseOpen
+        enabled: visible
+        z: 50
+        libraryModel: root.libraryModel
+        sourceOptions: root.sourceOptions
+
+        onFiltersChanged: {
+            root.currentIndex = root.libraryModel.rowCount() > 0 ? 0 : -1
+            root.refreshCurrentGame()
+        }
+        onOrganizeRequested: { root.closeBrowse(); root.organizeRequested() }
+        onSavedFiltersRequested: { root.closeBrowse(); root.savedFiltersRequested() }
+        onRandomRequested: { root.closeBrowse(); root.randomRequested() }
+        onClosed: root.closeBrowse()
+    }
+
+    Component.onCompleted: {
+        currentIndex = libraryModel.rowCount() > 0 ? 0 : -1
+        syncGameViews()
+        refreshCurrentGame()
+        Qt.callLater(focusGrid)
+    }
+}

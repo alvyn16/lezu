@@ -1,0 +1,80 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+
+      - name: Install dependencies via vcpkg
+        run: |
+          vcpkg integrate install
+          vcpkg install sdl3:x64-windows zstd:x64-windows libzip:x64-windows openssl:x64-windows
+
+      - name: Configure CMake
+        run: |
+          $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { "C:/vcpkg" }
+          cmake -B build -S . `
+            -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_TESTING=OFF `
+            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build Lezu
+        id: build
+        run: |
+          cmake --build build --config Release --parallel -- /v:m 2>&1 | Tee-Object -FilePath build.log
+        continue-on-error: true
+
+      - name: Report Build Output
+        if: always()
+        run: |
+          if (Test-Path build.log) {
+            $errors = Get-Content build.log | Select-String -Pattern "error C|fatal error|Error|FAILED|LINK :" -Context 1,2
+            if ($errors) {
+              "### Build Errors" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+              '```text' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+              $errors | Out-String | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+              '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            }
+          }
+          if ('${{ steps.build.outcome }}' -ne 'success') {
+            exit 1
+          }
+
+      - name: Deploy Runtime Dependencies
+        run: |
+          $LEZU_EXE = "build/Release/lezu.exe"
+          if (Test-Path $LEZU_EXE) {
+            windeployqt --qmldir qml --release $LEZU_EXE
+            $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { "C:/vcpkg" }
+            $vcpkgBin = "$vcpkgRoot/installed/x64-windows/bin"
+            if (Test-Path $vcpkgBin) {
+              Copy-Item "$vcpkgBin/*.dll" -Destination "build/Release/" -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lezu-windows-x64
+          path: |
+            build/Release/
