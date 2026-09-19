@@ -18,7 +18,7 @@ class Pcsx2GameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit Pcsx2GameModel(const QString& omakadeDatabasePath,
+  explicit Pcsx2GameModel(const QString& LEZUDatabasePath,
                           PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~Pcsx2GameModel() override;
 

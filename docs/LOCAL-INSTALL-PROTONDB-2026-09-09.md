@@ -5,14 +5,14 @@ locally. Nothing was pushed, tagged or published.
 
 Source candidate: `80457ed4d7f7e39e45f3fdbd62cc02892ac472bb`.
 
-- App: `/home/bts/.local/lib/omakade/80457ed4d7f7/omakade`
-- Recorder: `/home/bts/.local/lib/omakade/80457ed4d7f7/omakade-sessiond`
+- App: `/home/bts/.local/lib/LEZU/80457ed4d7f7/LEZU`
+- Recorder: `/home/bts/.local/lib/LEZU/80457ed4d7f7/LEZU-sessiond`
 - App SHA-256: `34fac794e9fb375f4f4ba8fa71b9a4ef4f29a5f519f411b95818640855c7efee`
 - Recorder SHA-256: `abc00b729d09b5dd728dc638b28f256ef25c07a2024af858dd618691294c2a67`
 
 The normal command symlinks, user desktop entry and recorder service override now
 select this candidate. The recorder is active and both running executable paths
-were verified. Hyprland confirmed a mapped Omakade window. Saved configuration was
+were verified. Hyprland confirmed a mapped LEZU window. Saved configuration was
 preserved during installation; ProtonDB remains opt-in in Settings → Connections.
 Package-owned files were not changed.
 
@@ -31,18 +31,18 @@ The startup log was empty; this does not substitute for interactive acceptance.
 ## Recovery
 
 The previous matching build remains at
-`/home/bts/.local/lib/omakade/f8d00f713426/`.
+`/home/bts/.local/lib/LEZU/f8d00f713426/`.
 
 Rollback files and a consistent SQLite backup are in:
-`/home/bts/.local/state/omakade/local-install-80457ed4d7f7-20260909-161409/`.
+`/home/bts/.local/state/LEZU/local-install-80457ed4d7f7-20260909-161409/`.
 The directory is owner-only and includes saved desktop/service/config files,
 previous symlink targets and the installation manifest. The SQLite backup passed
 `PRAGMA quick_check`.
 
-To roll back, close Omakade, restore both command symlinks from
+To roll back, close LEZU, restore both command symlinks from
 `previous-links.json`, restore `application.desktop` to the user desktop entry and
 `local-build.conf` to the recorder service override, then run
-`systemctl --user daemon-reload` and restart `omakade-sessiond.service`.
+`systemctl --user daemon-reload` and restart `LEZU-sessiond.service`.
 Launch the previous app normally. Do not restore the database merely to change
 binaries; doing so would discard newer play history.
 

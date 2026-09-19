@@ -13,7 +13,7 @@ namespace {
 void executable(const QString& directory, const QString& name) {
   QFile file(directory + '/' + name);
   if (!file.open(QIODevice::WriteOnly)) qFatal("Cannot write test executable");
-  file.write("#!/bin/sh\nprintf '%s\\n' '" + name.toUtf8() + "' \"$@\" > \"$OMAKADE_LAUNCH_TEST_OUTPUT\"\n");
+  file.write("#!/bin/sh\nprintf '%s\\n' '" + name.toUtf8() + "' \"$@\" > \"$LEZU_LAUNCH_TEST_OUTPUT\"\n");
   file.close();
   if (!file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner))
     qFatal("Cannot make test fixture executable");
@@ -87,15 +87,15 @@ private slots:
     QTemporaryDir temp;
     QVERIFY(temp.isValid());
     const auto previousPath = qgetenv("PATH");
-    const auto previousOutput = qgetenv("OMAKADE_LAUNCH_TEST_OUTPUT");
+    const auto previousOutput = qgetenv("LEZU_LAUNCH_TEST_OUTPUT");
     const auto restore = qScopeGuard([&] {
       qputenv("PATH", previousPath);
-      if (previousOutput.isNull()) qunsetenv("OMAKADE_LAUNCH_TEST_OUTPUT");
-      else qputenv("OMAKADE_LAUNCH_TEST_OUTPUT", previousOutput);
+      if (previousOutput.isNull()) qunsetenv("LEZU_LAUNCH_TEST_OUTPUT");
+      else qputenv("LEZU_LAUNCH_TEST_OUTPUT", previousOutput);
     });
     qputenv("PATH", temp.path().toUtf8());
     const auto output = temp.filePath("arguments.txt");
-    qputenv("OMAKADE_LAUNCH_TEST_OUTPUT", output.toUtf8());
+    qputenv("LEZU_LAUNCH_TEST_OUTPUT", output.toUtf8());
     executable(temp.path(), "retroarch");
     QFile core(temp.filePath("core.so"));
     QVERIFY(core.open(QIODevice::WriteOnly)); core.close();
@@ -152,15 +152,15 @@ private slots:
     QTemporaryDir temp;
     QVERIFY(temp.isValid());
     const auto previousPath = qgetenv("PATH");
-    const auto previousOutput = qgetenv("OMAKADE_LAUNCH_TEST_OUTPUT");
+    const auto previousOutput = qgetenv("LEZU_LAUNCH_TEST_OUTPUT");
     const auto restore = qScopeGuard([&] {
       qputenv("PATH", previousPath);
-      if (previousOutput.isNull()) qunsetenv("OMAKADE_LAUNCH_TEST_OUTPUT");
-      else qputenv("OMAKADE_LAUNCH_TEST_OUTPUT", previousOutput);
+      if (previousOutput.isNull()) qunsetenv("LEZU_LAUNCH_TEST_OUTPUT");
+      else qputenv("LEZU_LAUNCH_TEST_OUTPUT", previousOutput);
     });
     qputenv("PATH", temp.path().toUtf8());
     const auto output = temp.filePath("arguments.txt");
-    qputenv("OMAKADE_LAUNCH_TEST_OUTPUT", output.toUtf8());
+    qputenv("LEZU_LAUNCH_TEST_OUTPUT", output.toUtf8());
     executable(temp.path(), "flycast");
     executable(temp.path(), "duckstation-qt");
     // Both emulators exist and the extension is shared. No real emulator is started.

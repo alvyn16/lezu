@@ -4,7 +4,7 @@
 class QWindow;
 class ControllerInput;
 
-// Routes controller actions only to Omakade or an owned dialog.
+// Routes controller actions only to LEZU or an owned dialog.
 class ControllerFocusGuard final : public QObject {
 public:
   ControllerFocusGuard(ControllerInput* input, QWindow* window);

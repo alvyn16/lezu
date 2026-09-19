@@ -410,7 +410,7 @@ bool BackupDatabase::restore(const QString& path, const BackupPayload& payload, 
   if (!stageArtwork(artwork, payload, error))
     return false;
   const QString connection =
-      "omakade-restore-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+      "LEZU-restore-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
   bool okay = false;
   {
     auto database = QSqlDatabase::addDatabase("QSQLITE", connection);

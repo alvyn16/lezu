@@ -17,7 +17,7 @@ class LutrisGameModel final : public QAbstractListModel {
   Q_PROPERTY(bool scanning READ scanning NOTIFY statusChanged)
 
 public:
-  explicit LutrisGameModel(const QString& omakadeDatabasePath, QObject* parent = nullptr);
+  explicit LutrisGameModel(const QString& LEZUDatabasePath, QObject* parent = nullptr);
   ~LutrisGameModel() override;
 
   [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;

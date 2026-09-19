@@ -8,7 +8,7 @@ current emulator/core selection and adds no setup wizard, dependency, or backgro
 ## User behavior
 
 Supported native RetroArch launches copy the existing in-game save immediately before the
-emulator starts. This protects the previous completed session even when Omakade closes after
+emulator starts. This protects the previous completed session even when LEZU closes after
 launch. New games without a save get their first snapshot on a later launch. No save is copied
 while a detected RetroArch process runs. Unchanged saves do not create duplicate versions.
 
@@ -21,7 +21,7 @@ Start from an in-game save afterward; a separately loaded save state may superse
 **Settings > Backup & storage > Save Protection** switches automatic copying off or on.
 It defaults on and is local to the machine, excluded from organization-backup preference restore.
 Existing versions remain available when automatic copying is off. A copy failure does not block
-launch; it remains visible and prevents automatic Omakade closure on that failed-protection launch.
+launch; it remains visible and prevents automatic LEZU closure on that failed-protection launch.
 
 ## Supported layouts
 
@@ -45,8 +45,8 @@ The format and override boundaries are informed by the official [Snes9x core doc
 
 ## Storage and recovery
 
-Versions live in `$XDG_DATA_HOME/omakade/save-backups` (normally
-`~/.local/share/omakade/save-backups`), with private directories/files and a shared writer lock.
+Versions live in `$XDG_DATA_HOME/LEZU/save-backups` (normally
+`~/.local/share/LEZU/save-backups`), with private directories/files and a shared writer lock.
 A SHA-256 key of the exact ROM path separates games. Each committed version contains
 `save.srm` and `manifest.json`, including its source, core, timestamp, size, and SHA-256 digest.
 Temporary versions become visible only after both files have been written and checked.
@@ -54,7 +54,7 @@ Temporary versions become visible only after both files have been written and ch
 Keep the newest 10 versions per game. A 256 MiB total ceiling stops further snapshots with a
 warning instead of removing other games' backups. A damaged manifest cannot suppress a fresh
 copy of the current save. Restore never proceeds if that current copy cannot be protected.
-Copies are local and are not included in Omakade organization archives. They do not protect
+Copies are local and are not included in LEZU organization archives. They do not protect
 against losing this disk, and do not synchronize or replace any emulator cloud-save service.
 
 ## Validation and local acceptance
@@ -73,25 +73,25 @@ use disposable files. Exact final checks, installed paths, and copied-save verif
 recorded in the candidate manifests and installation update below.
 
 Before publication, test a normal supported game launch with its existing progress, return to
-Omakade, and confirm the new backup appears. Check physical-controller navigation in the restore
+LEZU, and confirm the new backup appears. Check physical-controller navigation in the restore
 menu without confirming a live restore unless intentionally testing recovery. No new title-specific
 performance profile, first-class Eden/Xenia integration, or broad save synchronization is included.
 
 ## Installation update
 
 Installed source candidate `a44a535ea31edc6b00af485c1db0eb8528a783e2` at
-`/home/bts/.local/lib/omakade/a44a535ea31e/`. Installed smoke and binary/link checks passed.
+`/home/bts/.local/lib/LEZU/a44a535ea31e/`. Installed smoke and binary/link checks passed.
 Both commands, the desktop entry, and the recorder override select this candidate. Recorder
-PID 136485 remains on its prior, byte-identical binary; no restart was needed. Omakade was not
+PID 136485 remains on its prior, byte-identical binary; no restart was needed. LEZU was not
 reopened automatically. The next normal start uses this installation.
 
 Five existing supported saves were copied and checked against both their originals and the
 manifest SHA-256 values. All originals and the four game/emulator wrappers remain unchanged.
-Saved Omakade configuration was preserved. The new save-protection preference defaults on
+Saved LEZU configuration was preserved. The new save-protection preference defaults on
 when its key is absent. The live copies make Save Backups available for these existing games.
 
-Previous app: `/home/bts/.local/lib/omakade/c9ea15ddd21c/`.
-Installation rollback: `/home/bts/.local/state/omakade/local-install-a44a535ea31e-20260909-183600/`.
+Previous app: `/home/bts/.local/lib/LEZU/c9ea15ddd21c/`.
+Installation rollback: `/home/bts/.local/state/LEZU/local-install-a44a535ea31e-20260909-183600/`.
 Restore the saved command links, desktop entry, and service override to roll back the binary,
 then reload the user service manager. Leave the live library and save files in place. Save
 backup copies are independent and can remain when using the older app. No push, tag, or release.

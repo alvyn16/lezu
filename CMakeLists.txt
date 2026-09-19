@@ -36,38 +36,38 @@ endif()
 
 # Wayland idle-inhibit keeps the screensaver away while a launched game runs. Optional so the
 # build still works without Wayland headers; the inhibitor becomes a no-op in that case.
-set(OMAKADE_IDLE_INHIBIT OFF)
+set(LEZU_IDLE_INHIBIT OFF)
 if(NOT WIN32)
   pkg_check_modules(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
   pkg_check_modules(WAYLAND_PROTOCOLS wayland-protocols)
   find_program(WAYLAND_SCANNER wayland-scanner)
   if(WAYLAND_CLIENT_FOUND AND WAYLAND_PROTOCOLS_FOUND AND WAYLAND_SCANNER)
     pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
-    set(OMAKADE_IDLE_INHIBIT_XML
+    set(LEZU_IDLE_INHIBIT_XML
       "${WAYLAND_PROTOCOLS_DIR}/unstable/idle-inhibit/idle-inhibit-unstable-v1.xml")
-    if(EXISTS "${OMAKADE_IDLE_INHIBIT_XML}")
-      set(OMAKADE_IDLE_INHIBIT ON)
-      set(OMAKADE_PROTOCOL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wayland-protocols")
-      file(MAKE_DIRECTORY "${OMAKADE_PROTOCOL_DIR}")
-      set(OMAKADE_IDLE_INHIBIT_HEADER
-        "${OMAKADE_PROTOCOL_DIR}/idle-inhibit-unstable-v1-client-protocol.h")
-      set(OMAKADE_IDLE_INHIBIT_SOURCE "${OMAKADE_PROTOCOL_DIR}/idle-inhibit-unstable-v1-protocol.c")
+    if(EXISTS "${LEZU_IDLE_INHIBIT_XML}")
+      set(LEZU_IDLE_INHIBIT ON)
+      set(LEZU_PROTOCOL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wayland-protocols")
+      file(MAKE_DIRECTORY "${LEZU_PROTOCOL_DIR}")
+      set(LEZU_IDLE_INHIBIT_HEADER
+        "${LEZU_PROTOCOL_DIR}/idle-inhibit-unstable-v1-client-protocol.h")
+      set(LEZU_IDLE_INHIBIT_SOURCE "${LEZU_PROTOCOL_DIR}/idle-inhibit-unstable-v1-protocol.c")
       add_custom_command(
-        OUTPUT "${OMAKADE_IDLE_INHIBIT_HEADER}"
-        COMMAND "${WAYLAND_SCANNER}" client-header "${OMAKADE_IDLE_INHIBIT_XML}"
-                "${OMAKADE_IDLE_INHIBIT_HEADER}"
-        DEPENDS "${OMAKADE_IDLE_INHIBIT_XML}"
+        OUTPUT "${LEZU_IDLE_INHIBIT_HEADER}"
+        COMMAND "${WAYLAND_SCANNER}" client-header "${LEZU_IDLE_INHIBIT_XML}"
+                "${LEZU_IDLE_INHIBIT_HEADER}"
+        DEPENDS "${LEZU_IDLE_INHIBIT_XML}"
         VERBATIM)
       add_custom_command(
-        OUTPUT "${OMAKADE_IDLE_INHIBIT_SOURCE}"
-        COMMAND "${WAYLAND_SCANNER}" private-code "${OMAKADE_IDLE_INHIBIT_XML}"
-                "${OMAKADE_IDLE_INHIBIT_SOURCE}"
-        DEPENDS "${OMAKADE_IDLE_INHIBIT_XML}"
+        OUTPUT "${LEZU_IDLE_INHIBIT_SOURCE}"
+        COMMAND "${WAYLAND_SCANNER}" private-code "${LEZU_IDLE_INHIBIT_XML}"
+                "${LEZU_IDLE_INHIBIT_SOURCE}"
+        DEPENDS "${LEZU_IDLE_INHIBIT_XML}"
         VERBATIM)
     endif()
   endif()
 endif()
-message(STATUS "Wayland idle-inhibit: ${OMAKADE_IDLE_INHIBIT}")
+message(STATUS "Wayland idle-inhibit: ${LEZU_IDLE_INHIBIT}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -78,15 +78,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent Core Gui Network Qml Quick QuickControls2 Sql Test)
 if(NOT WIN32)
   find_package(Qt6 6.8 OPTIONAL_COMPONENTS GuiPrivate)
-  if(OMAKADE_IDLE_INHIBIT AND NOT TARGET Qt6::GuiPrivate)
+  if(LEZU_IDLE_INHIBIT AND NOT TARGET Qt6::GuiPrivate)
     message(STATUS "Qt6::GuiPrivate is unavailable; disabling Wayland idle-inhibit")
-    set(OMAKADE_IDLE_INHIBIT OFF)
+    set(LEZU_IDLE_INHIBIT OFF)
   endif()
 endif()
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Play session tracking, shared by the Lezu window and the session recorder.
-set(OMAKADE_TRACKING_SOURCES
+set(LEZU_TRACKING_SOURCES
   src/tracking/AppNotify.cpp
   src/tracking/AppNotify.h
   src/tracking/PlaySessionStore.cpp
@@ -99,32 +99,32 @@ set(OMAKADE_TRACKING_SOURCES
   src/tracking/SessionRecorder.h
 )
 if(WIN32)
-  list(APPEND OMAKADE_TRACKING_SOURCES
+  list(APPEND LEZU_TRACKING_SOURCES
     src/platform/windows/WinProcFs.cpp
   )
 else()
-  list(APPEND OMAKADE_TRACKING_SOURCES
+  list(APPEND LEZU_TRACKING_SOURCES
     src/tracking/ProcFs.cpp
     src/tracking/ProcFs.h
   )
 endif()
 
-add_library(omakade_tracking STATIC ${OMAKADE_TRACKING_SOURCES})
+add_library(LEZU_tracking STATIC ${LEZU_TRACKING_SOURCES})
 
-target_include_directories(omakade_tracking PUBLIC src)
-target_link_libraries(omakade_tracking PUBLIC
+target_include_directories(LEZU_tracking PUBLIC src)
+target_link_libraries(LEZU_tracking PUBLIC
   Qt6::Core
   Qt6::Network
   Qt6::Sql
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(omakade_tracking PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(LEZU_tracking PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 
 
-set(OMAKADE_CORE_SOURCES
+set(LEZU_CORE_SOURCES
   src/backup/BackupArchive.cpp
   src/backup/BackupArchive.h
   src/backup/BackupSnapshot.cpp
@@ -287,7 +287,7 @@ set(OMAKADE_CORE_SOURCES
 )
 
 if(WIN32)
-  list(APPEND OMAKADE_CORE_SOURCES
+  list(APPEND LEZU_CORE_SOURCES
     src/platform/windows/WinSecretService.cpp
     src/platform/windows/WinSecretService.h
     src/platform/windows/WinPaths.cpp
@@ -297,11 +297,11 @@ if(WIN32)
   )
 endif()
 
-add_library(omakade_core STATIC ${OMAKADE_CORE_SOURCES})
+add_library(LEZU_core STATIC ${LEZU_CORE_SOURCES})
 
-target_include_directories(omakade_core PUBLIC src)
-target_link_libraries(omakade_core PUBLIC
-  omakade_tracking
+target_include_directories(LEZU_core PUBLIC src)
+target_link_libraries(LEZU_core PUBLIC
+  LEZU_tracking
   Qt6::Quick
   OpenSSL::Crypto
   Qt6::Concurrent
@@ -312,49 +312,49 @@ target_link_libraries(omakade_core PUBLIC
 )
 
 if(TARGET PkgConfig::SDL3)
-  target_link_libraries(omakade_core PUBLIC PkgConfig::SDL3)
+  target_link_libraries(LEZU_core PUBLIC PkgConfig::SDL3)
 elseif(TARGET SDL3::SDL3)
-  target_link_libraries(omakade_core PUBLIC SDL3::SDL3)
+  target_link_libraries(LEZU_core PUBLIC SDL3::SDL3)
 elseif(TARGET SDL3::SDL3-shared)
-  target_link_libraries(omakade_core PUBLIC SDL3::SDL3-shared)
+  target_link_libraries(LEZU_core PUBLIC SDL3::SDL3-shared)
 endif()
 
 if(NOT WIN32)
-  target_link_libraries(omakade_core PUBLIC PkgConfig::LIBSECRET)
+  target_link_libraries(LEZU_core PUBLIC PkgConfig::LIBSECRET)
 else()
-  target_link_libraries(omakade_core PUBLIC advapi32 crypt32 shell32 user32)
+  target_link_libraries(LEZU_core PUBLIC advapi32 crypt32 shell32 user32)
 endif()
 
 if(TARGET PkgConfig::LIBZIP)
-  target_link_libraries(omakade_core PUBLIC PkgConfig::LIBZIP)
+  target_link_libraries(LEZU_core PUBLIC PkgConfig::LIBZIP)
 elseif(TARGET libzip::zip)
-  target_link_libraries(omakade_core PUBLIC libzip::zip)
+  target_link_libraries(LEZU_core PUBLIC libzip::zip)
 endif()
 
 if(TARGET PkgConfig::LIBZSTD)
-  target_link_libraries(omakade_core PUBLIC PkgConfig::LIBZSTD)
+  target_link_libraries(LEZU_core PUBLIC PkgConfig::LIBZSTD)
 elseif(TARGET zstd::libzstd_shared)
-  target_link_libraries(omakade_core PUBLIC zstd::libzstd_shared)
+  target_link_libraries(LEZU_core PUBLIC zstd::libzstd_shared)
 elseif(TARGET zstd::libzstd_static)
-  target_link_libraries(omakade_core PUBLIC zstd::libzstd_static)
+  target_link_libraries(LEZU_core PUBLIC zstd::libzstd_static)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(omakade_core PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(LEZU_core PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-qt_add_executable(omakade
+qt_add_executable(LEZU
   src/app/main.cpp
   src/app/IdleInhibitor.cpp
   src/app/IdleInhibitor.h
 )
-if(OMAKADE_IDLE_INHIBIT)
-  target_sources(omakade PRIVATE "${OMAKADE_IDLE_INHIBIT_HEADER}" "${OMAKADE_IDLE_INHIBIT_SOURCE}")
-  set_source_files_properties("${OMAKADE_IDLE_INHIBIT_SOURCE}" PROPERTIES
+if(LEZU_IDLE_INHIBIT)
+  target_sources(LEZU PRIVATE "${LEZU_IDLE_INHIBIT_HEADER}" "${LEZU_IDLE_INHIBIT_SOURCE}")
+  set_source_files_properties("${LEZU_IDLE_INHIBIT_SOURCE}" PROPERTIES
     COMPILE_OPTIONS "-w")
-  target_include_directories(omakade PRIVATE "${OMAKADE_PROTOCOL_DIR}")
-  target_compile_definitions(omakade PRIVATE OMAKADE_IDLE_INHIBIT=1)
-  target_link_libraries(omakade PRIVATE PkgConfig::WAYLAND_CLIENT Qt6::GuiPrivate)
+  target_include_directories(LEZU PRIVATE "${LEZU_PROTOCOL_DIR}")
+  target_compile_definitions(LEZU PRIVATE LEZU_IDLE_INHIBIT=1)
+  target_link_libraries(LEZU PRIVATE PkgConfig::WAYLAND_CLIENT Qt6::GuiPrivate)
 endif()
 
 # A pragma Singleton file is only registered as one when CMake says so, and this has to be set
@@ -362,8 +362,8 @@ endif()
 # quietly evaluates to undefined.
 set_source_files_properties(qml/components/TextEntry.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-qt_add_qml_module(omakade
-  URI Omakade
+qt_add_qml_module(LEZU
+  URI LEZU
   VERSION 1.0
   QML_FILES
     qml/Main.qml
@@ -398,7 +398,7 @@ qt_add_qml_module(omakade
     qml/screens/GameDetails.qml
 )
 
-qt_add_resources(omakade "lezu_icons"
+qt_add_resources(LEZU "lezu_icons"
   PREFIX "/icons"
   FILES
     resources/icons/lezu.svg
@@ -407,17 +407,17 @@ qt_add_resources(omakade "lezu_icons"
 
 # Console card art: any PNG, JPG, or SVG dropped into resources/consoles named
 # after a ConsoleCatalog id (snes.png, n64.svg, ...) is bundled automatically.
-file(GLOB OMAKADE_CONSOLE_ART CONFIGURE_DEPENDS
+file(GLOB LEZU_CONSOLE_ART CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/resources/consoles/*.png"
   "${CMAKE_CURRENT_SOURCE_DIR}/resources/consoles/*.jpg"
   "${CMAKE_CURRENT_SOURCE_DIR}/resources/consoles/*.svg")
-qt_add_resources(omakade "omakade_consoles"
+qt_add_resources(LEZU "LEZU_consoles"
   PREFIX "/consoles"
   BASE "resources/consoles"
-  FILES ${OMAKADE_CONSOLE_ART}
+  FILES ${LEZU_CONSOLE_ART}
 )
 
-qt_add_resources(omakade "lezu_profiles"
+qt_add_resources(LEZU "lezu_profiles"
   PREFIX "/resources"
   FILES
     resources/sessiond-profiles.json
@@ -431,25 +431,25 @@ if(WIN32)
     "${CMAKE_CURRENT_BINARY_DIR}/lezu.rc"
     @ONLY
   )
-  target_sources(omakade PRIVATE
+  target_sources(LEZU PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}/lezu.rc"
   )
 endif()
 
-set_target_properties(omakade PROPERTIES
+set_target_properties(LEZU PROPERTIES
   OUTPUT_NAME lezu
   MACOSX_BUNDLE_GUI_IDENTIFIER io.github.lezu.Lezu
   WIN32_EXECUTABLE TRUE
 )
 
-add_executable(lezu ALIAS omakade)
+add_executable(lezu ALIAS LEZU)
 
-target_compile_definitions(omakade PRIVATE
-  OMAKADE_VERSION="${PROJECT_VERSION}"
+target_compile_definitions(LEZU PRIVATE
+  LEZU_VERSION="${PROJECT_VERSION}"
 )
 
-target_link_libraries(omakade PRIVATE
-  omakade_core
+target_link_libraries(LEZU PRIVATE
+  LEZU_core
   Qt6::Core
   Qt6::Gui
   Qt6::Qml
@@ -457,10 +457,10 @@ target_link_libraries(omakade PRIVATE
   Qt6::QuickControls2
 )
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(omakade PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(LEZU PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-install(TARGETS omakade
+install(TARGETS LEZU
   RUNTIME DESTINATION bin
 )
 install(FILES resources/sessiond-profiles.json

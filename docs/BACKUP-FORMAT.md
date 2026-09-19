@@ -12,7 +12,7 @@ remain part of the completion plan.
 A ZIP archive contains `manifest.json` and referenced custom artwork. The
 manifest has exactly these fields:
 
-- `format`: `omakade-backup`
+- `format`: `LEZU-backup`
 - `version`: `2` for new exports; versions `1` and `2` are readable
 - `createdAt`: ISO timestamp
 - `library`: allowlisted personal-data tables, represented as arrays of records
@@ -72,7 +72,7 @@ Both history tables are required together. Validation rejects duplicate session 
 sessions, unsupported baseline versions, inconsistent timestamps, and combined durations beyond
 the exact JSON integer range. Restore runs in a database
 transaction and checks the recorder's ownership lock before touching history. A running recorder
-blocks restore with a retry message. For the packaged service, stop `omakade-sessiond.service`
+blocks restore with a retry message. For the packaged service, stop `LEZU-sessiond.service`
 before applying the queued restore and start it again afterward. Turning tracking off alone does
 not stop that service. No service was stopped during development or automated testing.
 
@@ -84,10 +84,10 @@ are reported; in-memory retries cannot survive the recorder or app exiting.
 ## Personal data
 
 The archive includes favorites and hidden state, completion states, tags, console pins,
-collections, explicit links, preferred installations, Omakade launch activity,
+collections, explicit links, preferred installations, LEZU launch activity,
 manual entries, saved filters, and custom artwork. It does not contain game
 files, launcher databases, achievement caches, downloaded artwork caches,
-Omakade account-service identifiers, API credentials, or automatic Sunshine publishing settings.
+LEZU account-service identifiers, API credentials, or automatic Sunshine publishing settings.
 Manual launch arguments and custom image bytes remain part of the user's data.
 
 Legacy cached source flags are converted to `user_game_flags`. Non-null newer
@@ -221,7 +221,7 @@ backup operations in demo and test views. The normal app enables the manager onl
 for its real library; dedicated editor fixtures use their own temporary database,
 settings, recovery folder, and sample archive.
 
-Export requires a local `.omakade-backup` destination and rejects application
+Export requires a local `.LEZU-backup` destination and rejects application
 state targets and owned artwork/recovery folders. Portable exports continue to
 exclude account identifiers. Neither preview nor confirmation changes the live
 database or settings; successful confirmation emits a queued signal for the UI
@@ -237,7 +237,7 @@ shows personal-data and preference details, and supports directional navigation
 to the merge/replacement actions.
 
 Both restore modes open a separate confirmation with Cancel initially focused.
-Confirmation stages the validated data and focuses Close Omakade. Reopening the
+Confirmation stages the validated data and focuses Close LEZU. Reopening the
 app applies the queued restore through the exclusive startup gate. The editor
 keeps the queued message visible until the app closes. No live models are
 reloaded or mutated by confirmation.

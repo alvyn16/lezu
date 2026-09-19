@@ -10,7 +10,7 @@
 
 class QTimer;
 
-// Aggregates the sessions recorded by omakade-sessiond and merges them with the
+// Aggregates the sessions recorded by LEZU-sessiond and merges them with the
 // playtime each source imports from its own emulator. The displayed total is
 // max(imported, baseline + tracked). On first observation the baseline excludes
 // already recorded time, conservatively treating it as included in the import.

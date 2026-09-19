@@ -12,11 +12,11 @@
 class AppSettings;
 class UnifiedGameModel;
 
-// Publishes Omakade and its library into Sunshine's app list so Moonlight clients can start
+// Publishes LEZU and its library into Sunshine's app list so Moonlight clients can start
 // them. Sunshine reads apps.json at startup and when its own web UI saves, so every change
 // here needs a Sunshine restart before it shows up; `restartNeeded` tracks that.
 //
-// Omakade only touches entries it wrote. Each carries an "omakade" marker with the launch
+// LEZU only touches entries it wrote. Each carries an "LEZU" marker with the launch
 // key, and anything without the marker is preserved exactly as Sunshine wrote it.
 class SunshineIntegration final : public QObject {
   Q_OBJECT
@@ -60,7 +60,7 @@ public:
   [[nodiscard]] bool busy() const { return m_busy; }
   void setIconSource(const QString& path) { m_iconSource = path; }
 
-  // Starts rewriting the Omakade entries to match the preferences and library. The work
+  // Starts rewriting the LEZU entries to match the preferences and library. The work
   // runs on a worker thread; `busy` clears and `stateChanged` fires when it is done.
   Q_INVOKABLE bool sync();
   Q_INVOKABLE void restartSunshine();
@@ -73,11 +73,11 @@ public:
                                              const QStringList& screenNames);
   [[nodiscard]] static QString shellQuote(const QString& value);
   [[nodiscard]] static QString commandPrefix(bool flatpakSunshine);
-  [[nodiscard]] static bool isOmakadeEntry(const QJsonObject& entry);
-  [[nodiscard]] static QJsonObject omakadeEntry(const QString& prefix, const QString& imagePath);
+  [[nodiscard]] static bool isLEZUEntry(const QJsonObject& entry);
+  [[nodiscard]] static QJsonObject LEZUEntry(const QString& prefix, const QString& imagePath);
   [[nodiscard]] static QJsonObject gameEntry(const QString& title, const QString& launchKey,
                                              const QString& prefix, const QString& imagePath);
-  // Keeps every foreign entry in order and replaces Omakade's with `ours`.
+  // Keeps every foreign entry in order and replaces LEZU's with `ours`.
   [[nodiscard]] static QJsonObject mergeEntries(const QJsonObject& existing,
                                                 const QJsonArray& ours);
   // Renders a cover or the app icon as 600x800 PNG box art under `imageRoot`. Returns the
@@ -92,12 +92,12 @@ private:
   void detect();
   void scheduleSync();
   void finishSync();
-  // Asks systemd when Sunshine started and compares that with the last list Omakade wrote,
-  // so the restart hint survives Omakade restarts without nagging after Sunshine reloaded.
+  // Asks systemd when Sunshine started and compares that with the last list LEZU wrote,
+  // so the restart hint survives LEZU restarts without nagging after Sunshine reloaded.
   void refreshRestartState();
   void setStatus(const QString& text);
   [[nodiscard]] static SyncResult runSync(const QString& appsPath, const QString& imageRoot,
-                                          const QString& prefix, bool includeOmakade,
+                                          const QString& prefix, bool includeLEZU,
                                           const QString& iconSource,
                                           const QVector<GameEntry>& games);
 

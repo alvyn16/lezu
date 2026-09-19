@@ -8,7 +8,7 @@
 #ifdef Q_OS_WIN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#elif defined(OMAKADE_IDLE_INHIBIT)
+#elif defined(LEZU_IDLE_INHIBIT)
 #include <QtGui/qguiapplication_platform.h>
 #include <QtGui/qpa/qplatformwindow_p.h>
 #include <wayland-client.h>
@@ -34,7 +34,7 @@ IdleInhibitor::IdleInhibitor(QWindow* window, QObject* parent) : QObject(parent)
 
 IdleInhibitor::~IdleInhibitor() {
   release();
-#if !defined(Q_OS_WIN) && defined(OMAKADE_IDLE_INHIBIT)
+#if !defined(Q_OS_WIN) && defined(LEZU_IDLE_INHIBIT)
   if (m_manager != nullptr) {
     zwp_idle_inhibit_manager_v1_destroy(m_manager);
     m_manager = nullptr;
@@ -96,7 +96,7 @@ void IdleInhibitor::release() {
   m_inhibiting = false;
 }
 
-#elif defined(OMAKADE_IDLE_INHIBIT)
+#elif defined(LEZU_IDLE_INHIBIT)
 
 namespace {
 

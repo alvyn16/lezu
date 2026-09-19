@@ -24,7 +24,7 @@ class BattleNetGameModel final : public QAbstractListModel {
   Q_PROPERTY(bool scanning READ scanning NOTIFY scanningChanged)
 
 public:
-  explicit BattleNetGameModel(const QString& omakadeDatabasePath, AppSettings* settings = nullptr,
+  explicit BattleNetGameModel(const QString& LEZUDatabasePath, AppSettings* settings = nullptr,
                               QObject* parent = nullptr);
   ~BattleNetGameModel() override;
 

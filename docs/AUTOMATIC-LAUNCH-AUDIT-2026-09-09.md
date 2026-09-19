@@ -55,6 +55,6 @@ were modified. Private library snapshots and detailed results remain under
 
 After the current game session ends, the next step is local installation of this launch
 candidate and a normal SNES, N64, and Dreamcast launch, checking controller input, existing
-saves, return to Omakade, and recorded playtime. Keep publication deferred until the exact
+saves, return to LEZU, and recorded playtime. Keep publication deferred until the exact
 candidate has been tested and explicitly approved. Do not remove real cores to test errors;
 those cases already run against isolated fixtures.

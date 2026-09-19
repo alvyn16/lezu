@@ -365,7 +365,7 @@ private slots:
                      {"game", f.game},
                      {"trees", QJsonArray{f.home + "/portable/saves"}},
                      {"description", "Portable Eden saves"}};
-    put(f.home + "/.config/omakade/save-layouts.json",
+    put(f.home + "/.config/LEZU/save-layouts.json",
         QJsonDocument(QJsonObject{{"format", 1}, {"layouts", QJsonArray{rule}}}).toJson());
     auto l = resolveSaveLayout({{"source", "Ryujinx"}, {"game", f.game}}, f.home, config);
     QCOMPARE(l.trees, QStringList{f.home + "/portable/saves"});

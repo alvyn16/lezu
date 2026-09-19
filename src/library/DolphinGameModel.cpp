@@ -29,10 +29,10 @@ QString localUrl(const QString& path) {
 }
 } // namespace
 
-DolphinGameModel::DolphinGameModel(const QString& omakadeDatabasePath,
+DolphinGameModel::DolphinGameModel(const QString& LEZUDatabasePath,
                                    PlaySessionStore* playSessions, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-dolphin-%1").arg(reinterpret_cast<quintptr>(this))),
+      m_connectionName(QStringLiteral("LEZU-dolphin-%1").arg(reinterpret_cast<quintptr>(this))),
       m_playSessions(playSessions) {
   if (m_playSessions != nullptr) {
     connect(m_playSessions, &PlaySessionStore::totalsChanged, this, [this] {
@@ -51,7 +51,7 @@ DolphinGameModel::DolphinGameModel(const QString& omakadeDatabasePath,
     applyScan(m_scanWatcher.result());
     emit statusChanged();
   });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
   }

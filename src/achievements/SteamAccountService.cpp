@@ -27,14 +27,14 @@
 namespace {
 const SecretSchema* steamSchema() {
   static const SecretSchema* schema =
-      secret_schema_new("io.github.tsouth89.Omakade.Steam", SECRET_SCHEMA_NONE, "service",
+      secret_schema_new("io.github.tsouth89.LEZU.Steam", SECRET_SCHEMA_NONE, "service",
                         SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
   return schema;
 }
 
 const SecretSchema* legacySteamSchema() {
   static const SecretSchema* schema =
-      secret_schema_new("io.github.omakade.Steam", SECRET_SCHEMA_NONE, "service",
+      secret_schema_new("io.github.LEZU.Steam", SECRET_SCHEMA_NONE, "service",
                         SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
   return schema;
 }
@@ -323,7 +323,7 @@ void SteamAccountService::beginSecretOperation(SecretAction action, const QByteA
     bool success = false;
     if (action == SecretAction::Store) {
       success = secret_password_store_sync(steamSchema(), SECRET_COLLECTION_DEFAULT,
-                                           "Omakade Steam Web API key", secretValue.constData(),
+                                           "LEZU Steam Web API key", secretValue.constData(),
                                            nullptr, &error, "service", kSecretService, nullptr);
     } else {
       secret_password_clear_sync(steamSchema(), nullptr, &error, "service", kSecretService,

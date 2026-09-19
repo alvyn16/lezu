@@ -6,7 +6,7 @@
 
 Hardware photographs by [Evan-Amos](https://commons.wikimedia.org/wiki/User:Evan-Amos), via Wikimedia Commons. Each linked file page identifies the original photograph and license. Checked September 6, 2026.
 
-The Omakade PNGs are adaptations made using the built-in OpenAI image_gen tool. Changes include background replacement, lighting, composition, and portrait framing. They are illustrative covers based on hardware references, not archival product photographs.
+The LEZU PNGs are adaptations made using the built-in OpenAI image_gen tool. Changes include background replacement, lighting, composition, and portrait framing. They are illustrative covers based on hardware references, not archival product photographs.
 
 The adapted PNGs in this directory are offered under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Where the original is public domain, that status remains unchanged; this license covers any copyrightable additions. Keep this attribution and license notice when redistributing the artwork. This notice applies to the PNG artwork, not the application code or pre-existing SVG files. Product names and marks belong to their respective owners; no endorsement is implied.
 

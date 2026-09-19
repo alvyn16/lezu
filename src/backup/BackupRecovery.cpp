@@ -137,7 +137,7 @@ QString BackupRecovery::recoveryArchive(QString* error) const {
   QJsonObject journal;
   if (!readJournal(&journal, error) || !journal.contains("settingsDigest"))
     return {};
-  return jobPath(journal, "before.omakade-backup");
+  return jobPath(journal, "before.LEZU-backup");
 }
 
 bool BackupRecovery::stage(const BackupPayload& payload, BackupDatabase::Mode mode,
@@ -165,9 +165,9 @@ bool BackupRecovery::stage(const BackupPayload& payload, BackupDatabase::Mode mo
   if (!QDir().mkpath(folder) ||
       !QFile::setPermissions(folder, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner))
     return fail(error, "Could not create the restore job folder.");
-  if (!BackupArchive::write(jobPath(journal, "incoming.omakade-backup"), payload, error))
+  if (!BackupArchive::write(jobPath(journal, "incoming.LEZU-backup"), payload, error))
     return false;
-  const QString incomingDigest = fileDigest(jobPath(journal, "incoming.omakade-backup"));
+  const QString incomingDigest = fileDigest(jobPath(journal, "incoming.LEZU-backup"));
   if (incomingDigest.isEmpty())
     return fail(error, "Could not verify the staged restore archive.");
   journal.insert("incomingDigest", incomingDigest);
@@ -202,12 +202,12 @@ bool BackupRecovery::restore(bool undoRequested, QString* error) {
   }
   BackupPayload incoming;
   if (!undoRequested && phase != "undoing" &&
-      fileDigest(jobPath(journal, "incoming.omakade-backup")) !=
+      fileDigest(jobPath(journal, "incoming.LEZU-backup")) !=
           journal.value("incomingDigest").toString())
     return fail(
         error, "The staged restore archive has changed. Cancel this restore and preview it again.");
   if (!undoRequested && phase != "undoing" &&
-      !BackupArchive::read(jobPath(journal, "incoming.omakade-backup"), &incoming, error))
+      !BackupArchive::read(jobPath(journal, "incoming.LEZU-backup"), &incoming, error))
     return false;
   if (phase == "queued") {
     QByteArray settingsBytes;
@@ -223,12 +223,12 @@ bool BackupRecovery::restore(bool undoRequested, QString* error) {
     if (QFileInfo::exists(m_paths.database) &&
         !BackupSnapshot::capture(m_paths.database, before.settings, &before, error))
       return false;
-    if (!BackupArchive::write(jobPath(journal, "before.omakade-backup"), before, error) ||
+    if (!BackupArchive::write(jobPath(journal, "before.LEZU-backup"), before, error) ||
         !saveBytes(jobPath(journal, "settings.before"), settingsBytes, error))
       return false;
     journal.insert("settingsExisted", existed);
     journal.insert("settingsDigest", digest(settingsBytes));
-    const QString beforeDigest = fileDigest(jobPath(journal, "before.omakade-backup"));
+    const QString beforeDigest = fileDigest(jobPath(journal, "before.LEZU-backup"));
     if (beforeDigest.isEmpty())
       return fail(error, "Could not verify the recovery archive.");
     journal.insert("beforeDigest", beforeDigest);
@@ -240,10 +240,10 @@ bool BackupRecovery::restore(bool undoRequested, QString* error) {
   // Validate both recovery files before the first write, and on every replay.
   BackupPayload before;
   QByteArray settingsBytes;
-  if (fileDigest(jobPath(journal, "before.omakade-backup")) !=
+  if (fileDigest(jobPath(journal, "before.LEZU-backup")) !=
       journal.value("beforeDigest").toString())
     return fail(error, "The pre-restore archive has changed. Keep the recovery folder for repair.");
-  if (!BackupArchive::read(jobPath(journal, "before.omakade-backup"), &before, error) ||
+  if (!BackupArchive::read(jobPath(journal, "before.LEZU-backup"), &before, error) ||
       !readBytes(jobPath(journal, "settings.before"), 1024 * 1024, &settingsBytes, error))
     return false;
   if (digest(settingsBytes) != journal.value("settingsDigest").toString())

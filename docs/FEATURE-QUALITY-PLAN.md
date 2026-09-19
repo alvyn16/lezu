@@ -1,4 +1,4 @@
-# Omakade feature quality and expansion plan
+# LEZU feature quality and expansion plan
 
 > Historical review and implementation record. For the reconciled September 8
 > candidate, push authorization, and remaining acceptance gates, see
@@ -12,7 +12,7 @@ data was changed during this review.
 
 ## Local implementation status
 
-A first candidate is being prepared in `/home/bts/Projects/omakade-quality-local`
+A first candidate is being prepared in `/home/bts/Projects/LEZU-quality-local`
 on `codex/feature-quality-local`. It fixes live recovery, zero and late initial
 baseline capture, UTC date handling, first-match platform selection, successful
 provider-field replacement, SQL connection cleanup and daemon ownership. It also
@@ -50,7 +50,7 @@ of which model authored it.
 | Launch preferences | Linked installations and preferred installation selection; platform-specific delegated launching | Explain what will launch and why it is unavailable; scope per-game profiles after an adapter review |
 | Backup | Explicit personal-data tables, settings and artwork export/restore | Define preservation of manual metadata choices and session history; these are outside the current table allowlist |
 | Remote collection | No RomM source in the reviewed code | Optional RomM adapter after the local experience is reliable |
-| Saves | Existing backup concerns Omakade data, not emulator save files | Separate save discovery/backup project only after source-specific restore requirements are established |
+| Saves | Existing backup concerns LEZU data, not emulator save files | Separate save discovery/backup project only after source-specific restore requirements are established |
 
 ## Findings to fix first
 
@@ -121,7 +121,7 @@ Test both cases separately, including changing the selected match.
   syntax, playlists, AppImages and title changes inside an emulator. Match the
   library's identity consistently; avoid silently attributing ambiguous activity.
 - Profiles list more emulators than the UI integrates. Recording a path does not
-  establish that its total appears in Omakade. Publish a verified coverage matrix.
+  establish that its total appears in LEZU. Publish a verified coverage matrix.
 - The daemon has no explicit single-recorder guard. Two instances could duplicate
   sessions or interfere during reconciliation. Add ownership and lifecycle tests.
 - Several database writes ignore errors. Add failure reporting and recovery tests
@@ -175,7 +175,7 @@ deletion with confirmation where appropriate. Decide backup/export coverage firs
 Measure idle daemon cost and refresh-query cost against a large history fixture.
 
 Acceptance: a real launch and exit for each supported emulator path; terminal and
-Omakade launches; suspend/resume; recorder restart while playing; tracking toggle;
+LEZU launches; suspend/resume; recorder restart while playing; tracking toggle;
 emulator UI launches marked unsupported until actually verified. A running service
 alone does not count as successful session attribution.
 
@@ -210,11 +210,11 @@ with their launcher; validate against real commands before generalizing.
 **Saves:** defer implementation. Start with verified save-location adapters and
 read-only discovery, then a versioned backup/restore drill for one emulator. Live
 saves, multiple profiles, conflicts and partial restores must be resolved before
-cross-device sync. This is separate from Omakade's current personal-data backup.
+cross-device sync. This is separate from LEZU's current personal-data backup.
 
 ## Evidence and limits
 
-Rebuilt `omakade_core_tests` and `omakade_tracking` against the reviewed source.
+Rebuilt `LEZU_core_tests` and `LEZU_tracking` against the reviewed source.
 Ran six focused test functions covering the new matcher, recorder, merge and
 metadata behavior: all six passed, plus QtTest setup/cleanup. The independent
 temporary-database probes still reproduced both accounting errors. A Qt conversion

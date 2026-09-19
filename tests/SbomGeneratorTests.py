@@ -10,7 +10,7 @@ from unittest import mock
 
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "generate-spdx-sbom.py"
-SPEC = importlib.util.spec_from_file_location("omakade_sbom", SCRIPT)
+SPEC = importlib.util.spec_from_file_location("LEZU_sbom", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 SBOM = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SBOM)
@@ -19,7 +19,7 @@ SPEC.loader.exec_module(SBOM)
 class SbomGeneratorTests(unittest.TestCase):
     def test_generates_valid_runtime_package_relationships(self) -> None:
         package_info = b"""\
-pkgname = omakade
+pkgname = LEZU
 pkgver = 1.6.0-1
 arch = aarch64
 license = GPL-3.0-or-later
@@ -27,7 +27,7 @@ depend = qt6-base
 depend = sdl3>=3.2
 """
         with tempfile.TemporaryDirectory() as directory:
-            package = Path(directory) / "omakade-1.6.0-1-aarch64.pkg.tar"
+            package = Path(directory) / "LEZU-1.6.0-1-aarch64.pkg.tar"
             with tarfile.open(package, mode="w") as archive:
                 member = tarfile.TarInfo(".PKGINFO")
                 member.size = len(package_info)

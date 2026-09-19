@@ -24,16 +24,16 @@ QString localUrl(const QString& path) {
 }
 } // namespace
 
-LutrisGameModel::LutrisGameModel(const QString& omakadeDatabasePath, QObject* parent)
+LutrisGameModel::LutrisGameModel(const QString& LEZUDatabasePath, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-lutris-%1").arg(reinterpret_cast<quintptr>(this))) {
+      m_connectionName(QStringLiteral("LEZU-lutris-%1").arg(reinterpret_cast<quintptr>(this))) {
   connect(&m_scanWatcher, &QFutureWatcher<LutrisScanResult>::finished, this,
           [this] {
             m_scanning = false;
             applyScan(m_scanWatcher.result());
             emit statusChanged();
           });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
   }

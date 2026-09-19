@@ -53,7 +53,7 @@ constexpr int kMaximumConcurrentCoverDownloads = 4;
 
 QString coverCacheRoot() {
   return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-         QStringLiteral("/omakade/covers/battlenet");
+         QStringLiteral("/LEZU/covers/battlenet");
 }
 
 bool safeProductId(const QString& productId) {
@@ -88,11 +88,11 @@ QString artworkExtension(const QByteArray& contents, const QString& contentType)
 }
 } // namespace
 
-BattleNetGameModel::BattleNetGameModel(const QString& omakadeDatabasePath, AppSettings* settings,
+BattleNetGameModel::BattleNetGameModel(const QString& LEZUDatabasePath, AppSettings* settings,
                                        QObject* parent)
     : QAbstractListModel(parent),
       m_connectionName(
-          QStringLiteral("omakade-battlenet-%1").arg(reinterpret_cast<quintptr>(this))),
+          QStringLiteral("LEZU-battlenet-%1").arg(reinterpret_cast<quintptr>(this))),
       m_settings(settings) {
   connect(&m_scanWatcher, &QFutureWatcher<BattleNetScanResult>::finished, this,
           [this] {
@@ -100,7 +100,7 @@ BattleNetGameModel::BattleNetGameModel(const QString& omakadeDatabasePath, AppSe
             m_scanning = false;
             emit scanningChanged();
           });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
     QTimer::singleShot(400, this, [this] { requestMissingCovers(); });
@@ -608,7 +608,7 @@ void BattleNetGameModel::pruneCoverCache() {
   const int limitMb = m_settings == nullptr ? 1024 : m_settings->artworkCacheLimitMb();
   const QString sharedRoot =
       QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-      QStringLiteral("/omakade/covers");
+      QStringLiteral("/LEZU/covers");
   QSet<QString> referenced;
   for (const Game& game : m_games) {
     referenced.insert(game.battlenet.coverPath);

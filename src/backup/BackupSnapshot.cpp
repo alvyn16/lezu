@@ -244,7 +244,7 @@ bool BackupSnapshot::capture(const QString& path, const QJsonObject& settings,
       *error = "The library database does not exist.";
     return false;
   }
-  const QString connection = "omakade-backup-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+  const QString connection = "LEZU-backup-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
   bool okay = false;
   {
     auto database = QSqlDatabase::addDatabase("QSQLITE", connection);

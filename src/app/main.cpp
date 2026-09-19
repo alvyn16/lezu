@@ -449,7 +449,7 @@ bool runRestoreStartup(QGuiApplication& application, OmarchyTheme& theme,
     resolved = true;
     loop.quit();
   });
-  engine.loadFromModule("Omakade", "RestoreStartup");
+  engine.loadFromModule("LEZU", "RestoreStartup");
   if (engine.rootObjects().isEmpty()) return false;
   auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
   if (!window) return false;
@@ -499,7 +499,7 @@ int testRestoreStartup(QGuiApplication& application, OmarchyTheme& theme, const 
   QFile journal(paths.state + "/active.json");
   if (!journal.open(QIODevice::ReadOnly)) return EXIT_FAILURE;
   const QString job = QJsonDocument::fromJson(journal.readAll()).object().value("id").toString();
-  const QString stagedPath = paths.state + '/' + job + "/incoming.omakade-backup";
+  const QString stagedPath = paths.state + '/' + job + "/incoming.LEZU-backup";
   QFile staged(stagedPath);
   if (!staged.open(QIODevice::ReadOnly)) return EXIT_FAILURE;
   const QByteArray stagedBytes = staged.readAll();
@@ -583,7 +583,7 @@ int main(int argc, char* argv[]) {
 
   QGuiApplication::setApplicationName(QStringLiteral("Lezu"));
   QGuiApplication::setApplicationDisplayName(QStringLiteral("Lezu"));
-  QGuiApplication::setApplicationVersion(QStringLiteral(OMAKADE_VERSION));
+  QGuiApplication::setApplicationVersion(QStringLiteral(LEZU_VERSION));
   QGuiApplication::setOrganizationName(QStringLiteral("Lezu"));
   QGuiApplication::setDesktopFileName(QStringLiteral("io.github.lezu.Lezu"));
   QQuickStyle::setStyle(QStringLiteral("Basic"));
@@ -595,7 +595,7 @@ int main(int argc, char* argv[]) {
   }
   if (applicationIcon.isNull()) {
     applicationIcon =
-        QIcon(QStringLiteral(":/icons/resources/icons/io.github.tsouth89.Omakade.svg"));
+        QIcon(QStringLiteral(":/icons/resources/icons/io.github.tsouth89.LEZU.svg"));
   }
   application.setWindowIcon(applicationIcon);
 
@@ -811,7 +811,7 @@ int main(int argc, char* argv[]) {
       writeText(root + QStringLiteral("/playlists/Nintendo - SNES.lpl"),
                 QStringLiteral("{\"version\":\"1.5\",\"items\":[%1]}").arg(items.join(QLatin1Char(','))));
       retroArchGames = std::make_unique<RetroArchGameModel>(
-          consoleFixture->filePath(QStringLiteral("omakade.sqlite3")), &preferences);
+          consoleFixture->filePath(QStringLiteral("LEZU.sqlite3")), &preferences);
       retroArchLibrary = retroArchGames.get();
       // Folder mode, like an EmuDeck layout: sidecar covers next to the dumps count.
       retroArchLibrary->refreshFromSources({root}, {consoleFixture->filePath(QStringLiteral("roms")) + QStringLiteral("|snes")});
@@ -1136,7 +1136,7 @@ int main(int argc, char* argv[]) {
   if (navigationTest) {
     navigationData = std::make_unique<QTemporaryDir>();
     achievementDatabasePath = navigationData->filePath(QStringLiteral("achievements.sqlite3"));
-    const QString connectionName = QStringLiteral("omakade-navigation-fixture");
+    const QString connectionName = QStringLiteral("LEZU-navigation-fixture");
     {
       QSqlDatabase database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
       database.setDatabaseName(achievementDatabasePath);
@@ -1262,7 +1262,7 @@ int main(int argc, char* argv[]) {
     if(sharedFixture) {
       const QJsonObject rule{{"source","RetroArch"},{"game",saveFixtureGame},
         {"trees",QJsonArray{folder+"/saves/Snes9x"}},{"shared",true},{"description","Shared memory-card saves"}};
-      if(!fixtureWrite(folder+"/.config/omakade/save-layouts.json",
+      if(!fixtureWrite(folder+"/.config/LEZU/save-layouts.json",
           QJsonDocument(QJsonObject{{"format",1},{"layouts",QJsonArray{rule}}}).toJson()))return EXIT_FAILURE;
     }
     const auto protectFixture=[&] {
@@ -1306,7 +1306,7 @@ int main(int argc, char* argv[]) {
   if (steamLibrary != nullptr) {
     sunshine = std::make_unique<SunshineIntegration>(&unifiedGames, &preferences);
     sunshine->setIconSource(
-        QStringLiteral(":/icons/resources/icons/io.github.tsouth89.Omakade.svg"));
+        QStringLiteral(":/icons/resources/icons/io.github.tsouth89.LEZU.svg"));
   }
 
   const QString gogAvailableFolder = artworkFixture.filePath("GOG Games");
@@ -1345,7 +1345,7 @@ int main(int argc, char* argv[]) {
       qCritical().noquote() << error; return EXIT_FAILURE;
     }
     sample.settings.insert("gog_library_paths", QJsonArray{artworkFixture.filePath("Offline/GOG Games")});
-    backupFixturePath = artworkFixture.filePath("sample.omakade-backup");
+    backupFixturePath = artworkFixture.filePath("sample.LEZU-backup");
     if (!BackupArchive::write(backupFixturePath, sample, &error)) {
       qCritical().noquote() << error; return EXIT_FAILURE;
     }
@@ -1354,7 +1354,7 @@ int main(int argc, char* argv[]) {
   HomeModel home(&unifiedGames, libraryDatabasePath);
   QQmlApplicationEngine engine;
   engine.rootContext()->setContextProperty("Home", &home);
-  const bool scrollTrace = qEnvironmentVariableIsSet("OMAKADE_SCROLL_TRACE");
+  const bool scrollTrace = qEnvironmentVariableIsSet("LEZU_SCROLL_TRACE");
   engine.rootContext()->setContextProperty("ScrollTraceEnabled", scrollTrace);
   if (scrollTrace) {
     auto* heartbeat = new QTimer(&application);
@@ -1410,7 +1410,7 @@ int main(int argc, char* argv[]) {
     playSessionStore->setEnabled(preferences.trackPlaySessions());
   }
   if (renderOverlay == QStringLiteral("session-history")) {
-    const QString connection = QStringLiteral("omakade-session-history-render");
+    const QString connection = QStringLiteral("LEZU-session-history-render");
     QSqlDatabase database;
     if (!SessionDatabase::open(database, libraryDatabasePath, connection)) return EXIT_FAILURE;
     const qint64 now = QDateTime::currentSecsSinceEpoch();
@@ -1473,12 +1473,12 @@ int main(int argc, char* argv[]) {
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application,
       [] { QCoreApplication::exit(EXIT_FAILURE); }, Qt::QueuedConnection);
-  engine.loadFromModule(QStringLiteral("Omakade"), QStringLiteral("Main"));
+  engine.loadFromModule(QStringLiteral("LEZU"), QStringLiteral("Main"));
   if (benchmarkMode) {
     qInfo() << "QML loaded in" << startupTimer.elapsed() << "ms";
   }
   if (engine.rootObjects().isEmpty()) {
-    qCritical() << "Omakade failed to create its QML root object";
+    qCritical() << "LEZU failed to create its QML root object";
     return EXIT_FAILURE;
   }
   if (uninstalledLayoutTest && !navigationTest) {
@@ -2622,7 +2622,7 @@ int main(int argc, char* argv[]) {
       } else if (renderOverlay == QStringLiteral("recorder-details")) {
         QMetaObject::invokeMethod(quickWindow, "openGame", Q_ARG(QVariant, 0));
         auto installation = quickWindow->property("selectedInstallation").toMap();
-        installation.insert("playtimeProvenance", "Imported from emulator: 1h 10m · Recorded by Omakade: 15m (not applied while recording is off)");
+        installation.insert("playtimeProvenance", "Imported from emulator: 1h 10m · Recorded by LEZU: 15m (not applied while recording is off)");
         quickWindow->setProperty("selectedInstallation", installation);
       } else if (renderOverlay == QStringLiteral("manual-editor")) {
         QMetaObject::invokeMethod(quickWindow, "editManualGame", Q_ARG(QVariant, QString{}));
@@ -2920,7 +2920,7 @@ int main(int argc, char* argv[]) {
             }
           }
           strip->forceActiveFocus();
-          regressionLibrary->setProperty("searchText", QStringLiteral("omakade-no-matching-game-regression"));
+          regressionLibrary->setProperty("searchText", QStringLiteral("LEZU-no-matching-game-regression"));
           QCoreApplication::processEvents();
           if (!emptyState->isVisible()) {
             fail(QStringLiteral("Empty couch library did not show its empty state"));
@@ -4336,7 +4336,7 @@ int main(int argc, char* argv[]) {
                     &epicLibrary, &gogLibrary,
 #endif
                     &preferences](const QString& source) {
-                     // omakade-sessiond reports an emulator exit; some emulators only
+                     // LEZU-sessiond reports an emulator exit; some emulators only
                      // write their own playtime and last-played records on exit, so the
                      // owning source re-imports right away.
                      if (source == QStringLiteral("Ryujinx") && ryujinxLibrary != nullptr &&
@@ -4561,7 +4561,7 @@ int main(int argc, char* argv[]) {
     auto* timer = new QTimer(rootWindow);
     timer->setInterval(80);
     auto step = std::make_shared<int>(0);
-    const QString exportPath = artworkFixture.filePath("export.omakade-backup");
+    const QString exportPath = artworkFixture.filePath("export.LEZU-backup");
     QObject::connect(timer, &QTimer::timeout, rootWindow,
         [&, timer, step, exportPath] {
       const auto fail = [&](const QString& message) { timer->stop(); qCritical().noquote() << message; application.exit(EXIT_FAILURE); };
@@ -4626,7 +4626,7 @@ int main(int argc, char* argv[]) {
       } else if (*step == 7 && !backups.busy()) {
         if (!editor->property("queued").toBool() || BackupRecovery(managerPaths).status() != "queued") { fail("Confirmed restore was not queued: " + backups.message()); return; }
         auto* close = rootWindow->findChild<QQuickItem*>("backupCloseAppButton");
-        if (!close || !close->hasActiveFocus()) { fail("Queued restore did not focus Close Omakade"); return; }
+        if (!close || !close->hasActiveFocus()) { fail("Queued restore did not focus Close LEZU"); return; }
         timer->stop(); application.quit();
       }
     });

@@ -1,4 +1,4 @@
-# Omakade product and delivery plan
+# LEZU product and delivery plan
 
 Current post-1.8 work and backlog decisions are tracked in
 [POST-1.8-LOCAL.md](docs/POST-1.8-LOCAL.md). Historical milestones below do not
@@ -30,7 +30,7 @@ need real game testing and save-continuity checks, not claims of universally opt
 
 ## Product statement
 
-Omakade is a beautiful, local-first game library built for Omarchy. It brings
+LEZU is a beautiful, local-first game library built for Omarchy. It brings
 installed games from Steam, GOG, Lutris, Heroic, Faugus, RetroArch, PCSX2,
 Ryujinx, and Battle.net into one coherent place.
 It owns discovery, presentation, search, achievements, organization, and the
@@ -41,7 +41,7 @@ Tagline: **Your games, beautifully together.**
 
 ## Product boundaries
 
-### Omakade owns
+### LEZU owns
 
 - A unified library and game identity
 - Cover, hero, logo, and achievement presentation
@@ -52,7 +52,7 @@ Tagline: **Your games, beautifully together.**
 - Omarchy theme, font, window, and menu integration
 - Optional online metadata and achievement connections
 
-### Omakade delegates
+### LEZU delegates
 
 - Game installation and updates
 - Steam, Epic, GOG, Amazon, and other account authentication
@@ -60,36 +60,36 @@ Tagline: **Your games, beautifully together.**
 - DRM, cloud saves, multiplayer, friends, and platform overlays
 - Purchasing and store browsing
 
-This boundary is the main scope control. Omakade is a first-class gaming home,
+This boundary is the main scope control. LEZU is a first-class gaming home,
 not a reimplementation of Steam, Heroic, or Lutris.
 
 ## Initial assumptions
 
 - Omarchy on Arch Linux, Wayland, and Hyprland is the primary target.
-- Omakade remains a standalone open-source application.
+- LEZU remains a standalone open-source application.
 - Steam is the only source in the first usable release.
 - Installed games work without an account login, API key, or network access.
 - The initial interface is a cover-first desktop window with an optional
   fullscreen mode.
 - Every action is designed around a shared focus model from the beginning so
   controller support does not require a later UI rewrite.
-- Omakade reads user data but never modifies Steam, Heroic, or Lutris libraries.
-- Imports are repeatable and safe. Removing an entry from Omakade never
+- LEZU reads user data but never modifies Steam, Heroic, or Lutris libraries.
+- Imports are repeatable and safe. Removing an entry from LEZU never
   uninstalls the underlying game.
 
 ## Success criteria
 
 The first public release is successful when a new Omarchy user can:
 
-1. Install Omakade through a normal Arch package.
+1. Install LEZU through a normal Arch package.
 2. Open it from the Omarchy application launcher.
 3. See every locally installed Steam game without configuration.
 4. See local Steam artwork or an intentional fallback for every game.
 5. Search and navigate the library with keyboard, mouse, or controller.
 6. Launch a game through Steam and receive a useful error when Steam cannot
    launch it.
-7. Change the Omarchy theme or font and see Omakade update without restarting.
-8. Use Omakade offline for all core library and launch behavior.
+7. Change the Omarchy theme or font and see LEZU update without restarting.
+8. Use LEZU offline for all core library and launch behavior.
 
 ## Experience principles
 
@@ -101,7 +101,7 @@ compete with it.
 
 ### Omarchy-native, not Omarchy-themed
 
-Omakade must inherit Omarchy's semantic palette, fontconfig monospace alias,
+LEZU must inherit Omarchy's semantic palette, fontconfig monospace alias,
 rounding, spacing rhythm, input behavior, and Hyprland conventions. It should
 feel related to the shell even when no Omarchy logo is visible.
 
@@ -127,7 +127,7 @@ between a grid and a detail view.
 
 ### First launch
 
-1. Omakade detects Steam and known library roots.
+1. LEZU detects Steam and known library roots.
 2. The cached library shell renders immediately.
 3. A background scan imports installed app manifests and local artwork.
 4. Covers appear progressively without moving focused cards.
@@ -137,11 +137,11 @@ There is no onboarding wizard unless automatic discovery fails.
 
 ### Find and play
 
-1. Open Omakade from the Omarchy launcher.
+1. Open LEZU from the Omarchy launcher.
 2. Type to search immediately or navigate the cover grid.
 3. Open game details or use the card's primary Play action.
-4. Omakade delegates to Steam using the game App ID.
-5. Omakade records the launch request and follows the configured post-launch
+4. LEZU delegates to Steam using the game App ID.
+5. LEZU records the launch request and follows the configured post-launch
    behavior.
 
 ### Inspect achievements
@@ -155,9 +155,9 @@ There is no onboarding wizard unless automatic discovery fails.
 ### Change the OS theme
 
 1. The user changes an Omarchy theme or font normally.
-2. Omakade observes the active theme state directory and fontconfig change.
+2. LEZU observes the active theme state directory and fontconfig change.
 3. Palette, control states, typography, and window surfaces update live.
-4. Artwork remains stable while only Omakade chrome transitions.
+4. Artwork remains stable while only LEZU chrome transitions.
 
 ## Visual system
 
@@ -169,7 +169,7 @@ The source of truth on Omarchy is:
 
 Initial semantic mapping:
 
-| Omakade role | Omarchy token |
+| LEZU role | Omarchy token |
 | --- | --- |
 | Window canvas | `darker_background` |
 | Main translucent surface | `background` |
@@ -187,14 +187,14 @@ Rules:
 
 - Do not hardcode a separate palette for each stock theme.
 - Validate text contrast at runtime and fall back to a safer foreground token.
-- Use alpha on Omakade surfaces, not on text or artwork.
+- Use alpha on LEZU surfaces, not on text or artwork.
 - Provide a built-in dark fallback outside Omarchy.
 - Watch the parent state directory because Omarchy replaces the current theme
   directory atomically during a theme change.
 
 ### Typography and density
 
-- Resolve the `monospace` fontconfig alias so Omakade follows `omarchy font`.
+- Resolve the `monospace` fontconfig alias so LEZU follows `omarchy font`.
 - Start with the Omarchy shell's 12 px base and proportional type scale.
 - Read useful spacing and font overrides from the active `shell.toml` only after
   the palette integration is stable.
@@ -256,12 +256,12 @@ Why this stack:
   high-DPI behavior, and strong Wayland support.
 - A C++ core keeps platform scanning, SQLite, process launching, and QML models
   direct without adding a web runtime.
-- Omakade stays a separate process. A crash cannot take down the Omarchy shell.
+- LEZU stays a separate process. A crash cannot take down the Omarchy shell.
 
 ### Proposed repository layout
 
 ```text
-omakade/
+LEZU/
   CMakeLists.txt
   LICENSE
   README.md
@@ -312,7 +312,7 @@ Omarchy theme state -> theme reader -> semantic design tokens -> QML
 
 Keep game identity separate from a platform installation from the beginning:
 
-- `games`: Omakade identity, display title, sort title, favorite, hidden
+- `games`: LEZU identity, display title, sort title, favorite, hidden
 - `installations`: source, source game ID, installed state, launch target,
   library path, last observed timestamp
 - `artwork`: game, kind, local path, provider, dimensions, selected priority
@@ -331,10 +331,10 @@ worse than two visible entries.
 
 Follow XDG paths:
 
-- Config: `$XDG_CONFIG_HOME/omakade/config.toml`
-- Data and SQLite: `$XDG_DATA_HOME/omakade/`
-- Artwork and HTTP cache: `$XDG_CACHE_HOME/omakade/`
-- Logs and temporary state: `$XDG_STATE_HOME/omakade/`
+- Config: `$XDG_CONFIG_HOME/LEZU/config.toml`
+- Data and SQLite: `$XDG_DATA_HOME/LEZU/`
+- Artwork and HTTP cache: `$XDG_CACHE_HOME/LEZU/`
+- Logs and temporary state: `$XDG_STATE_HOME/LEZU/`
 
 API credentials go through the system Secret Service when available. They are
 never written to config, the database, logs, crash reports, or command lines.
@@ -374,11 +374,11 @@ Parsing gets synthetic fixtures for:
 
 ### Artwork priority
 
-1. User-selected Omakade artwork
+1. User-selected LEZU artwork
 2. User-selected Steam custom artwork
 3. Steam's local cached artwork
 4. Optional provider artwork
-5. Generated Omakade fallback
+5. Generated LEZU fallback
 
 Image work is asynchronous. Store source files once and generate size-aware
 cache variants without upscaling poor assets unnecessarily.
@@ -438,7 +438,7 @@ must not replace local installed-game discovery.
 - Keep Heroic-managed GOG installs delegated to Heroic so their runner,
   environment, wrapper, and script settings remain intact.
 - Keep account authentication, purchasing, installation, updates, and cloud
-  saves outside Omakade.
+  saves outside LEZU.
 
 ### Desktop applications and manual games
 
@@ -481,7 +481,7 @@ must not replace local installed-game discovery.
 - Resolve the current font through fontconfig.
 - Query current Hyprland rounding and gaps when available.
 - Fall back cleanly on non-Omarchy desktops.
-- Add an Omarchy-generated Omakade theme file only if direct semantic mapping
+- Add an Omarchy-generated LEZU theme file only if direct semantic mapping
   proves insufficient. Do not require a user hook for basic theme following.
 
 ### Hyprland integration
@@ -498,13 +498,13 @@ must not replace local installed-game discovery.
 
 The eventual upstream change should be small:
 
-- `Install > Gaming > Omakade`
-- Matching `Remove > Gaming > Omakade`
+- `Install > Gaming > LEZU`
+- Matching `Remove > Gaming > LEZU`
 - Package installation through Omarchy's package helpers
 - A normal desktop entry discoverable through the main launcher
-- Optional acceptance coverage that launches, focuses, and closes Omakade
+- Optional acceptance coverage that launches, focuses, and closes LEZU
 
-Omakade application source should not live inside the Omarchy repository.
+LEZU application source should not live inside the Omarchy repository.
 
 ## Security and privacy
 
@@ -596,8 +596,8 @@ achievements, settings, empty, offline, and error states.
 - Steam closed before launch
 - Offline session
 - Blur disabled
-- Theme changed while Omakade is open
-- Controller connected and disconnected while Omakade is open
+- Theme changed while LEZU is open
+- Controller connected and disconnected while LEZU is open
 
 Upstream Omarchy acceptance runs belong in a disposable VM, not an active user
 session.
@@ -630,7 +630,7 @@ session.
 
 ## Upstream path into Omarchy
 
-1. Release Omakade independently and package it for Arch.
+1. Release LEZU independently and package it for Arch.
 2. Collect screenshots, startup measurements, supported Steam layouts, and real
    user feedback.
 3. Open an Omarchy Suggestions discussion with the working application, not a
@@ -643,7 +643,7 @@ session.
 7. Consider default installation only after sustained adoption and explicit
    maintainer interest.
 
-Do not brand Omakade as an official Omarchy application before approval.
+Do not brand LEZU as an official Omarchy application before approval.
 
 ## Delivery milestones
 
@@ -683,7 +683,7 @@ Gate:
 - A clean Omarchy install requires no setup
 - Multiple library fixtures import without duplicates
 - Core behavior works offline
-- Omakade never writes into Steam data
+- LEZU never writes into Steam data
 - Launch behavior is verified without shell interpolation
 
 This is the first private alpha.
@@ -748,7 +748,7 @@ Gate for each source:
 - Import is repeatable
 - Launch uses a documented or contract-tested interface
 - Missing source applications degrade cleanly
-- Removing an Omakade entry does not alter the source library
+- Removing an LEZU entry does not alter the source library
 - Source format fixtures are versioned and tested
 
 ### M5: Stable release and Omarchy proposal
@@ -847,14 +847,14 @@ Moonlight, and Sunshine's stock app list is only Desktop and Steam Big Picture.
 
 Deliver:
 
-- `omakade --play Source:runner:id` and `omakade --quit`, forwarded to the
+- `LEZU --play Source:runner:id` and `LEZU --quit`, forwarded to the
   running window through the single-instance socket or run headless from the
   cached library
-- Opt-in export of Omakade and of every installed game into Sunshine's
-  `apps.json` as detached entries with PNG box art, marked so only Omakade's
+- Opt-in export of LEZU and of every installed game into Sunshine's
+  `apps.json` as detached entries with PNG box art, marked so only LEZU's
   own entries are ever rewritten, with a one-time backup and a user-service
   restart action
-- Fullscreen when Sunshine launches Omakade for a Moonlight client
+- Fullscreen when Sunshine launches LEZU for a Moonlight client
 - Native and Flatpak Sunshine paths, with `flatpak-spawn --host` for the
   sandboxed one
 
@@ -910,16 +910,16 @@ building the library.
 
 ## Play session tracking
 
-Omakade shows playtime per game, but every emulator keeps its own counter in its
+LEZU shows playtime per game, but every emulator keeps its own counter in its
 own format and several keep none at all. A small recorder closes that gap.
 
 ### Shipped
 
-- `omakade-sessiond`, a per-user systemd service shipped with the package,
+- `LEZU-sessiond`, a per-user systemd service shipped with the package,
   polls the process table every few seconds and attributes sessions by matching
   a known emulator binary in the process table with a game image path on its
-  command line. This covers Omakade launches, terminal launches, and wrapper
-  scripts, including emulators Omakade has no source for, as long as the game
+  command line. This covers LEZU launches, terminal launches, and wrapper
+  scripts, including emulators LEZU has no source for, as long as the game
   path is on the command line.
 - Sessions land in `play_sessions` in the library database with a periodic
   heartbeat. A recorder restart reconciles dead processes at their last
@@ -933,7 +933,7 @@ own format and several keep none at all. A small recorder closes that gap.
   still future work.
 - A Settings toggle (on by default) controls both the display and the recorder,
   which reads the same config key. When a session for an emulator whose own
-  playtime is written on exit ends, the recorder asks the running Omakade
+  playtime is written on exit ends, the recorder asks the running LEZU
   window to rescan that source so its import stops going stale.
 - Game Details exposes the eight most recent local sessions across linked
   installations, including source, duration, active state, and recording-off context.
@@ -956,7 +956,7 @@ Recommended defaults are listed first:
 1. **License:** GPL-3.0-or-later, or MIT if permissive reuse is more important.
 2. **Application ID:** reserve a reverse-DNS ID tied to the eventual project
    organization before packaging.
-3. **Post-launch behavior:** close Omakade after a successful launch, with a
+3. **Post-launch behavior:** close LEZU after a successful launch, with a
    future preference to keep it open.
 4. **Controller library:** evaluate SDL 3 against direct Linux input before
    adding the dependency.

@@ -12,7 +12,7 @@
 namespace {
 const SecretSchema* schema() {
   static const SecretSchema* value =
-      secret_schema_new("io.github.tsouth89.Omakade.RomM", SECRET_SCHEMA_NONE, "server",
+      secret_schema_new("io.github.tsouth89.LEZU.RomM", SECRET_SCHEMA_NONE, "server",
                         SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
   return value;
 }
@@ -48,7 +48,7 @@ RommCredentialResult RommCredentials::store(const QUrl& server, const QByteArray
                                normalized.toEncoded().constData(), nullptr);
   } else {
     okay = secret_password_store_sync(
-        schema(), SECRET_COLLECTION_DEFAULT, "Omakade RomM Client API Token", token.constData(),
+        schema(), SECRET_COLLECTION_DEFAULT, "LEZU RomM Client API Token", token.constData(),
         nullptr, &error, "server", normalized.toEncoded().constData(), nullptr);
   }
   if (error) {

@@ -18,7 +18,7 @@ class HeroicGameModel final : public QAbstractListModel {
   Q_PROPERTY(bool scanning READ scanning NOTIFY statusChanged)
 
 public:
-  explicit HeroicGameModel(const QString& omakadeDatabasePath, QObject* parent = nullptr);
+  explicit HeroicGameModel(const QString& LEZUDatabasePath, QObject* parent = nullptr);
   ~HeroicGameModel() override;
 
   [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;

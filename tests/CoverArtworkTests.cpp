@@ -21,7 +21,7 @@ private slots:
     view.rootContext()->setContextProperty("Preferences", &preferences);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.resize(200, 300);
-    view.setSource(QUrl::fromLocalFile(OMAKADE_SOURCE_DIR "/qml/components/CoverArtwork.qml"));
+    view.setSource(QUrl::fromLocalFile(LEZU_SOURCE_DIR "/qml/components/CoverArtwork.qml"));
     QVERIFY(view.status() == QQuickView::Ready);
     view.show();
     QVERIFY(QTest::qWaitForWindowExposed(&view));

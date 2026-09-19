@@ -1,4 +1,4 @@
-// Build this file against the frozen v1.6.0 omakade_core, not the candidate.
+// Build this file against the frozen v1.6.0 LEZU_core, not the candidate.
 // Constructors create the released schema. Do not run an event loop or refresh
 // scanners, so this fixture neither discovers local games nor requests artwork.
 #include "library/BattleNetGameModel.h"

@@ -25,10 +25,10 @@ QString localUrl(const QString& path) {
 }
 } // namespace
 
-RyujinxGameModel::RyujinxGameModel(const QString& omakadeDatabasePath,
+RyujinxGameModel::RyujinxGameModel(const QString& LEZUDatabasePath,
                                    PlaySessionStore* playSessions, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-ryujinx-%1").arg(reinterpret_cast<quintptr>(this))),
+      m_connectionName(QStringLiteral("LEZU-ryujinx-%1").arg(reinterpret_cast<quintptr>(this))),
       m_playSessions(playSessions) {
   if (m_playSessions != nullptr) {
     connect(m_playSessions, &PlaySessionStore::totalsChanged, this, [this] {
@@ -45,7 +45,7 @@ RyujinxGameModel::RyujinxGameModel(const QString& omakadeDatabasePath,
             applyScan(m_scanWatcher.result());
             emit statusChanged();
           });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
   }

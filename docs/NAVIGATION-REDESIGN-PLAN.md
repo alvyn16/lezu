@@ -37,7 +37,7 @@ The existing navigation review in `NAVIGATION-REVIEW.md` remains relevant. Autom
 Wide layout:
 
 ```text
-OMAKADE    Home  Library                    Search games    Couch    Settings
+LEZU    Home  Library                    Search games    Couch    Settings
 Library / Super Nintendo             Sources    Filters (3)    Sort    View    More
 [Installed ×] [1990s ×] [Adventure ×]                     84 games · Clear filters
 ```
@@ -153,7 +153,7 @@ View-menu controls and Settings entries must manipulate the same preferences. On
 
 Keep connection configuration distinct from a successful connection test. Display only status the backend actually knows. Preserve drafts according to an explicit Save/Cancel contract; navigation must not silently save credentials or discard unsubmitted changes. Keep secrets out of diagnostics.
 
-Separate cache cleanup from user artwork and personal data. Explain the exact scope of each existing clear action. Backup & Storage must say that current backups cover Omakade data, not imply emulator save protection.
+Separate cache cleanup from user artwork and personal data. Explain the exact scope of each existing clear action. Backup & Storage must say that current backups cover LEZU data, not imply emulator save protection.
 
 Settings search is optional later. A sensible category structure is the first deliverable; there is no need to build a search index now.
 

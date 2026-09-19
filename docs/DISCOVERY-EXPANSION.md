@@ -11,7 +11,7 @@ It does not install or publish a release.
 - Genre comes from confirmed cached IGDB metadata. Ambiguous or rejected identities do not supply
   genre filters. Decade uses the catalog year, falling back to the source's year. Regional dates
   remain installation-specific on game details. Unknown values do not match a selected criterion.
-- Platform groups emulated systems by Omakade's console catalog; non-console installations use PC.
+- Platform groups emulated systems by LEZU's console catalog; non-console installations use PC.
 - No additional network request is needed to filter. New metadata updates the results and choices.
 - Saved-filter state version 2 records genre, decade, platform, and console scope. Legacy version 1
   still loads and clears newer criteria. Unsupported states fail without altering the current view.

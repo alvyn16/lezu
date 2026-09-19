@@ -53,6 +53,6 @@ All 1,207 existing identified SNES IDs occur in the current SNES/Super Famicom c
 
 The audit used a consistent, read-only SQLite backup, 3,093 IGDB SNES/Super Famicom catalog records, 3,755 Libretro box-art paths, and live searches for every unidentified SNES title and every missing-cover title. Additional alias searches were performed for unresolved artwork with an identified or recoverable IGDB record. The raw snapshots and scripts remain local in `build/matching-audit-20260909`; credentials were not saved with the results.
 
-The 68 recovery decisions are captured as provider-response fixtures and exercised through the production matching code. The offline adapter is `tools/MetadataAudit.cpp`, built with `cmake --build build/dev --target omakade_metadata_audit`.
+The 68 recovery decisions are captured as provider-response fixtures and exercised through the production matching code. The offline adapter is `tools/MetadataAudit.cpp`, built with `cmake --build build/dev --target LEZU_metadata_audit`.
 
 Validation and the exact local candidate are recorded in [candidate.md](candidate.md). The running library still needs a refresh under that candidate, followed by an actual scrolling and artwork-selection check. First-time downloads remain dependent on provider latency and rate limits.

@@ -64,7 +64,7 @@ class AppSettings final : public QObject {
   Q_PROPERTY(int couchCoverSize READ couchCoverSize WRITE setCouchCoverSize NOTIFY couchCoverSizeChanged)
   Q_PROPERTY(int librarySortMode READ librarySortMode WRITE setLibrarySortMode NOTIFY
                  librarySortModeChanged)
-  Q_PROPERTY(bool sunshineOmakadeApp READ sunshineOmakadeApp WRITE setSunshineOmakadeApp NOTIFY
+  Q_PROPERTY(bool sunshineLEZUApp READ sunshineLEZUApp WRITE setSunshineLEZUApp NOTIFY
                  sunshineChanged)
   Q_PROPERTY(bool sunshineGameApps READ sunshineGameApps WRITE setSunshineGameApps NOTIFY
                  sunshineChanged)
@@ -159,7 +159,7 @@ public:
   void setRommLibraryRoot(const QString& value);
   [[nodiscard]] bool closeAfterLaunch() const;
   void setCloseAfterLaunch(bool value);
-  // Session recording by omakade-sessiond; the daemon reads the same config key.
+  // Session recording by LEZU-sessiond; the daemon reads the same config key.
   [[nodiscard]] bool trackPlaySessions() const;
   void setTrackPlaySessions(bool value);
   bool protectRetroArchSaves() const { return m_protectRetroArchSaves; }
@@ -175,8 +175,8 @@ public:
   void setCouchCoverSize(int value);
   [[nodiscard]] int librarySortMode() const;
   void setLibrarySortMode(int value);
-  [[nodiscard]] bool sunshineOmakadeApp() const;
-  void setSunshineOmakadeApp(bool value);
+  [[nodiscard]] bool sunshineLEZUApp() const;
+  void setSunshineLEZUApp(bool value);
   [[nodiscard]] bool sunshineGameApps() const;
   void setSunshineGameApps(bool value);
 
@@ -267,6 +267,6 @@ private:
   int m_librarySortMode = 0;
   int m_coverSize = 100;
   int m_couchCoverSize = 100;
-  bool m_sunshineOmakadeApp = false;
+  bool m_sunshineLEZUApp = false;
   bool m_sunshineGameApps = false;
 };

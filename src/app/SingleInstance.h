@@ -3,10 +3,10 @@
 #include <QLocalServer>
 #include <QObject>
 
-// Owns the per-user local socket that keeps one Omakade window open. A second launch
+// Owns the per-user local socket that keeps one LEZU window open. A second launch
 // forwards a short command instead of opening another window: "activate" raises the
 // window, "play <key>" launches a library game, "rescan <source>" asks a source model
-// to re-import, and "quit" closes Omakade.
+// to re-import, and "quit" closes LEZU.
 class SingleInstance final : public QObject {
   Q_OBJECT
 

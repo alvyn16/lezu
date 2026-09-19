@@ -119,10 +119,10 @@ class RommCatalogTests : public QObject {
   }
 private slots:
   void liveServerAcceptance() {
-    const auto tokenFile = qEnvironmentVariable("OMAKADE_LIVE_ROMM_TOKEN_FILE");
+    const auto tokenFile = qEnvironmentVariable("LEZU_LIVE_ROMM_TOKEN_FILE");
     if (tokenFile.isEmpty()) QSKIP("Opt-in local RomM acceptance server is not configured");
     const QUrl liveServer("http://127.0.0.1:18765");
-    const QString mount = "/tmp/omakade-romm-live/library";
+    const QString mount = "/tmp/LEZU-romm-live/library";
     QFile secret(tokenFile);
     QVERIFY(secret.open(QIODevice::ReadOnly));
     const auto liveToken = QJsonDocument::fromJson(secret.readAll()).object()["raw_token"].toString();
@@ -133,7 +133,7 @@ private slots:
     const auto cleanup=qScopeGuard([&] {
       RommCredentials::store(liveServer, {});
       if (QDir(mount+"-missing").exists()) QDir().rename(mount+"-missing",mount);
-      QProcess::execute("docker", {"start", "omakade-romm-qa-romm-1"});
+      QProcess::execute("docker", {"start", "LEZU-romm-qa-romm-1"});
     });
     QString identity;
     {
@@ -146,7 +146,7 @@ private slots:
       QVERIFY2(model.errorText().isEmpty(),qPrintable(model.errorText()));
       QVERIFY(model.index(0).data(GameRoles::Installed).toBool());
       identity=model.index(0).data(GameRoles::AppId).toString();
-      QCOMPARE(model.index(0).data(GameRoles::InstallPath).toString(),mount+"/roms/snes/Omakade QA.sfc");
+      QCOMPARE(model.index(0).data(GameRoles::InstallPath).toString(),mount+"/roms/snes/LEZU QA.sfc");
       unified.toggleFavorite(0);
       QVERIFY(QDir().rename(mount,mount+"-missing"));
       model.refresh();QTRY_VERIFY_WITH_TIMEOUT(!model.scanning(),20000);
@@ -161,7 +161,7 @@ private slots:
       model.storeToken(liveToken);
       QTRY_VERIFY_WITH_TIMEOUT(!model.scanning(),20000);
       QVERIFY2(model.errorText().isEmpty(),qPrintable(model.errorText()));
-      QCOMPARE(QProcess::execute("docker",{"stop","--time","2","omakade-romm-qa-romm-1"}),0);
+      QCOMPARE(QProcess::execute("docker",{"stop","--time","2","LEZU-romm-qa-romm-1"}),0);
     }
     {
       RommGameModel model(database,&settings,nullptr);
@@ -172,7 +172,7 @@ private slots:
       QVERIFY(!model.errorText().isEmpty());
       QCOMPARE(model.index(0).data(GameRoles::AppId).toString(),identity);
       QVERIFY(unified.index(0).data(GameRoles::Favorite).toBool());
-      QCOMPARE(QProcess::execute("docker",{"start","omakade-romm-qa-romm-1"}),0);
+      QCOMPARE(QProcess::execute("docker",{"start","LEZU-romm-qa-romm-1"}),0);
       bool reconnected=false;
       for(int attempt=0;attempt<30 && !reconnected;++attempt) {
         QTest::qWait(1000);model.refresh();

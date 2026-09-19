@@ -24,7 +24,7 @@
 namespace {
 const SecretSchema* retroAchievementsSchema() {
   static const SecretSchema* schema =
-      secret_schema_new("io.github.tsouth89.Omakade.RetroAchievements", SECRET_SCHEMA_NONE,
+      secret_schema_new("io.github.tsouth89.LEZU.RetroAchievements", SECRET_SCHEMA_NONE,
                         "service", SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
   return schema;
 }
@@ -266,7 +266,7 @@ void RetroAchievementsService::beginSecretOperation(SecretAction action,
     bool success = false;
     if (action == SecretAction::Store) {
       success = secret_password_store_sync(retroAchievementsSchema(), SECRET_COLLECTION_DEFAULT,
-                                           "Omakade RetroAchievements Web API key",
+                                           "LEZU RetroAchievements Web API key",
                                            secretValue.constData(), nullptr, &error, "service",
                                            kSecretService, nullptr);
     } else {

@@ -18,7 +18,7 @@ class XeniaGameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit XeniaGameModel(const QString& omakadeDatabasePath,
+  explicit XeniaGameModel(const QString& LEZUDatabasePath,
                           PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~XeniaGameModel() override;
 

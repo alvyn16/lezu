@@ -906,17 +906,17 @@ void AppSettings::load() {
   if (sortModeMatch.hasMatch()) {
     m_librarySortMode = static_cast<int>(kSortModeNames.indexOf(sortModeMatch.captured(1)));
   }
-  m_sunshineOmakadeApp = readEnabled(QStringLiteral("sunshine_omakade_app"), false);
+  m_sunshineLEZUApp = readEnabled(QStringLiteral("sunshine_LEZU_app"), false);
   m_sunshineGameApps = readEnabled(QStringLiteral("sunshine_game_apps"), false);
 }
 
-bool AppSettings::sunshineOmakadeApp() const { return m_sunshineOmakadeApp; }
+bool AppSettings::sunshineLEZUApp() const { return m_sunshineLEZUApp; }
 
-void AppSettings::setSunshineOmakadeApp(bool value) {
-  if (m_sunshineOmakadeApp == value) {
+void AppSettings::setSunshineLEZUApp(bool value) {
+  if (m_sunshineLEZUApp == value) {
     return;
   }
-  m_sunshineOmakadeApp = value;
+  m_sunshineLEZUApp = value;
   save();
   emit sunshineChanged();
 }
@@ -934,7 +934,7 @@ void AppSettings::setSunshineGameApps(bool value) {
 
 bool AppSettings::save() {
   const auto failed = [this] {
-    emit saveFailed(QStringLiteral("Settings could not be saved. Recent changes may be lost when Omakade closes."));
+    emit saveFailed(QStringLiteral("Settings could not be saved. Recent changes may be lost when LEZU closes."));
     return false;
   };
   QDir().mkpath(QFileInfo(m_path).absolutePath());
@@ -1004,11 +1004,11 @@ bool AppSettings::save() {
                              "couch_mode_enabled = %2\n"
                              "couch_library_view = \"%3\"\n"
                              "library_sort_mode = \"%6\"\n"
-                             "sunshine_omakade_app = %4\nsunshine_game_apps = %5\n")
+                             "sunshine_LEZU_app = %4\nsunshine_game_apps = %5\n")
                   .arg(m_closeAfterLaunch ? QStringLiteral("true") : QStringLiteral("false"))
                   .arg(m_couchModeEnabled ? QStringLiteral("true") : QStringLiteral("false"))
                   .arg(m_couchLibraryView)
-                  .arg(m_sunshineOmakadeApp ? QStringLiteral("true") : QStringLiteral("false"))
+                  .arg(m_sunshineLEZUApp ? QStringLiteral("true") : QStringLiteral("false"))
                   .arg(m_sunshineGameApps ? QStringLiteral("true") : QStringLiteral("false"))
                   .arg(kSortModeNames.value(m_librarySortMode))
                   .arg(m_trackPlaySessions ? QStringLiteral("true") : QStringLiteral("false"));

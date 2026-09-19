@@ -375,7 +375,7 @@ bool GameLauncher::launchPlannedEmulator(const QVariantMap& i) {
 }
 void GameLauncher::copyLaunchDetails(const QVariantMap& i) const {
   const auto plan = inspect(i);
-  QString text = "Omakade launch\nSource: " + i.value("source").toString() +
+  QString text = "LEZU launch\nSource: " + i.value("source").toString() +
                  "\nConsole: " + i.value("system").toString() +
                  "\nRoute: " + plan.value("summary").toString() +
                  "\nProgram: " + QFileInfo(plan.value("program").toString()).fileName() +

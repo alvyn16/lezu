@@ -155,7 +155,7 @@ bool looksLikeCoverImage(const QByteArray& bytes) {
 
 QString coverCacheRoot() {
   return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-         QStringLiteral("/omakade/covers/libretro");
+         QStringLiteral("/LEZU/covers/libretro");
 }
 
 } // namespace
@@ -165,7 +165,7 @@ RetroArchGameModel::RetroArchGameModel(const QString& databasePath, AppSettings*
                                        QNetworkAccessManager* network)
     : QAbstractListModel(parent),
       m_connectionName(
-          QStringLiteral("omakade-retroarch-%1").arg(reinterpret_cast<quintptr>(this))),
+          QStringLiteral("LEZU-retroarch-%1").arg(reinterpret_cast<quintptr>(this))),
       m_settings(settings), m_playSessions(playSessions),
       m_network(network ? network : &m_ownedNetwork) {
   if (m_playSessions != nullptr) {
@@ -878,7 +878,7 @@ void RetroArchGameModel::pruneCoverCache() {
   const int limitMb = m_settings == nullptr ? 1024 : m_settings->artworkCacheLimitMb();
   const QString sharedRoot =
       QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-      QStringLiteral("/omakade/covers");
+      QStringLiteral("/LEZU/covers");
   QSet<QString> referenced;
   for (const Game& game : m_games) {
     referenced.insert(game.retroArch.coverPath);

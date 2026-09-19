@@ -74,7 +74,7 @@ LutrisScanResult LutrisScanner::scan(const QStringList& databasePaths) {
       continue;
     }
     result.databasePaths.append(path);
-    const QString connection = QStringLiteral("omakade-lutris-scan-%1")
+    const QString connection = QStringLiteral("LEZU-lutris-scan-%1")
                                    .arg(QUuid::createUuid().toString(QUuid::WithoutBraces));
     {
       QSqlDatabase database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connection);

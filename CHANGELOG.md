@@ -83,7 +83,7 @@ Fixes #46.
 
 ## 1.7.0
 
-Omakade 1.7 brings console libraries, more ways to organize your games, and a
+LEZU 1.7 brings console libraries, more ways to organize your games, and a
 reworked controller keyboard.
 
 ### Console libraries
@@ -137,7 +137,7 @@ reworked controller keyboard.
 Existing IGDB credentials carry over. SteamGridDB requires its own optional API
 key in Settings → Connections. Use Update Ratings & Portraits to fetch metadata.
 
-Backups containing the new console-pin data may not open in older Omakade
+Backups containing the new console-pin data may not open in older LEZU
 versions. Keep an older backup if you plan to downgrade.
 
 ## 1.6.1
@@ -147,7 +147,7 @@ versions. Keep an older backup if you plan to downgrade.
   URL handler when neither is available. Steam packages that register no
   handler sent Play to the web browser. Thanks @radiohost-cloud for the report
   and the Apple Silicon test.
-- Stop matching the Omakade desktop entry when searching for "Steam" or
+- Stop matching the LEZU desktop entry when searching for "Steam" or
   "RetroArch" in the app launcher. Thanks @gmickel for the report.
 - Remember the library sort order between launches.
 - Show every game's cover at the same compact size on the details screen
@@ -161,14 +161,14 @@ versions. Keep an older backup if you plan to downgrade.
 
 - Browse your library in detail or grid view with controller navigation,
   search, filters, and an on-screen keyboard.
-- Open Couch Mode with F11, controller Start, or `omakade --couch`. Sunshine
+- Open Couch Mode with F11, controller Start, or `LEZU --couch`. Sunshine
   sessions open it automatically, and you can make it your startup view.
 - Hold the stick or directional pad to move through games. Selection stays on
   the same game when switching layouts.
 - Use a controller throughout Settings and game organization, including text
   entry, case, and symbols.
 - Let games keep controller focus after launching; ignore controller input while
-  Omakade is in the background.
+  LEZU is in the background.
 - Hide the cursor during keyboard and controller navigation and restore it
   when the mouse moves.
 
@@ -196,7 +196,7 @@ versions. Keep an older backup if you plan to downgrade.
 
 ### Battle.net
 
-- Added Battle.net as a library source. Omakade finds the Windows Battle.net
+- Added Battle.net as a library source. LEZU finds the Windows Battle.net
   client in Wine, Proton, and Bottles prefixes, imports installed games from
   `product.db`, and launches them through Battle.net.
 - Downloads missing Battle.net covers and banners from Lutris's public artwork
@@ -242,14 +242,14 @@ shortcuts, and @jeanmrx1 for the responsive game-details improvements.
 
 ### Sunshine and Moonlight
 
-- Added optional Sunshine app export for Omakade and individual installed games, including
+- Added optional Sunshine app export for LEZU and individual installed games, including
   cover art, while preserving existing Sunshine apps and keeping a one-time backup.
 - Added a Restart Sunshine action in Settings.
-- Added `omakade --play Source:runner:id` and `omakade --quit` for Sunshine app entries and
+- Added `LEZU --play Source:runner:id` and `LEZU --quit` for Sunshine app entries and
   other integrations.
-- Used the installed Omakade executable for native Sunshine entries and waited for a fresh
+- Used the installed LEZU executable for native Sunshine entries and waited for a fresh
   library scan when a game starts before the cache is ready.
-- Opened Omakade fullscreen on Sunshine's streamed display for Moonlight sessions and used
+- Opened LEZU fullscreen on Sunshine's streamed display for Moonlight sessions and used
   each game's normal launcher.
 
 ### Library and organization
@@ -394,7 +394,7 @@ Thanks to @destx0 for the stale Steam library fix, and to @8uff3r, @bscott, and
 
 ## 1.0.1
 
-- Added a distinct Omakade launcher icon and matching in-app brand mark.
+- Added a distinct LEZU launcher icon and matching in-app brand mark.
 - Made the library scrollbar larger and easier to drag with a mouse.
 - Added a persistent accent outline to the selected game card.
 - Improved the new-collection layout and clarified Twitch setup for IGDB.

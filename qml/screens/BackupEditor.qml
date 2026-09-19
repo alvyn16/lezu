@@ -72,7 +72,7 @@ Rectangle {
         id: openDialog
         title: "Preview a Lezu backup"
         fileMode: FileDialog.OpenFile
-        nameFilters: ["Lezu backups (*.lezu-backup *.omakade-backup)"]
+        nameFilters: ["Lezu backups (*.lezu-backup *.LEZU-backup)"]
         onAccepted: { pathField.text = selectedFile; Backups.previewBackup(selectedFile) }
     }
     FileDialog {

@@ -430,7 +430,7 @@ QStringList HeroicScanner::discoverRoots(const QStringList& extraGogRoots) {
   // Explicit paths remain in the scan when a drive is absent, so it can be reported
   // and its cached games retained. Environment paths add to saved and standard roots.
   QStringList configured = extraGogRoots;
-  configured.append(qEnvironmentVariable("OMAKADE_GOG_LIBRARY_PATHS")
+  configured.append(qEnvironmentVariable("LEZU_GOG_LIBRARY_PATHS")
                         .split(QDir::listSeparator(), Qt::SkipEmptyParts));
   for (const QString& path : configured) {
     if (QDir::isAbsolutePath(path)) roots.append(QDir::cleanPath(path));

@@ -1,4 +1,4 @@
-# Omakade completion plan
+# LEZU completion plan
 
 > Historical review and implementation record. For the reconciled September 8
 > candidate, push authorization, and remaining acceptance gates, see
@@ -7,7 +7,7 @@
 
 Created September 5, 2026. Baseline public release: 1.6.0.
 
-Implementation worktree: `/home/bts/Projects/omakade-completion`, branch
+Implementation worktree: `/home/bts/Projects/LEZU-completion`, branch
 `codex/completion`, based on released commit `c91b14e`. The original
 `/home/bts/Projects/steam-launcher` checkout and its uncommitted changes are
 preserved separately. Execution evidence is in the implementation worktree's
@@ -68,7 +68,7 @@ Linear completion tracker: [SBS-1136](https://linear.app/southboundsoftware/issu
 
 - [x] Add, inspect, and remove extra direct GOG library roots in Settings.
 - [x] Preserve standard discovery and define precedence with the existing
-  OMAKADE_GOG_LIBRARY_PATHS override.
+  LEZU_GOG_LIBRARY_PATHS override.
 - [x] Deduplicate overlapping roots, handle missing drives without dropping
   personal state, and report inaccessible paths clearly.
 - [x] Removing a configured root never deletes game files.
@@ -79,7 +79,7 @@ Linear completion tracker: [SBS-1136](https://linear.app/southboundsoftware/issu
   desktop entries, with title, arguments, working directory, and artwork.
 - [x] Parse supported desktop-entry fields correctly. Store executable and
   argument boundaries rather than evaluating arbitrary shell text.
-- [x] Support edit, launch, and removal of the Omakade entry. Removal never
+- [x] Support edit, launch, and removal of the LEZU entry. Removal never
   deletes or uninstalls the underlying game.
 - [x] Include manual games in search, filters, organization, linked games,
   activity, controller flows, and launch entry points where applicable.
@@ -92,7 +92,7 @@ Linear completion tracker: [SBS-1136](https://linear.app/southboundsoftware/issu
 ### Artwork customization
 
 - [x] Extend user-selected artwork to covers, heroes, and logos.
-- [x] Store durable copies under Omakade data, validate supported image content,
+- [x] Store durable copies under LEZU data, validate supported image content,
   and use appropriate size limits and aspect handling.
 - [x] Reset each artwork type independently to its normal provider fallback.
 - [x] Preserve selections through restart, rescan, linking, and cache clearing.

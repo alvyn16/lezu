@@ -32,7 +32,7 @@ AchievementModel::AchievementModel(const QString& databasePath, AppSettings* set
                                    QObject* parent)
     : QAbstractListModel(parent), m_settings(settings),
       m_connectionName(
-          QStringLiteral("omakade-achievements-%1").arg(reinterpret_cast<quintptr>(this))) {
+          QStringLiteral("LEZU-achievements-%1").arg(reinterpret_cast<quintptr>(this))) {
   m_database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
   m_database.setDatabaseName(databasePath);
   m_database.open();

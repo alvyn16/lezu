@@ -7,7 +7,7 @@
 
 #include <functional>
 
-// Session storage shared by Omakade and the omakade-sessiond recorder. Both open
+// Session storage shared by LEZU and the LEZU-sessiond recorder. Both open
 // the same library database, so every function takes the caller's connection and
 // the schema is created idempotently.
 namespace SessionDatabase {

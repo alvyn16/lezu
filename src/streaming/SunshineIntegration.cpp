@@ -83,7 +83,7 @@ SunshineIntegration::SunshineIntegration(UnifiedGameModel* games, AppSettings* s
     setStatus(QStringLiteral("Sunshine was not found. Install it from Omarchy's menu to stream "
                              "with Moonlight."));
   } else if (m_settings != nullptr &&
-             (m_settings->sunshineOmakadeApp() || m_settings->sunshineGameApps())) {
+             (m_settings->sunshineLEZUApp() || m_settings->sunshineGameApps())) {
     scheduleSync();
   } else {
     setStatus(QStringLiteral("Sunshine detected. Nothing is exported yet."));
@@ -159,7 +159,7 @@ void SunshineIntegration::detect() {
 
 void SunshineIntegration::scheduleSync() {
   if (detected() && m_settings != nullptr &&
-      (m_settings->sunshineOmakadeApp() || m_settings->sunshineGameApps())) {
+      (m_settings->sunshineLEZUApp() || m_settings->sunshineGameApps())) {
     m_syncTimer.start();
   }
 }
@@ -195,11 +195,11 @@ QString SunshineIntegration::commandPrefix(bool flatpakSunshine) {
   return executable.isEmpty() ? QStringLiteral("lezu") : shellQuote(executable);
 }
 
-bool SunshineIntegration::isOmakadeEntry(const QJsonObject& entry) {
+bool SunshineIntegration::isLEZUEntry(const QJsonObject& entry) {
   return entry.contains(QLatin1String(kMarker));
 }
 
-QJsonObject SunshineIntegration::omakadeEntry(const QString& prefix, const QString& imagePath) {
+QJsonObject SunshineIntegration::LEZUEntry(const QString& prefix, const QString& imagePath) {
   // An empty cmd keeps the desktop stream alive like the stock Steam Big Picture entry, and
   // the undo step closes the window when the Moonlight session ends.
   QJsonObject entry;
@@ -236,7 +236,7 @@ QJsonObject SunshineIntegration::mergeEntries(const QJsonObject& existing,
   QJsonObject result = existing;
   QJsonArray apps;
   for (const auto& value : existing.value(QStringLiteral("apps")).toArray()) {
-    if (!value.isObject() || !isOmakadeEntry(value.toObject())) {
+    if (!value.isObject() || !isLEZUEntry(value.toObject())) {
       apps.append(value);
     }
   }
@@ -320,15 +320,15 @@ bool SunshineIntegration::sync() {
   emit stateChanged();
   m_syncWatcher.setFuture(QtConcurrent::run(
       [appsPath = m_appsPath, imageRoot = m_imageRoot, prefix = commandPrefix(m_flatpak),
-       includeOmakade = m_settings->sunshineOmakadeApp(), iconSource = m_iconSource, games] {
-        return runSync(appsPath, imageRoot, prefix, includeOmakade, iconSource, games);
+       includeLEZU = m_settings->sunshineLEZUApp(), iconSource = m_iconSource, games] {
+        return runSync(appsPath, imageRoot, prefix, includeLEZU, iconSource, games);
       }));
   return true;
 }
 
 SunshineIntegration::SyncResult SunshineIntegration::runSync(
     const QString& appsPath, const QString& imageRoot, const QString& prefix,
-    bool includeOmakade, const QString& iconSource, const QVector<GameEntry>& games) {
+    bool includeLEZU, const QString& iconSource, const QVector<GameEntry>& games) {
   SyncResult result;
   QFile file(appsPath);
   if (!file.open(QIODevice::ReadOnly)) {
@@ -348,10 +348,10 @@ SunshineIntegration::SyncResult SunshineIntegration::runSync(
 
   QJsonArray ours;
   QSet<QString> usedImages;
-  if (includeOmakade) {
+  if (includeLEZU) {
     const QString image = exportImage(imageRoot, iconSource, QStringLiteral("lezu"));
     usedImages.insert(image);
-    ours.append(omakadeEntry(prefix, image));
+    ours.append(LEZUEntry(prefix, image));
   }
   QHash<QString, int> titleCounts;
   for (const GameEntry& game : games) {

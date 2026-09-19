@@ -49,12 +49,12 @@ bool PlaySessionStore::recorderOwnsDatabase(const QString& databasePath) {
   qint64 pid = 0;
   QString hostname, application;
   if (!owner.getLockInfo(&pid, &hostname, &application) || pid <= 0 ||
-      hostname != QSysInfo::machineHostName() || application != QStringLiteral("omakade-sessiond"))
+      hostname != QSysInfo::machineHostName() || application != QStringLiteral("LEZU-sessiond"))
     return false;
   const QFileInfo process(QStringLiteral("/proc/%1").arg(pid));
   const QFileInfo executable(QStringLiteral("/proc/%1/exe").arg(pid));
   return process.ownerId() == static_cast<uint>(geteuid()) &&
-         QFileInfo(executable.symLinkTarget()).fileName() == QStringLiteral("omakade-sessiond");
+         QFileInfo(executable.symLinkTarget()).fileName() == QStringLiteral("LEZU-sessiond");
 #endif
 }
 

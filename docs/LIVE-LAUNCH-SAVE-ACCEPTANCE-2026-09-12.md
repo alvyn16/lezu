@@ -5,14 +5,14 @@ an already-selected backup list failing to refresh after automatic capture.
 
 ## What ran
 
-- Omakade's actual GameLauncher and SaveBackups implementations.
+- LEZU's actual GameLauncher and SaveBackups implementations.
 - A RomM installation context, explicitly configured for native RetroArch/Snes9x.
   Real-server catalog/credential integration was verified separately in
   [the RomM report](ROMM-LIVE-ACCEPTANCE-2026-09-12.md).
 - `/usr/bin/retroarch` and `/usr/lib/libretro/snes9x_libretro.so`.
 - A generated, disposable 32 KiB SNES test ROM that renders green and increments
   its first SRAM byte on boot. No commercial ROM or personal save was used.
-- The installed `omakade-sessiond`, with a separate config and SQLite database.
+- The installed `LEZU-sessiond`, with a separate config and SQLite database.
 - A temporary wrapper adding only the emulator's test config, frame limit, log,
   and screenshot arguments. It executes the real emulator and core.
 
@@ -21,7 +21,7 @@ an already-selected backup list failing to refresh after automatic capture.
 | Check | Result |
 | --- | --- |
 | Saved explicit launch setup resolves to the actual core | Pass |
-| Omakade starts the actual emulator from a RomM installation context | Pass |
+| LEZU starts the actual emulator from a RomM installation context | Pass |
 | Automatic save copy completes before emulator start | Pass |
 | Already-selected backup list immediately shows the capture | Pass after fix |
 | Restore refused while the emulator is running | Pass |
@@ -49,10 +49,10 @@ All **246 CTest checks passed** in **384.73 seconds**, with no QML runtime error
 found in the log. The capped Release build, staged/installed startup checks,
 desktop-entry validation, and offline AppStream validation passed.
 
-Installed app and recorder: `~/.local/lib/omakade/aaabe0615ac8-1.9-save-refresh/`.
+Installed app and recorder: `~/.local/lib/LEZU/aaabe0615ac8-1.9-save-refresh/`.
 The executable links and running recorder path were verified. Previous candidate
 `3afe8190c90f-1.9-library-cleanup`, settings, and a consistent SQLite backup are
-preserved in `rollback/`. Close Omakade and emulators before running that folder's
+preserved in `rollback/`. Close LEZU and emulators before running that folder's
 `restore-app.py` with Python to restore the previous binaries without replacing
 current library data. The rollback database integrity check passed.
 
@@ -63,7 +63,7 @@ Recorder SHA-256: `abc00b729d09b5dd728dc638b28f256ef25c07a2024af858dd618691294c2
 
 The normal recorder was paused for the controlled emulator runs and restored afterward.
 The isolated run's core options, saves, backups, history, and database stayed under
-`/tmp/omakade-live-game`. The first preflight used the normal RetroArch history path;
+`/tmp/LEZU-live-game`. The first preflight used the normal RetroArch history path;
 its QA history entry was removed. A QA recorder row created during an early failed
 attempt was also removed. The final check confirmed no QA session in personal history.
 
@@ -72,8 +72,8 @@ the tested core. It does not certify every emulator, commercial game, controller
 audio path, or long-running gameplay session. The run was intentionally silent.
 
 The opt-in test is `FeatureWorkflowTests::liveEmulatorRecordingAndSaveRecovery`.
-Ordinary CTest skips it unless `OMAKADE_LIVE_GAME_ROOT=/tmp/omakade-live-game` is set.
+Ordinary CTest skips it unless `LEZU_LIVE_GAME_ROOT=/tmp/LEZU-live-game` is set.
 It requires the disposable ROM/config/save fixture, a PATH wrapper invoking the real
 RetroArch with a bounded frame count, isolated XDG data/config paths, and
-`OMAKADE_LIVE_RECORDER` pointing to the matching recorder binary. Never point the
+`LEZU_LIVE_RECORDER` pointing to the matching recorder binary. Never point the
 fixture at personal saves. Local evidence is in `build/live-game/`.

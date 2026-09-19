@@ -1,6 +1,6 @@
 # Emulator save protection
 
-Omakade copies existing in-game saves before launching an emulator. It uses the current
+LEZU copies existing in-game saves before launching an emulator. It uses the current
 emulator selection without a setup questionnaire. Games without saves get their first copy
 on a later launch. Unchanged saves do not create duplicate versions.
 
@@ -17,7 +17,7 @@ feature.
 
 | Emulator | Save coverage |
 | --- | --- |
-| RetroArch | Every core in Omakade's console catalog: Snes9x, bsnes, Nestopia, FCEUmm, Gambatte, SameBoy, mGBA, Mupen64Plus-Next, ParaLLEl N64, Genesis Plus GX, PicoDrive, PCSX-ReARMed, SwanStation, Flycast |
+| RetroArch | Every core in LEZU's console catalog: Snes9x, bsnes, Nestopia, FCEUmm, Gambatte, SameBoy, mGBA, Mupen64Plus-Next, ParaLLEl N64, Genesis Plus GX, PicoDrive, PCSX-ReARMed, SwanStation, Flycast |
 | RetroArch save formats | Frontend SRAM and RTC together; Nestopia FDS save patches; Genesis CD backup RAM; PS1 memory cards; shared and per-content Dreamcast VMUs |
 | Dolphin | GameCube GCI folders and raw cards, including region/size variants; Wii title saves; shared save-bank fallback when a compressed disc has no readable identity |
 | PCSX2 | File and folder memory cards, configured card directories, external cards, and per-game/multitap card selections |
@@ -59,13 +59,13 @@ undoing a restore into a previously empty save bank.
 Multi-file restore writes a persistent journal containing both the previous and requested
 sets before changing live files. Each file uses an atomic write. Interrupted restores roll
 back on recovery; a committed journal only needs completion/cleanup. Recovery refuses to
-overwrite unexpected external changes and keeps its copies for investigation. Omakade pauses
+overwrite unexpected external changes and keeps its copies for investigation. LEZU pauses
 emulator launches while a restore journal remains unresolved. **Retry Save Recovery** appears
 in Save Backups when needed. Close emulators before retrying. Do not delete the journal to
 bypass recovery.
 
 Process checks cover the supported emulators, including Eden used by local wrappers.
-An emulator started outside Omakade during restore can interrupt the operation; its subsequent
+An emulator started outside LEZU during restore can interrupt the operation; its subsequent
 changes are preserved for explicit recovery rather than overwritten. Automated interruption
 tests exercise process interruption, not a physical power-loss test.
 
@@ -81,7 +81,7 @@ copying is disabled. Save copies and portable layouts are separate from organiza
 
 ## Local portable layouts
 
-`$XDG_CONFIG_HOME/omakade/save-layouts.json` is an optional machine-local override. A rule
+`$XDG_CONFIG_HOME/LEZU/save-layouts.json` is an optional machine-local override. A rule
 matches the exact source and library install path. Omitted `flatpak` means native. Files and
 trees are absolute paths or start with `~/`. An optional anchored `relativePattern` selects
 files within a tree, such as one title across emulator profiles. Unmatched rules do not affect

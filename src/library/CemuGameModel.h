@@ -18,7 +18,7 @@ class CemuGameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit CemuGameModel(const QString& omakadeDatabasePath,
+  explicit CemuGameModel(const QString& LEZUDatabasePath,
                          PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~CemuGameModel() override;
 

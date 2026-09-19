@@ -37,8 +37,8 @@ with every real native or Flatpak launcher installation.
 
 Known limitations:
 
-- If a game accepts controller input while Omakade retains keyboard focus on a
-  second monitor, both can react. Unfocused Omakade ignores controller input;
+- If a game accepts controller input while LEZU retains keyboard focus on a
+  second monitor, both can react. Unfocused LEZU ignores controller input;
   no manual-resume workflow or automatic game-session tracking is enabled.
 - SteamGridDB requires a separate key. Its API responses and image handling are
   tested offline; live verification for this candidate is pending.

@@ -215,7 +215,7 @@ void HomeModel::refreshCached() {
       }
     }
     if (reason.isEmpty()) {
-      if (game.value("lastPlayed").toLongLong() <= 0) { score = 100; reason = "Not played in Omakade yet"; }
+      if (game.value("lastPlayed").toLongLong() <= 0) { score = 100; reason = "Not played in LEZU yet"; }
       else { score = 50; reason = "Rediscover your library"; }
     }
     candidates.append({&game, score, game.value("rating").toDouble(), id, reason});
@@ -256,7 +256,7 @@ void HomeModel::refreshCached() {
     m_gameCount = gameCount;
     emit changed();
   }
-  if (qEnvironmentVariableIsSet("OMAKADE_SCROLL_TRACE"))
+  if (qEnvironmentVariableIsSet("LEZU_SCROLL_TRACE"))
     qInfo() << "scroll-trace home-refresh-ms" << refreshTimer.elapsed() << "rows" << m_games->rowCount();
 }
 bool HomeModel::write(const QVariantList& rows) {

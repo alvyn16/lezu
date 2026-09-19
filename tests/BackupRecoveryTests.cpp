@@ -172,7 +172,7 @@ void BackupRecoveryTests::consoleChoicesSurviveBackupAndRecovery() {
     QCOMPARE(row.value("runner").toString(), source == "Dolphin" ? "flatpak-dolphin" : source == "shadPS4" ? "flatpak-ps4" : "");
   }
   QVERIFY(snapshot.library.value("game_organization").toArray().first().toObject().value("pinned").toBool());
-  const QString archive = temp.filePath("roundtrip.omakade-backup");
+  const QString archive = temp.filePath("roundtrip.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, snapshot, &error), qPrintable(error));
   BackupPayload decoded;
   QVERIFY2(BackupArchive::read(archive, &decoded, &error), qPrintable(error));
@@ -319,7 +319,7 @@ void BackupRecoveryTests::changedArchiveAndJournal() {
   const auto originalJournal = read(journalPath);
   auto journal = QJsonDocument::fromJson(originalJournal).object();
   const QString archive =
-      p.state + "/" + journal.value("id").toString() + "/incoming.omakade-backup";
+      p.state + "/" + journal.value("id").toString() + "/incoming.LEZU-backup";
   QVERIFY(BackupArchive::write(archive, payload("Changed", true), &error));
   QVERIFY(!recovery.resume(&error));
   QVERIFY(error.contains("changed"));
@@ -415,7 +415,7 @@ void BackupRecoveryTests::asynchronousPreviewStagesExactPayload() {
   AppSettings settings(p.settings);
   settings.setIgdbClientId("localclient");
   const QByteArray original = read(p.settings);
-  const QString archive = temp.filePath("incoming.omakade-backup");
+  const QString archive = temp.filePath("incoming.LEZU-backup");
   QVERIFY(BackupArchive::write(archive, payload("Previewed", true), &error));
   BackupManager manager(p, &settings, true);
   QSignalSpy queued(&manager, &BackupManager::restoreQueued);
@@ -452,7 +452,7 @@ void BackupRecoveryTests::exportAndInvalidPreview() {
   AppSettings settings(p.settings);
   settings.setIgdbClientId("localclient");
   BackupManager manager(p, &settings, true);
-  const QString archive = temp.filePath("export.omakade-backup");
+  const QString archive = temp.filePath("export.LEZU-backup");
   manager.exportBackup(archive);
   QTRY_VERIFY_WITH_TIMEOUT(!manager.busy(), 5000);
   BackupPayload restored;
@@ -477,13 +477,13 @@ void BackupRecoveryTests::exportAndInvalidPreview() {
   QTRY_VERIFY_WITH_TIMEOUT(!manager.busy(), 5000);
   QCOMPARE(read(p.database), databaseBytes);
   QVERIFY(QDir().mkpath(p.state));
-  manager.exportBackup(p.state + "/bad.omakade-backup");
+  manager.exportBackup(p.state + "/bad.LEZU-backup");
   QTRY_VERIFY_WITH_TIMEOUT(!manager.busy(), 5000);
-  QVERIFY(!QFileInfo::exists(p.state + "/bad.omakade-backup"));
+  QVERIFY(!QFileInfo::exists(p.state + "/bad.LEZU-backup"));
   BackupManager unavailable(p, &settings, false);
-  unavailable.exportBackup(temp.filePath("disabled.omakade-backup"));
+  unavailable.exportBackup(temp.filePath("disabled.LEZU-backup"));
   QVERIFY(!unavailable.busy());
-  QVERIFY(!QFileInfo::exists(temp.filePath("disabled.omakade-backup")));
+  QVERIFY(!QFileInfo::exists(temp.filePath("disabled.LEZU-backup")));
 }
 
 void BackupRecoveryTests::previewCountsAndMissingPaths() {
@@ -548,11 +548,11 @@ void BackupRecoveryTests::releasedDatabaseMigration() {
   QTemporaryDir temp;
   const auto p = paths(temp.path());
   const QByteArray schema =
-      read(QStringLiteral(OMAKADE_FIXTURE_DIR) + "/released-v1.6.0/schema.sql");
+      read(QStringLiteral(LEZU_FIXTURE_DIR) + "/released-v1.6.0/schema.sql");
   QCOMPARE(QCryptographicHash::hash(schema, QCryptographicHash::Sha256).toHex(),
            QByteArray("dceefb05d10259a3cc9a8c0df88be9635fecae5aabced92ccf3d9a861a9d30c0"));
   const QByteArray seed =
-      read(QStringLiteral(OMAKADE_FIXTURE_DIR) + "/released-v1.6.0/personal-data.sql");
+      read(QStringLiteral(LEZU_FIXTURE_DIR) + "/released-v1.6.0/personal-data.sql");
   QVERIFY(!seed.isEmpty());
   QImage cover(32, 48, QImage::Format_ARGB32);
   cover.fill(QColor(80, 140, 180));
@@ -630,7 +630,7 @@ void BackupRecoveryTests::releasedDatabaseMigration() {
   QVERIFY(hasFlag("Lutris", "", "7", true, false));
   QVERIFY(hasFlag("PCSX2", "TEST-0001", "path:/offline/game.iso", true, false));
   QVERIFY(hasFlag("Ryujinx", "org.ryujinx.Ryujinx", "switch-release", true, false));
-  const QString archive = temp.filePath("released.omakade-backup");
+  const QString archive = temp.filePath("released.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, before, &error), qPrintable(error));
   BackupPayload roundtrip;
   QVERIFY(BackupArchive::read(archive, &roundtrip, &error));

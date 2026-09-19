@@ -45,9 +45,9 @@ QString storeName(const QString& runner) {
 }
 } // namespace
 
-HeroicGameModel::HeroicGameModel(const QString& omakadeDatabasePath, QObject* parent)
+HeroicGameModel::HeroicGameModel(const QString& LEZUDatabasePath, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-heroic-%1").arg(reinterpret_cast<quintptr>(this))) {
+      m_connectionName(QStringLiteral("LEZU-heroic-%1").arg(reinterpret_cast<quintptr>(this))) {
   connect(&m_scanWatcher, &QFutureWatcher<HeroicScanResult>::finished, this,
           [this] {
             m_scanning = false;
@@ -58,7 +58,7 @@ HeroicGameModel::HeroicGameModel(const QString& omakadeDatabasePath, QObject* pa
               refresh();
             }
           });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
     QSqlQuery roots(m_database);

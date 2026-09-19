@@ -94,7 +94,7 @@ pending, and continue the next feature without pretending live acceptance passed
 
 ### User outcome
 
-Know what Play will launch, fix a missing or incorrect setup in Omakade, and have the choice
+Know what Play will launch, fix a missing or incorrect setup in LEZU, and have the choice
 remain correct after restart and rescanning.
 
 ### 2A. One resolved launch description

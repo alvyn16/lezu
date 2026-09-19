@@ -33,7 +33,7 @@ private slots:
     view.rootContext()->setContextProperty("Preferences", &preferences);
     view.rootContext()->setContextProperty("ProtonDB", &service);
     view.setSource(QUrl::fromLocalFile(
-        QStringLiteral(OMAKADE_SOURCE_DIR "/tests/fixtures/protondb/Cards.qml")));
+        QStringLiteral(LEZU_SOURCE_DIR "/tests/fixtures/protondb/Cards.qml")));
     QVERIFY2(view.status() == QQuickView::Ready,
              qPrintable(view.errors().isEmpty() ? QString() : view.errors().first().toString()));
     view.show();
@@ -80,7 +80,7 @@ private slots:
     view.rootContext()->setContextProperty("Preferences", &preferences);
     view.rootContext()->setContextProperty("ProtonDB", &service);
     view.setSource(QUrl::fromLocalFile(
-        QStringLiteral(OMAKADE_SOURCE_DIR "/tests/fixtures/protondb/Cards.qml")));
+        QStringLiteral(LEZU_SOURCE_DIR "/tests/fixtures/protondb/Cards.qml")));
     QVERIFY2(view.status() == QQuickView::Ready,
              qPrintable(view.errors().isEmpty() ? QString() : view.errors().first().toString()));
     view.show();

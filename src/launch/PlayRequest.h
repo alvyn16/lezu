@@ -7,9 +7,9 @@
 class GameLauncher;
 class UnifiedGameModel;
 
-// Identifies one installation of a game the way Omakade stores it: the source name, the
+// Identifies one installation of a game the way LEZU stores it: the source name, the
 // source-specific runner (often empty), and the source's own game id. The text form
-// "Source:runner:id" is what `omakade --play` and Sunshine app entries carry. The id is
+// "Source:runner:id" is what `LEZU --play` and Sunshine app entries carry. The id is
 // everything after the second colon, so RetroArch content paths survive unchanged.
 struct LaunchKey {
   QString source;
@@ -27,7 +27,7 @@ namespace PlayRequest {
 [[nodiscard]] QVariantMap findInstallation(const UnifiedGameModel& games, const LaunchKey& key,
                                            int* row);
 // Waits briefly for an asynchronous source refresh to make a requested installation available.
-// Sunshine can start a game before a fresh Omakade process has finished scanning its library.
+// Sunshine can start a game before a fresh LEZU process has finished scanning its library.
 bool waitForInstallation(UnifiedGameModel& games, const LaunchKey& key, int timeoutMs);
 // Launches the matching installation through the owning platform and records the launch.
 // Returns false and fills `error` when the game is missing, not installed, or fails.

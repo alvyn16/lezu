@@ -80,7 +80,7 @@ QString normalizedCollectionName(const QString& input) {
 
 UnifiedGameModel::UnifiedGameModel(const QString& databasePath, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-artwork-%1").arg(QUuid::createUuid().toString())) {
+      m_connectionName(QStringLiteral("LEZU-artwork-%1").arg(QUuid::createUuid().toString())) {
   connect(this, &QAbstractItemModel::dataChanged, this, [this] { m_reviewIndexDirty = true; });
   connect(this, &QAbstractItemModel::modelReset, this, [this] { m_reviewIndexDirty = true; });
   connect(this, &QAbstractItemModel::rowsInserted, this, [this] { m_reviewIndexDirty = true; });

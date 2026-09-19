@@ -105,11 +105,11 @@ void BackupManager::exportBackup(const QString& input) {
     const QString parent = QFileInfo(path).dir().canonicalPath();
     const QString resolved = parent + '/' + QFileInfo(path).fileName();
     const QString artwork = QFileInfo(paths.database).absolutePath() + "/artwork";
-    if (path.isEmpty() || parent.isEmpty() || !path.endsWith(".omakade-backup") ||
+    if (path.isEmpty() || parent.isEmpty() || !path.endsWith(".LEZU-backup") ||
         path == paths.database || path == paths.settings || within(resolved, paths.state) ||
         within(resolved, artwork) || QFileInfo(path).isSymLink()) {
       result.message =
-          "Choose a local .omakade-backup file outside Omakade's artwork and recovery folders.";
+          "Choose a local .LEZU-backup file outside LEZU's artwork and recovery folders.";
       return result;
     }
     BackupPayload payload;
@@ -175,7 +175,7 @@ void BackupManager::confirmRestore(bool replace) {
     result.queued = recovery.stage(
         *incoming, replace ? BackupDatabase::Mode::Replace : BackupDatabase::Mode::Merge, &error);
     result.message = result.queued
-                         ? "Restore is ready. Close Omakade and reopen it to apply the backup."
+                         ? "Restore is ready. Close LEZU and reopen it to apply the backup."
                          : error;
     return result;
   });
@@ -276,7 +276,7 @@ QVariantMap BackupManager::describe(const BackupPayload& incoming, const BackupP
        "backups without history leave it unchanged. Up next is replaced only when included in the "
        "backup. Game files stay in place."},
       {"recoveryExplanation",
-       "Omakade saves a recovery copy before applying changes on the next startup. Account-service "
+       "LEZU saves a recovery copy before applying changes on the next startup. Account-service "
        "identifiers and Sunshine publishing choices remain local. Missing games stay stored for "
        "rediscovery, and missing manual paths can be repaired. Play-history restore requires the "
        "recorder to be stopped. Emulator saves and save states are not included. Restoring does "

@@ -18,10 +18,10 @@ in 65.26 seconds. Card screenshots were inspected at three sizes. Staged and ins
 startup passed, and installed binary hashes and recorder path were verified. This is
 a targeted regression pass; the complete 246-check result below belongs to the baseline.
 
-Installed app/recorder: `~/.local/lib/omakade/3afe8190c90f-1.9-library-cleanup/`.
-Close and reopen Omakade to load it. The previous four-feature build and consistent
+Installed app/recorder: `~/.local/lib/LEZU/3afe8190c90f-1.9-library-cleanup/`.
+Close and reopen LEZU to load it. The previous four-feature build and consistent
 settings/database backups are preserved in this candidate's `rollback/` directory.
-After closing Omakade and emulators, `python3` followed by that directory's
+After closing LEZU and emulators, `python3` followed by that directory's
 `restore-app.py` restores the previous app/recorder without replacing library data.
 The candidate directory contains exact SHA-256 values in `candidate.json`.
 Real-server RomM connection, cache, credentials, permissions, and controlled launch routing
@@ -123,8 +123,8 @@ The validation/installation documentation commit does not change the compiled so
 
 | Binary | SHA-256 |
 | --- | --- |
-| `omakade` | `beb99fa19e9ab3a003e86f82a2e2b5b29c1a4664b43a661f9c6c0e7b4458aa35` |
-| `omakade-sessiond` | `abc00b729d09b5dd728dc638b28f256ef25c07a2024af858dd618691294c2a67` |
+| `LEZU` | `beb99fa19e9ab3a003e86f82a2e2b5b29c1a4664b43a661f9c6c0e7b4458aa35` |
+| `LEZU-sessiond` | `abc00b729d09b5dd728dc638b28f256ef25c07a2024af858dd618691294c2a67` |
 
 ## Final results and installation
 
@@ -133,16 +133,16 @@ The validation/installation documentation commit does not change the compiled so
   the full test log. The final build had no compiler warnings.
 - Staged and installed startup smoke checks, desktop-entry validation, and offline
   AppStream validation passed. Binary hashes and the running recorder path were verified.
-- Installed app and recorder: `~/.local/lib/omakade/57721a28ceed-1.9-four-features/`.
+- Installed app and recorder: `~/.local/lib/LEZU/57721a28ceed-1.9-four-features/`.
   `~/.local/bin` links and the desktop entry now select this candidate.
-- The already-open app session was preserved. Close and reopen Omakade to use this build.
+- The already-open app session was preserved. Close and reopen LEZU to use this build.
   The matching recorder service is active from the candidate directory.
 - The candidate directory contains `candidate.json`, validation logs, and a private
   `rollback/` directory holding the previous launch paths, desktop/service configuration,
-  Omakade settings, and a consistent SQLite backup. The backup integrity check passed.
+  LEZU settings, and a consistent SQLite backup. The backup integrity check passed.
 - Previous installed build: `3e57cfac49ba-1.9-reviewed`. To restore its app and recorder,
-  close Omakade and emulators, then run
-  `python3 ~/.local/lib/omakade/57721a28ceed-1.9-four-features/rollback/restore-app.py`.
+  close LEZU and emulators, then run
+  `python3 ~/.local/lib/LEZU/57721a28ceed-1.9-four-features/rollback/restore-app.py`.
   This restores launch paths without replacing current library data. The database backup
   is retained separately for deliberate data recovery.
 - Implementation and automated validation are complete. Maintainer acceptance and live
@@ -153,7 +153,7 @@ The validation/installation documentation commit does not change the compiled so
 1. Use the library normally with mouse/keyboard and controller. Open each new entry point,
    edit a text field in Couch Mode, back out, and confirm focus and selection return correctly.
 2. For an emulator game, inspect Launch Setup, save an explicit supported choice, launch and
-   exit, restart Omakade, and confirm the choice remains. Reset to Automatic afterward if desired.
+   exit, restart LEZU, and confirm the choice remains. Reset to Automatic afterward if desired.
 3. Inspect Save Protection coverage. On disposable saves, create a backup, change the save,
    restore, undo, and review cleanup. Confirm the displayed shared scope matches expectations.
 4. Correct one identity and one artwork choice through Repair Library, continue to another

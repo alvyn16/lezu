@@ -29,7 +29,7 @@ constexpr qint64 kCacheLifetimeSeconds = 30 * 24 * 60 * 60;
 
 const SecretSchema* insightsSchema() {
   static const SecretSchema* schema =
-      secret_schema_new("io.github.tsouth89.Omakade.IGDB", SECRET_SCHEMA_NONE, "service",
+      secret_schema_new("io.github.tsouth89.LEZU.IGDB", SECRET_SCHEMA_NONE, "service",
                         SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
   return schema;
 }
@@ -52,7 +52,7 @@ InsightsSecretResult secretOperation(int action, QByteArray value) {
     }
   } else if (action == 1) {
     result.success = secret_password_store_sync(
-        insightsSchema(), SECRET_COLLECTION_DEFAULT, "Omakade IGDB client secret",
+        insightsSchema(), SECRET_COLLECTION_DEFAULT, "LEZU IGDB client secret",
         value.constData(), nullptr, &error, "service", kSecretService, nullptr);
     result.found = result.success;
   } else {
@@ -76,7 +76,7 @@ int hoursFor(int seconds) {
 GameInsightsService::GameInsightsService(const QString& databasePath, AppSettings* settings,
                                          QObject* parent)
     : QObject(parent), m_settings(settings),
-      m_connectionName(QStringLiteral("omakade-insights-%1").arg(QUuid::createUuid().toString())) {
+      m_connectionName(QStringLiteral("LEZU-insights-%1").arg(QUuid::createUuid().toString())) {
   m_database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
   m_database.setDatabaseName(databasePath);
   m_database.open();

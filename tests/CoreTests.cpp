@@ -992,7 +992,7 @@ void CoreTests::themeFallsBackWithoutOmarchy() {
                      directory.path() + QStringLiteral("/config"));
 
   QVERIFY(!theme.omarchyAvailable());
-  QCOMPARE(theme.themeName(), QStringLiteral("Omakade Dark"));
+  QCOMPARE(theme.themeName(), QStringLiteral("LEZU Dark"));
   QVERIFY(theme.background().isValid());
   QVERIFY(theme.foreground().isValid());
 }
@@ -1316,7 +1316,7 @@ void CoreTests::steamScannerSurvivesMissingLibrariesAndBrokenManifests() {
   QVERIFY(SteamScanner::isToolTitle(QStringLiteral("Steam Linux Runtime 3.0 (sniper)")));
   QVERIFY(!SteamScanner::isToolTitle(QStringLiteral("Protonic Blast")));
 
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   SteamGameModel model(database);
   model.refreshFromRoots({root});
   QTRY_VERIFY_WITH_TIMEOUT(!model.scanning(), 3000);
@@ -1336,7 +1336,7 @@ void CoreTests::steamModelPersistsFavoritesAndHiddenState() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/Steam");
   const QString second = directory.path() + QStringLiteral("/Library");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createSteamFixture(root, second);
 
   {
@@ -1373,7 +1373,7 @@ void CoreTests::steamModelSkipsUnchangedRescans() {
   const QString second = directory.path() + QStringLiteral("/Library");
   createSteamFixture(root, second);
 
-  SteamGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  SteamGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   QSignalSpy resets(&model, &QAbstractItemModel::modelReset);
   model.refreshFromRoots({root});
   QTRY_VERIFY_WITH_TIMEOUT(!model.scanning(), 3000);
@@ -1534,7 +1534,7 @@ void CoreTests::achievementModelLoadsLocalSteamCache() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/Steam");
   const QString second = directory.path() + QStringLiteral("/Library");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createSteamFixture(root, second);
 
   AppSettings settings(directory.path() + QStringLiteral("/config.toml"));
@@ -1869,7 +1869,7 @@ void CoreTests::lutrisModelIsRepeatableAndPreservesLocalState() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString dataRoot = directory.path() + QStringLiteral("/lutris");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createLutrisFixture(dataRoot);
 
   LutrisGameModel model(database);
@@ -1893,7 +1893,7 @@ void CoreTests::malformedLutrisDataDoesNotReplaceCachedGames() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString dataRoot = directory.path() + QStringLiteral("/lutris");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createLutrisFixture(dataRoot);
   LutrisGameModel model(database);
   model.refreshFromDatabases({dataRoot + QStringLiteral("/pga.db")});
@@ -1912,7 +1912,7 @@ void CoreTests::unifiedLibraryFiltersSourcesAndRoutesFavorites() {
   const QString dataRoot = directory.path() + QStringLiteral("/lutris");
   createLutrisFixture(dataRoot);
   MockGameModel demo(nullptr, 2);
-  LutrisGameModel lutris(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  LutrisGameModel lutris(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   lutris.refreshFromDatabases({dataRoot + QStringLiteral("/pga.db")});
   UnifiedGameModel games;
   games.addSourceModel(&demo);
@@ -1934,7 +1934,7 @@ void CoreTests::unifiedLibraryCanDisableSourcesAtRuntime() {
   const QString dataRoot = directory.path() + QStringLiteral("/lutris");
   createLutrisFixture(dataRoot);
   MockGameModel demo(nullptr, 2);
-  LutrisGameModel lutris(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  LutrisGameModel lutris(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   lutris.refreshFromDatabases({dataRoot + QStringLiteral("/pga.db")});
   UnifiedGameModel games;
   games.addSourceModel(&demo);
@@ -2017,7 +2017,7 @@ void CoreTests::artworkSlotsMigratePersistAndResetIndependently() {
   QCOMPARE(library.get(0).value(QStringLiteral("heroPath")), demo.data(demo.index(0), GameRoles::HeroPath));
   QVERIFY(library.resetCustomArtwork(0, QStringLiteral("logo")));
   QVERIFY(library.resetCustomCover(0));
-  // A migrated external path is not owned by Omakade and must never be deleted.
+  // A migrated external path is not owned by LEZU and must never be deleted.
   QVERIFY(QFileInfo::exists(legacy));
 }
 
@@ -2223,7 +2223,7 @@ void CoreTests::backupSnapshotConsolidatesLegacyPersonalState() {
   QVERIFY(artwork.value("hero_path").toString().isEmpty());
   QCOMPARE(snapshot.artwork.size(), 1);
   QVERIFY(original.open(QIODevice::ReadOnly)); QCOMPARE(original.readAll(), originalBytes); original.close();
-  QVERIFY2(BackupArchive::write(temp.filePath("export.omakade-backup"), snapshot, &error), qPrintable(error));
+  QVERIFY2(BackupArchive::write(temp.filePath("export.LEZU-backup"), snapshot, &error), qPrintable(error));
   // A custom artwork file that has gone missing is dropped from the backup
   // rather than blocking every export; the library already falls back for it.
   QVERIFY(QFile::remove(cover));
@@ -2236,7 +2236,7 @@ void CoreTests::backupSnapshotConsolidatesLegacyPersonalState() {
 
 void CoreTests::backupArchiveRoundTripsAndRejectsInvalidContent() {
   QTemporaryDir temp;
-  const QString path = temp.filePath("library.omakade-backup");
+  const QString path = temp.filePath("library.LEZU-backup");
   QImage image(64, 32, QImage::Format_ARGB32);
   image.fill(QColor(30, 70, 110, 120));
   const QString imagePath = temp.filePath("source.png");
@@ -2312,7 +2312,7 @@ void CoreTests::backupArchiveRoundTripsAndRejectsInvalidContent() {
     }
     QCOMPARE(zip_close(zip), 0);
   };
-  const QJsonObject emptyManifest{{"format", "omakade-backup"}, {"version", 1},
+  const QJsonObject emptyManifest{{"format", "LEZU-backup"}, {"version", 1},
       {"createdAt", original.createdAt}, {"library", QJsonObject{}}, {"settings", QJsonObject{}}, {"artwork", QJsonArray{}}};
   const QString badPath = temp.filePath("bad.zip");
   rawArchive(badPath, emptyManifest, "unexpected.txt");
@@ -2368,7 +2368,7 @@ void CoreTests::completionWorkflowPersistsAtLibraryScale() {
   QString error;
   QVERIFY2(BackupSnapshot::capture(path, {}, &payload, &error), qPrintable(error));
   QCOMPARE(payload.library.value("game_organization").toArray().size(), 1000);
-  const QString archive = original.filePath("library.omakade-backup");
+  const QString archive = original.filePath("library.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, payload, &error), qPrintable(error));
   BackupPayload imported;
   QVERIFY2(BackupArchive::read(archive, &imported, &error), qPrintable(error));
@@ -2682,7 +2682,7 @@ void CoreTests::randomPickRespectsFiltersAndLinkedIdentity() {
 void CoreTests::customCoverPersistsAndResets() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   const QString source = directory.path() + QStringLiteral("/cover.png");
   QImage image(20, 30, QImage::Format_RGB32);
   image.fill(Qt::red);
@@ -2718,7 +2718,7 @@ void CoreTests::explicitLinksPersistAndPreserveInstallations() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString dataRoot = directory.path() + QStringLiteral("/lutris");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createLutrisFixture(dataRoot);
   const QString installedPath = directory.path() + QStringLiteral("/installed");
   QVERIFY(QDir().mkpath(installedPath));
@@ -2869,7 +2869,7 @@ void CoreTests::explicitLinksPersistAndPreserveInstallations() {
 void CoreTests::launchActivityPersistsAndSortsExactly() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
 
   {
     MockGameModel demo(nullptr, 20);
@@ -2922,7 +2922,7 @@ void CoreTests::launchActivityPersistsAndSortsExactly() {
 void CoreTests::organizationPersistsAndFilters() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
 
   {
     MockGameModel demo(nullptr, 20);
@@ -2991,7 +2991,7 @@ void CoreTests::launcherTracksRunningGames() {
   QSignalSpy running(&launcher, &GameLauncher::gameRunningChanged);
   QVERIFY(!launcher.gameRunning());
   QVERIFY(!launcher.startTracked(
-      LaunchCommand{QStringLiteral("/nonexistent/omakade-missing-binary"), {}}));
+      LaunchCommand{QStringLiteral("/nonexistent/LEZU-missing-binary"), {}}));
   QVERIFY(!launcher.gameRunning());
   QCOMPARE(running.count(), 0);
 
@@ -3101,7 +3101,7 @@ void CoreTests::heroicModelIsRepeatableAndPreservesLocalState() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/heroic");
   createHeroicFixture(root);
-  HeroicGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  HeroicGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 4);
   QCOMPARE(model.detectedPaths(), QStringList({root}));
@@ -3119,7 +3119,7 @@ void CoreTests::heroicModelIsRepeatableAndPreservesLocalState() {
   QCOMPARE(model.rowCount(), 4);
   QVERIFY(model.data(model.index(0), GameRoles::Favorite).toBool());
   QVERIFY(model.data(model.index(0), GameRoles::Hidden).toBool());
-  HeroicGameModel reloaded(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  HeroicGameModel reloaded(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   QCOMPARE(reloaded.detectedPaths(), QStringList({root}));
   QCOMPARE(reloaded.lastScan(), model.lastScan());
 }
@@ -3129,7 +3129,7 @@ void CoreTests::malformedHeroicDataDoesNotReplaceCachedGames() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/heroic");
   createHeroicFixture(root);
-  HeroicGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  HeroicGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 4);
   writeFile(root + QStringLiteral("/legendaryConfig/legendary/installed.json"), "not json");
@@ -3149,7 +3149,7 @@ void CoreTests::heroicAndGogScanFailuresAreIsolated() {
             R"({"name":"Direct Quest","playTasks":[{"type":"FileTask","isPrimary":true,"path":"start.sh"}]})");
   writeFile(directGame + QStringLiteral("/start.sh"), "#!/bin/sh\n");
 
-  HeroicGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  HeroicGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({heroicRoot, gogRoot});
   QCOMPARE(model.rowCount(), 5);
   QVERIFY(model.heroicDetected());
@@ -3298,7 +3298,7 @@ void CoreTests::faugusModelIsRepeatableAndPreservesLocalState() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/faugus-launcher");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createFaugusFixture(root);
 
   FaugusGameModel model(database);
@@ -3333,7 +3333,7 @@ void CoreTests::malformedFaugusDataDoesNotReplaceCachedGames() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/faugus-launcher");
   createFaugusFixture(root);
-  FaugusGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  FaugusGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 3);
   writeFile(root + QStringLiteral("/games.json"), "not json");
@@ -3399,7 +3399,7 @@ void CoreTests::launcherRefreshesRunAsynchronously() {
     }
   });
 
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   LutrisGameModel lutris(database);
   HeroicGameModel heroic(database);
   FaugusGameModel faugus(database);
@@ -3423,7 +3423,7 @@ void CoreTests::launcherRefreshesRunAsynchronously() {
 void CoreTests::absentLaunchersPersistEmptySourcePaths() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   {
     SteamGameModel model(database);
     model.refreshFromRoots({});
@@ -3584,7 +3584,7 @@ void CoreTests::retroArchModelIsRepeatableAndPreservesLocalState() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/retroarch");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createRetroArchFixture(root);
   RetroArchGameModel model(database);
   model.refreshFromRoots({root});
@@ -3605,7 +3605,7 @@ void CoreTests::malformedRetroArchDataDoesNotReplaceCachedGames() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/retroarch");
   createRetroArchFixture(root);
-  RetroArchGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 2);
   writeFile(root + QStringLiteral("/playlists/Nintendo.lpl"), "not json");
@@ -3779,7 +3779,7 @@ void CoreTests::battleNetModelIsRepeatableAndPreservesLocalState() {
   const auto restoreCacheHome = redirectCacheHome(directory.path() + QStringLiteral("/cache"));
   Q_UNUSED(restoreCacheHome);
   const QString prefix = directory.path() + QStringLiteral("/wine");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createBattleNetFixture(prefix);
 
   BattleNetGameModel model(database);
@@ -3826,7 +3826,7 @@ void CoreTests::battleNetModelMigratesLegacyRowsSafely() {
   QVERIFY(directory.isValid());
   const auto restoreCacheHome = redirectCacheHome(directory.path() + QStringLiteral("/cache"));
   Q_UNUSED(restoreCacheHome);
-  const QString databasePath = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString databasePath = directory.path() + QStringLiteral("/LEZU.sqlite3");
   const QString connection = QStringLiteral("battlenet-legacy-migration");
   {
     QSqlDatabase database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connection);
@@ -3879,7 +3879,7 @@ void CoreTests::malformedBattleNetDataDoesNotReplaceCachedGames() {
   Q_UNUSED(restoreCacheHome);
   const QString prefix = directory.path() + QStringLiteral("/wine");
   createBattleNetFixture(prefix);
-  BattleNetGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  BattleNetGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromPrefixes({prefix});
   QCOMPARE(model.rowCount(), 3);
   const QStringList detectedPaths = model.detectedPaths();
@@ -3899,7 +3899,7 @@ void CoreTests::oversizedBattleNetDatabaseDoesNotReplaceCachedGames() {
   Q_UNUSED(restoreCacheHome);
   const QString prefix = directory.path() + QStringLiteral("/wine");
   createBattleNetFixture(prefix);
-  BattleNetGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  BattleNetGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromPrefixes({prefix});
   QCOMPARE(model.rowCount(), 3);
   const QStringList detectedPaths = model.detectedPaths();
@@ -3913,7 +3913,7 @@ void CoreTests::oversizedBattleNetDatabaseDoesNotReplaceCachedGames() {
 }
 
 void CoreTests::battleNetLauncherBuildsSafeCommands() {
-  const QString prefix = QStringLiteral("/tmp/omakade-bnet");
+  const QString prefix = QStringLiteral("/tmp/LEZU-bnet");
   const LaunchCommand wine =
       GameLauncher::battleNetCommand(QStringLiteral("wow"), prefix, QStringLiteral("wine"), false);
   QCOMPARE(wine.program, QStringLiteral("wine"));
@@ -3980,7 +3980,7 @@ void CoreTests::launcherReportsInvalidAndStaleTargets() {
                            QStringLiteral("/path/that/does/not/exist")));
   QVERIFY(launcher.lastError().startsWith(QStringLiteral("The installed files are missing.")));
   QVERIFY(!launcher.launch(QStringLiteral("Battle.net"), QStringLiteral("wow;rm"), false,
-                           QStringLiteral("wine"), {}, QStringLiteral("/tmp/omakade-bnet")));
+                           QStringLiteral("wine"), {}, QStringLiteral("/tmp/LEZU-bnet")));
   QCOMPARE(launcher.lastError(), QStringLiteral("This game has an invalid Battle.net target."));
 
   QTemporaryDir directory;
@@ -4891,7 +4891,7 @@ void CoreTests::launchKeysRoundTripAndResolveInstallations() {
 }
 
 void CoreTests::singleInstanceForwardsPlayAndQuitCommands() {
-  const QString name = QStringLiteral("omakade-test-") + QUuid::createUuid().toString();
+  const QString name = QStringLiteral("LEZU-test-") + QUuid::createUuid().toString();
   QVERIFY(!SingleInstance::sendCommand(name, "quit"));
   SingleInstance primary(name);
   QVERIFY(primary.claimOrNotify());
@@ -4917,10 +4917,10 @@ void CoreTests::singleInstanceForwardsPlayAndQuitCommands() {
 void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
   QCOMPARE(SunshineIntegration::shellQuote(QStringLiteral("it's")), QStringLiteral("'it'\\''s'"));
   QCOMPARE(SunshineIntegration::commandPrefix(true),
-           QStringLiteral("flatpak-spawn --host omakade"));
+           QStringLiteral("flatpak-spawn --host LEZU"));
   const QString nativePrefix = SunshineIntegration::commandPrefix(false);
-  QVERIFY(nativePrefix == QStringLiteral("omakade") ||
-          nativePrefix.endsWith(QStringLiteral("/omakade'")));
+  QVERIFY(nativePrefix == QStringLiteral("LEZU") ||
+          nativePrefix.endsWith(QStringLiteral("/LEZU'")));
 
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
@@ -4985,7 +4985,7 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
   QCOMPARE(document.value(QStringLiteral("env")).toObject().value(QStringLiteral("PATH")).toString(),
            QStringLiteral("$(PATH):$(HOME)/.local/bin"));
   const QJsonObject firstGame = apps.at(2).toObject();
-  QCOMPARE(firstGame.value(QStringLiteral("omakade")).toString(), QStringLiteral("Demo::demo-1"));
+  QCOMPARE(firstGame.value(QStringLiteral("LEZU")).toString(), QStringLiteral("Demo::demo-1"));
   QCOMPARE(firstGame.value(QStringLiteral("cmd")).toString(), QString{});
   QCOMPARE(firstGame.value(QStringLiteral("detached")).toArray().at(0).toString(),
            SunshineIntegration::commandPrefix(false) + QStringLiteral(" --play 'Demo::demo-1'"));
@@ -4995,7 +4995,7 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
   const QJsonObject lutrisGame = apps.at(4).toObject();
   QCOMPARE(lutrisGame.value(QStringLiteral("name")).toString(),
            sharedTitle + QStringLiteral(" (Lutris)"));
-  QCOMPARE(lutrisGame.value(QStringLiteral("omakade")).toString(), QStringLiteral("Lutris::celeste"));
+  QCOMPARE(lutrisGame.value(QStringLiteral("LEZU")).toString(), QStringLiteral("Lutris::celeste"));
   const QString boxArt = lutrisGame.value(QStringLiteral("image-path")).toString();
   QVERIFY(boxArt.startsWith(imageRoot));
   QCOMPARE(QImage(boxArt).size(), QSize(600, 800));
@@ -5003,17 +5003,17 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
            unified.data(unified.index(2, 0), GameRoles::Title).toString());
   QCOMPARE(sunshine.exportedGames(), 3);
   QVERIFY(sunshine.restartNeeded());
-  QVERIFY(QFileInfo::exists(appsPath + QStringLiteral(".omakade-backup")));
+  QVERIFY(QFileInfo::exists(appsPath + QStringLiteral(".LEZU-backup")));
 
-  settings.setSunshineOmakadeApp(true);
+  settings.setSunshineLEZUApp(true);
   settle();
   apps = readApps().value(QStringLiteral("apps")).toArray();
   QCOMPARE(apps.size(), 6);
-  const QJsonObject omakade = apps.at(2).toObject();
-  QCOMPARE(omakade.value(QStringLiteral("name")).toString(), QStringLiteral("Omakade"));
-  QCOMPARE(omakade.value(QStringLiteral("detached")).toArray().at(0).toString(),
+  const QJsonObject LEZU = apps.at(2).toObject();
+  QCOMPARE(LEZU.value(QStringLiteral("name")).toString(), QStringLiteral("LEZU"));
+  QCOMPARE(LEZU.value(QStringLiteral("detached")).toArray().at(0).toString(),
            nativePrefix);
-  QCOMPARE(omakade.value(QStringLiteral("prep-cmd"))
+  QCOMPARE(LEZU.value(QStringLiteral("prep-cmd"))
                .toArray()
                .at(0)
                .toObject()
@@ -5041,7 +5041,7 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
   QCOMPARE(apps.size(), 5);
   bool exportedPreferred = false;
   for (const QJsonValue& value : apps) {
-    const QString key = value.toObject().value(QStringLiteral("omakade")).toString();
+    const QString key = value.toObject().value(QStringLiteral("LEZU")).toString();
     QVERIFY(key != QStringLiteral("Demo::demo-1"));
     if (key == QStringLiteral("Lutris::celeste")) {
       exportedPreferred = true;
@@ -5050,7 +5050,7 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
   QVERIFY(exportedPreferred);
 
   settings.setSunshineGameApps(false);
-  settings.setSunshineOmakadeApp(false);
+  settings.setSunshineLEZUApp(false);
   settle();
   apps = readApps().value(QStringLiteral("apps")).toArray();
   QCOMPARE(apps.size(), 2);
@@ -5061,7 +5061,7 @@ void CoreTests::sunshineIntegrationWritesOnlyItsOwnEntries() {
 }
 
 void CoreTests::secondInstanceRequestsActivation() {
-  const QString name = QStringLiteral("omakade-test-") + QUuid::createUuid().toString();
+  const QString name = QStringLiteral("LEZU-test-") + QUuid::createUuid().toString();
   SingleInstance primary(name);
   QVERIFY(primary.claimOrNotify());
   QSignalSpy activation(&primary, &SingleInstance::activationRequested);
@@ -5161,7 +5161,7 @@ void CoreTests::virtualControllerConnectsAndMapsPrimaryButton() {
                             (1U << SDL_GAMEPAD_BUTTON_DPAD_LEFT) |
                             (1U << SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
   description.axis_mask = (1U << SDL_GAMEPAD_AXIS_LEFTX) | (1U << SDL_GAMEPAD_AXIS_LEFTY);
-  description.name = "Omakade test controller";
+  description.name = "LEZU test controller";
   const SDL_JoystickID id = SDL_AttachVirtualJoystick(&description);
   QVERIFY2(id != 0, SDL_GetError());
 
@@ -5441,7 +5441,7 @@ void CoreTests::pcsx2ModelIsRepeatableAndPreservesLocalState() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/pcsx2");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createPcsx2Fixture(root);
 
   Pcsx2GameModel model(database);
@@ -5468,7 +5468,7 @@ void CoreTests::malformedPcsx2DataDoesNotReplaceCachedGames() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/pcsx2");
   createPcsx2Fixture(root);
-  Pcsx2GameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  Pcsx2GameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   writeFile(root + QStringLiteral("/cache/gamelist.cache"), "not a cache");
@@ -5499,7 +5499,7 @@ void CoreTests::pcsx2UnifiedFilterShowsGames() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/pcsx2");
   createPcsx2Fixture(root);
-  Pcsx2GameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  Pcsx2GameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   UnifiedGameModel games;
@@ -5694,7 +5694,7 @@ void CoreTests::ryujinxModelIsRepeatableAndPreservesLocalState() {
   const QString root =
       directory.path() + QStringLiteral("/.var/app/org.ryujinx.Ryujinx/config/Ryujinx");
   const QString roms = directory.path() + QStringLiteral("/switch-roms");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createRyujinxFixture(root, roms);
 
   RyujinxGameModel model(database);
@@ -5724,7 +5724,7 @@ void CoreTests::malformedRyujinxDataDoesNotReplaceCachedGames() {
   const QString root = directory.path() + QStringLiteral("/ryujinx");
   const QString roms = directory.path() + QStringLiteral("/switch-roms");
   createRyujinxFixture(root, roms);
-  RyujinxGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RyujinxGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QVERIFY2(model.rowCount() == 1,
            qPrintable(model.statusText() + QStringLiteral(": ") + model.errorText()));
@@ -5840,7 +5840,7 @@ void CoreTests::shadps4ModelIsRepeatableAndPreservesLocalState() {
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/shadps4");
   const QString games = directory.path() + QStringLiteral("/ps4");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createShadps4Fixture(root, games);
 
   Shadps4GameModel model(database);
@@ -5860,7 +5860,7 @@ void CoreTests::malformedShadps4DataDoesNotReplaceCachedGames() {
   const QString root = directory.path() + QStringLiteral("/shadps4");
   const QString games = directory.path() + QStringLiteral("/ps4");
   createShadps4Fixture(root, games);
-  Shadps4GameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  Shadps4GameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   writeFile(root + QStringLiteral("/config.toml"),
@@ -5975,7 +5975,7 @@ void CoreTests::cemuModelIsRepeatableAndPreservesLocalState() {
   const QString root = directory.path() + QStringLiteral("/cemu");
   const QString games = directory.path() + QStringLiteral("/wiiu");
   createCemuFixture(root, games);
-  CemuGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  CemuGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   QCOMPARE(model.data(model.index(0), GameRoles::Source).toString(), QStringLiteral("Cemu"));
@@ -5990,7 +5990,7 @@ void CoreTests::malformedCemuDataDoesNotReplaceCachedGames() {
   const QString root = directory.path() + QStringLiteral("/cemu");
   const QString games = directory.path() + QStringLiteral("/wiiu");
   createCemuFixture(root, games);
-  CemuGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  CemuGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   writeFile(root + QStringLiteral("/settings.xml"), "<content><GamePaths>");
@@ -6012,7 +6012,7 @@ void CoreTests::malformedCemuDataDoesNotReplaceCachedGames() {
 void CoreTests::launchFeedbackGuardsRepeatedRequests() {
   QQmlEngine engine;
   QQmlComponent component(&engine, QUrl::fromLocalFile(
-      QStringLiteral(OMAKADE_FIXTURE_DIR "/../../qml/components/LaunchFeedback.qml")));
+      QStringLiteral(LEZU_FIXTURE_DIR "/../../qml/components/LaunchFeedback.qml")));
   QScopedPointer<QObject> feedback(component.create());
   QVERIFY2(feedback, qPrintable(component.errorString()));
   QSignalSpy dispatch(feedback.data(), SIGNAL(dispatchRequested(QVariant)));
@@ -6154,7 +6154,7 @@ void CoreTests::xeniaModelIsRepeatableAndPreservesLocalState() {
       directory.path() + QStringLiteral("/Xenia/content/Game X/default.xex");
   QDir().mkpath(directory.path() + QStringLiteral("/Xenia/content/Game X"));
   writeFile(dump, "xex");
-  XeniaGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  XeniaGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromRoots({root});
   QCOMPARE(model.rowCount(), 1);
   QCOMPARE(model.data(model.index(0), GameRoles::Source).toString(), QStringLiteral("Xenia"));
@@ -6242,7 +6242,7 @@ void CoreTests::consolePortalsGroupRetroArchRomsAndCanFlatten() {
   const QString cemuRoot = directory.path() + QStringLiteral("/cemu");
   createCemuFixture(cemuRoot, directory.path() + QStringLiteral("/wiiu"));
 
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   RetroArchGameModel roms(database);
   roms.refreshFromRoots({root});
   QCOMPARE(roms.rowCount(), 3);
@@ -6303,7 +6303,7 @@ void CoreTests::consolePortalsDoNotRebuildTheLibraryWhenCoversChange() {
                 .arg(snes)
                 .toUtf8());
 
-  RetroArchGameModel roms(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel roms(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   roms.refreshFromRoots({root});
   QCOMPARE(roms.rowCount(), 1);
 
@@ -6362,7 +6362,7 @@ void CoreTests::romFoldersMergeWithPlaylistsByCanonicalPath() {
                 .arg(rom)
                 .toUtf8());
 
-  RetroArchGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromSources({root}, {RomFolderScanner::encode(
                                        directory.path() + QStringLiteral("/roms/snes"),
                                        QStringLiteral("snes"))});
@@ -6382,7 +6382,7 @@ void CoreTests::romFoldersKeepSeparateCopies() {
   const QString backup = directory.path() + QStringLiteral("/backup/Mario.sfc");
   writeFile(play, "play");
   writeFile(backup, "backup");
-  RetroArchGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromSources(
       {}, {RomFolderScanner::encode(directory.path() + QStringLiteral("/play"),
                                     QStringLiteral("snes")),
@@ -6505,7 +6505,7 @@ void CoreTests::libretroCoverUrlsAndCachePathsAreStable() {
                           "Named_Boxarts/Chrono%20Trigger.png"));
   const QString gameId = QStringLiteral("abc123");
   const QString cached = RetroArchGameModel::libretroCoverCachePath(gameId);
-  QVERIFY(cached.endsWith(QStringLiteral("/omakade/covers/libretro/abc123.png")));
+  QVERIFY(cached.endsWith(QStringLiteral("/LEZU/covers/libretro/abc123.png")));
   QVERIFY(RetroArchGameModel::libretroCoverCachePath(QStringLiteral("../x")).isEmpty());
   const QStringList naLabels = RetroArchGameModel::coverLabelCandidates(
       QStringLiteral("Aladdin (NA)"), QStringLiteral("Aladdin (NA)"));
@@ -6529,7 +6529,7 @@ void CoreTests::libretroCoverUrlsAndCachePathsAreStable() {
   const QString sidecar = directory.path() + QStringLiteral("/Chrono Trigger.png");
   writeFile(rom, "sfc");
   writeFile(sidecar, "art");
-  RetroArchGameModel model(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel model(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   model.refreshFromSources(
       {}, {RomFolderScanner::encode(directory.path(), QStringLiteral("snes"))});
   int row = -1;
@@ -6551,7 +6551,7 @@ void CoreTests::libretroCoverUrlsAndCachePathsAreStable() {
 void CoreTests::downloadedCoversSurviveARescan() {
   // RetroArch reports only the thumbnails installed in its own directory. A library without the
   // thumbnail packs reports none, and the scan used to write that emptiness over the covers
-  // Omakade had downloaded from libretro, on every launch. A whole cache of artwork was thrown
+  // LEZU had downloaded from libretro, on every launch. A whole cache of artwork was thrown
   // away and re-fetched one visible card at a time, so a library showed a handful of covers
   // however many had already been downloaded.
   QStandardPaths::setTestModeEnabled(true);
@@ -6559,7 +6559,7 @@ void CoreTests::downloadedCoversSurviveARescan() {
   QTemporaryDir directory;
   QVERIFY(directory.isValid());
   const QString root = directory.path() + QStringLiteral("/retroarch");
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   createRetroArchFixture(root);
 
   const auto rowFor = [](const RetroArchGameModel& model, const QString& title) {
@@ -6576,7 +6576,7 @@ void CoreTests::downloadedCoversSurviveARescan() {
   QVERIFY(scanned >= 0);
   QVERIFY(downloaded >= 0);
   // The fixture ships a thumbnail for one game and none for the other, which is the shape of a
-  // real library: RetroArch knows about some of them and Omakade downloaded the rest.
+  // real library: RetroArch knows about some of them and LEZU downloaded the rest.
   QVERIFY(model.data(model.index(scanned), GameRoles::CoverPath)
               .toString()
               .contains(QStringLiteral("Named_Boxarts")));
@@ -6848,7 +6848,7 @@ void CoreTests::processMatcherExtractsRomPaths() {
 void CoreTests::shippedProfilesMatchCemuWua() {
   QString error;
   const auto profiles = ProcessMatcher::load(
-      QStringLiteral(OMAKADE_FIXTURE_DIR "/../../resources/sessiond-profiles.json"), &error);
+      QStringLiteral(LEZU_FIXTURE_DIR "/../../resources/sessiond-profiles.json"), &error);
   QVERIFY2(error.isEmpty(), qPrintable(error));
   for (const QString& extension : {QStringLiteral("wua"), QStringLiteral("WUA")}) {
     const QString game = "/games/Breath of the Wild." + extension;
@@ -6866,7 +6866,7 @@ void CoreTests::shippedProfilesMatchCemuWua() {
 void CoreTests::shippedProfilesMatchXenia() {
   QString error;
   const auto profiles = ProcessMatcher::load(
-      QStringLiteral(OMAKADE_FIXTURE_DIR "/../../resources/sessiond-profiles.json"), &error);
+      QStringLiteral(LEZU_FIXTURE_DIR "/../../resources/sessiond-profiles.json"), &error);
   QVERIFY2(error.isEmpty(), qPrintable(error));
   for (const QString& extension : {QStringLiteral("iso"), QStringLiteral("xex"), QStringLiteral("zar")}) {
     const QString game = QStringLiteral("/games/Dante's Inferno.") + extension;
@@ -7062,7 +7062,7 @@ void CoreTests::consoleFilterKeepsOtherSourcesOut() {
 
   // A large non-RetroArch source stands in for Steam, Ryujinx, and friends.
   MockGameModel others(nullptr, 300);
-  RetroArchGameModel roms(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel roms(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   roms.refreshFromRoots({root});
   QCOMPARE(roms.rowCount(), 3);
   ConsolePortalModel portals;
@@ -7138,11 +7138,11 @@ void CoreTests::consoleFilterKeepsOtherSourcesOut() {
 }
 
 // Diagnostics against real dumps on this machine. Skipped unless the
-// OMAKADE_PROBE_SWITCH (NSP/XCI) or OMAKADE_PROBE_WUA (.wua) variables are set.
+// LEZU_PROBE_SWITCH (NSP/XCI) or LEZU_PROBE_WUA (.wua) variables are set.
 void CoreTests::probeEmbeddedArtwork() {
-  const QString rom = qEnvironmentVariable("OMAKADE_PROBE_SWITCH");
-  const QString wua = qEnvironmentVariable("OMAKADE_PROBE_WUA");
-  if (qEnvironmentVariableIsSet("OMAKADE_PROBE_SCANNERS")) {
+  const QString rom = qEnvironmentVariable("LEZU_PROBE_SWITCH");
+  const QString wua = qEnvironmentVariable("LEZU_PROBE_WUA");
+  if (qEnvironmentVariableIsSet("LEZU_PROBE_SCANNERS")) {
     for (const RyujinxGameRecord& game : RyujinxScanner::scan(RyujinxScanner::discoverRoots()).games)
       qWarning().noquote() << QStringLiteral("RYUJINX %1 | %2 | %3").arg(game.titleId, game.title, game.coverPath);
     for (const CemuGameRecord& game : CemuScanner::scan(CemuScanner::discoverRoots()).games)
@@ -7155,7 +7155,7 @@ void CoreTests::probeEmbeddedArtwork() {
       qWarning().noquote() << QStringLiteral("ROMFOLDER %1 -> %2").arg(folder.path, folder.system);
     return;
   }
-  if (rom.isEmpty() && wua.isEmpty()) QSKIP("set OMAKADE_PROBE_SWITCH or OMAKADE_PROBE_WUA");
+  if (rom.isEmpty() && wua.isEmpty()) QSKIP("set LEZU_PROBE_SWITCH or LEZU_PROBE_WUA");
   for (const QString& path : rom.split(QLatin1Char(':'), Qt::SkipEmptyParts)) {
     QElapsedTimer timer; timer.start();
     const SwitchTitleInfo info = SwitchTitleReader::read(path);
@@ -7306,7 +7306,7 @@ void CoreTests::switchTitleReaderReadsSyntheticDump() {
   QVERIFY(!wrongKeys.hasIcon());
   // An unavailable crypto provider must fail the lookup without reading an
   // empty header. Restore provider selection before making test assertions.
-  const int restricted = EVP_set_default_properties(nullptr, "provider=omakade-test-unavailable");
+  const int restricted = EVP_set_default_properties(nullptr, "provider=LEZU-test-unavailable");
   const SwitchTitleInfo rejectedKey = SwitchTitleReader::read(nspPath, {keysPath}, {});
   const int restored = EVP_set_default_properties(nullptr, "");
   QCOMPARE(restricted, 1);
@@ -7493,7 +7493,7 @@ void CoreTests::dolphinModelIsRepeatableAndPreservesLocalState() {
   const QString root = directory.path() + QStringLiteral("/dolphin-emu");
   const QString games = directory.path() + QStringLiteral("/GameCube");
   createDolphinFixture(root, games);
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   {
     DolphinGameModel model(database);
     model.refreshFromRoots({root});
@@ -7535,7 +7535,7 @@ void CoreTests::dreamcastFoldersBecomeAPortal() {
   writeFile(folder + QStringLiteral("/Crazy Taxi (USA)/track02.raw"), "raw");
   writeFile(folder + QStringLiteral("/Jet Grind Radio (USA)/Jet Grind Radio (USA).gdi"), "gdi");
   writeFile(folder + QStringLiteral("/Jet Grind Radio (USA)/track03.bin"), "bin");
-  RetroArchGameModel roms(directory.path() + QStringLiteral("/omakade.sqlite3"));
+  RetroArchGameModel roms(directory.path() + QStringLiteral("/LEZU.sqlite3"));
   roms.refreshFromSources({}, {folder + QStringLiteral("|dreamcast")});
   QCOMPARE(roms.rowCount(), 2);
   QCOMPARE(roms.data(roms.index(0), GameRoles::System).toString(), QStringLiteral("dreamcast"));
@@ -7568,7 +7568,7 @@ void CoreTests::consoleLayoutsPinAndExpand() {
   const QString discs = directory.path() + QStringLiteral("/GameCube");
   createDolphinFixture(dolphinRoot, discs);
   QVERIFY(QFile::remove(discs + QStringLiteral("/nested/Mario Kart Wii (USA).wbfs")));
-  const QString database = directory.path() + QStringLiteral("/omakade.sqlite3");
+  const QString database = directory.path() + QStringLiteral("/LEZU.sqlite3");
   MockGameModel pc(nullptr, 50);
   RetroArchGameModel carts(database);
   carts.refreshFromSources({}, {roms + QStringLiteral("/snes|snes"), roms + QStringLiteral("/n64|n64")});
@@ -8521,7 +8521,7 @@ void CoreTests::metadataCatalogueSpellingsKeepIdentityBoundaries() {
   QVERIFY(GameMetadata::discoveryQuery("Game", "unknown").isEmpty());
   QVERIFY(GameMetadata::discoveryQuery("123", "snes").isEmpty());
 
-  QFile file(QStringLiteral(OMAKADE_FIXTURE_DIR "/matching-audit/snes-spellings.json"));
+  QFile file(QStringLiteral(LEZU_FIXTURE_DIR "/matching-audit/snes-spellings.json"));
   QVERIFY(file.open(QIODevice::ReadOnly));
   const auto fixture = QJsonDocument::fromJson(file.readAll()).array();
   QTemporaryDir temp;
@@ -8567,7 +8567,7 @@ void CoreTests::metadataCatalogueSpellingsKeepIdentityBoundaries() {
 }
 
 void CoreTests::metadataAuditRecoversLiveCatalogueMatches() {
-  QFile file(QStringLiteral(OMAKADE_FIXTURE_DIR "/matching-audit/snes-recovery.json"));
+  QFile file(QStringLiteral(LEZU_FIXTURE_DIR "/matching-audit/snes-recovery.json"));
   QVERIFY(file.open(QIODevice::ReadOnly));
   const auto cases = QJsonDocument::fromJson(file.readAll()).array();
   QCOMPARE(cases.size(), 68);
@@ -8607,7 +8607,7 @@ void CoreTests::manualSearchFieldsSurviveMetadataUpdates() {
   engine.rootContext()->setContextProperty("Controller", static_cast<QObject*>(nullptr));
   engine.rootContext()->setContextProperty("Insights", static_cast<QObject*>(nullptr));
   QQmlComponent component(&engine, QUrl::fromLocalFile(
-      QStringLiteral(OMAKADE_FIXTURE_DIR "/../../qml/components/GameMetadataEditor.qml")));
+      QStringLiteral(LEZU_FIXTURE_DIR "/../../qml/components/GameMetadataEditor.qml")));
   const QVariantMap game{{"metadataKey", "search-test"}, {"system", "snes"},
                          {"title", "Super Back to the Future, Part II (English Translated)"}};
   QScopedPointer<QObject> editor(component.createWithInitialProperties({{"game", game}}));
@@ -8660,7 +8660,7 @@ void CoreTests::startupBenchmarkDoesNotActivateAnotherInstance() {
   environment.insert("DBUS_SESSION_BUS_ADDRESS", "unix:path=" + temp.filePath("no-session-bus"));
   benchmark.setProcessEnvironment(environment);
   benchmark.setProcessChannelMode(QProcess::MergedChannels);
-  benchmark.start(QCoreApplication::applicationDirPath() + "/../omakade",
+  benchmark.start(QCoreApplication::applicationDirPath() + "/../LEZU",
                   {"--couch", "--stress-test", "--benchmark"});
   QVERIFY(benchmark.waitForFinished(10000));
   const QByteArray output = benchmark.readAll();
@@ -8669,7 +8669,7 @@ void CoreTests::startupBenchmarkDoesNotActivateAnotherInstance() {
   QVERIFY2(output.contains("First frame in"), output.constData());
   QVERIFY(!otherInstance.waitForNewConnection(20));
   QVERIFY(!otherInstance.hasPendingConnections());
-  QVERIFY(!QFileInfo::exists(temp.filePath("config/omakade/config.toml")));
+  QVERIFY(!QFileInfo::exists(temp.filePath("config/LEZU/config.toml")));
 }
 
 void CoreTests::sessionRecoveryPreservesLiveProgress() {
@@ -8738,12 +8738,12 @@ void CoreTests::sessionBaselineHandlesFirstAndLateObservation() {
     store.setEnabled(true);
     QCOMPARE(store.displaySeconds("/games/late.nsp", 4200), qint64(4500));
     QVERIFY(PlaySessionStore::provenance(&store, "/games/late.nsp", 4200)
-                .contains("Recorded by Omakade: 15m"));
+                .contains("Recorded by LEZU: 15m"));
     store.setEnabled(false);
     QCOMPARE(store.displaySeconds("/games/late.nsp", 4200), qint64(4200));
     const auto provenance = PlaySessionStore::provenance(&store, "/games/late.nsp", 4200);
     QVERIFY(provenance.contains("Imported from emulator: 1h 10m"));
-    QVERIFY(provenance.contains("Recorded by Omakade: 15m"));
+    QVERIFY(provenance.contains("Recorded by LEZU: 15m"));
     QVERIFY(provenance.contains("not applied while recording is off"));
   }
   {
@@ -8800,14 +8800,14 @@ void CoreTests::metadataRefreshReplacesProviderFieldsAndPersists() {
 
 void CoreTests::sessionDaemonRejectsDuplicateOwner() {
 #ifdef Q_OS_WIN
-  QSKIP("omakade-sessiond is Linux-only; Lezu uses an integrated in-process WinSessionWorker.");
+  QSKIP("LEZU-sessiond is Linux-only; Lezu uses an integrated in-process WinSessionWorker.");
 #endif
   QTemporaryDir temp;
   QVERIFY(temp.isValid());
   const auto config = temp.filePath("config");
   const auto data = temp.filePath("data");
-  QVERIFY(QDir().mkpath(config + "/omakade"));
-  QFile profiles(config + "/omakade/sessiond-profiles.json");
+  QVERIFY(QDir().mkpath(config + "/LEZU"));
+  QFile profiles(config + "/LEZU/sessiond-profiles.json");
   QVERIFY(profiles.open(QIODevice::WriteOnly));
   profiles.write(R"({"romExtensions":[],"emulators":[]})");
   profiles.close();
@@ -8824,18 +8824,18 @@ void CoreTests::sessionDaemonRejectsDuplicateOwner() {
       }
     }
   });
-  const auto executable = QCoreApplication::applicationDirPath() + "/../omakade-sessiond";
+  const auto executable = QCoreApplication::applicationDirPath() + "/../LEZU-sessiond";
   first.setProcessEnvironment(env);
   first.start(executable, {});
   QVERIFY(first.waitForStarted());
-  QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(data + "/omakade/library.sqlite3"), 5000);
+  QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(data + "/LEZU/library.sqlite3"), 5000);
   duplicate.setProcessEnvironment(env);
   duplicate.start(executable, {});
   QVERIFY(duplicate.waitForFinished(5000));
   QCOMPARE(duplicate.exitCode(), 1);
   QVERIFY(duplicate.readAllStandardError().contains("recorder already running"));
   QCOMPARE(first.state(), QProcess::Running);
-  const auto databasePath = data + "/omakade/library.sqlite3";
+  const auto databasePath = data + "/LEZU/library.sqlite3";
   QVERIFY(PlaySessionStore::recorderOwnsDatabase(databasePath));
   PlaySessionStore status(databasePath);
   QVERIFY(status.recorderRunning());
@@ -9016,8 +9016,8 @@ void CoreTests::broadCatalogSearchRetriesExactTitle() {
   metadata.m_selected = metadata.m_active;
   QVERIFY(metadata.persist("example", {{"igdbId", 1070}, {"identityAmbiguous", true},
                                         {"matchVersion", 4}, {"portrait", "/kept/cover.png"}}));
-  QFile broad(QString(OMAKADE_FIXTURE_DIR) + "/regional-metadata/smw-broad.json");
-  QFile exact(QString(OMAKADE_FIXTURE_DIR) + "/regional-metadata/smw-exact.json");
+  QFile broad(QString(LEZU_FIXTURE_DIR) + "/regional-metadata/smw-broad.json");
+  QFile exact(QString(LEZU_FIXTURE_DIR) + "/regional-metadata/smw-exact.json");
   QVERIFY(broad.open(QIODevice::ReadOnly));
   QVERIFY(exact.open(QIODevice::ReadOnly));
   const auto query = GameMetadata::aliasSearchQuery("Super Mario World (NA)", "snes");
@@ -9120,7 +9120,7 @@ void CoreTests::backupPreservesIdentificationChoices() {
   const auto serialized = QJsonDocument(snapshot.library).toJson();
   QVERIFY(!serialized.contains("/private/cache"));
   QVERIFY(!serialized.contains("Cached"));
-  const QString archive = sourceRoot.filePath("choices.omakade-backup");
+  const QString archive = sourceRoot.filePath("choices.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, snapshot, &error), qPrintable(error));
   BackupPayload restored;
   QVERIFY2(BackupArchive::read(archive, &restored, &error), qPrintable(error));
@@ -9372,7 +9372,7 @@ void CoreTests::backupPlayHistoryHasSafeMergeAndRecorderGuard() {
     if (row.value("game_path").toString() == "/games/a.nes")
       QCOMPARE(row.value("ended_at").toInteger(), 1045);
   }
-  const QString archive = sourceRoot.filePath("history.omakade-backup");
+  const QString archive = sourceRoot.filePath("history.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, snapshot, &error), qPrintable(error));
   BackupPayload decoded;
   QVERIFY2(BackupArchive::read(archive, &decoded, &error), qPrintable(error));
@@ -9520,7 +9520,7 @@ void CoreTests::regionalCatalogRegressionMatrix() {
                          {"installPath", QString("/roms/") + test.title + ".rom"}};
     metadata.m_selected = metadata.m_active;
     QVERIFY(metadata.persist("game", {{"igdbId", 1}, {"portrait", "/cached/portrait.jpg"}}));
-    QFile fixture(QString(OMAKADE_FIXTURE_DIR) + "/regional-metadata/" + test.file);
+    QFile fixture(QString(LEZU_FIXTURE_DIR) + "/regional-metadata/" + test.file);
     QVERIFY(fixture.open(QIODevice::ReadOnly));
     metadata.m_busy = true;
     metadata.m_igdbStage = "games";
@@ -9712,7 +9712,7 @@ void CoreTests::metadataDiscoveryFiltersPersistAndRefresh() {
   BackupPayload payload, read;
   QString error;
   QVERIFY2(BackupSnapshot::capture(database, {}, &payload, &error), qPrintable(error));
-  const auto archive = temp.filePath("filters.omakade-backup");
+  const auto archive = temp.filePath("filters.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, payload, &error), qPrintable(error));
   QVERIFY2(BackupArchive::read(archive, &read, &error), qPrintable(error));
   QCOMPARE(read.library.value("saved_filters"), payload.library.value("saved_filters"));
@@ -9799,7 +9799,7 @@ void CoreTests::libraryReviewFiltersTrackRepairsAndPersist() {
   BackupPayload payload, read;
   QString error;
   QVERIFY2(BackupSnapshot::capture(database, {}, &payload, &error), qPrintable(error));
-  const auto archive = temp.filePath("review.omakade-backup");
+  const auto archive = temp.filePath("review.LEZU-backup");
   QVERIFY2(BackupArchive::write(archive, payload, &error), qPrintable(error));
   QVERIFY2(BackupArchive::read(archive, &read, &error), qPrintable(error));
   QCOMPARE(read.library.value("saved_filters"), payload.library.value("saved_filters"));

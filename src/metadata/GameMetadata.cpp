@@ -1888,11 +1888,11 @@ void GameMetadata::secretOperation(int action, QByteArray value) {
     QMutexLocker keyring(&secretServiceLock());
     InsightsSecretResult result;
     SecretSchema* schema =
-        secret_schema_new("io.github.tsouth89.Omakade.SteamGridDB", SECRET_SCHEMA_NONE, "service",
+        secret_schema_new("io.github.tsouth89.LEZU.SteamGridDB", SECRET_SCHEMA_NONE, "service",
                           SECRET_SCHEMA_ATTRIBUTE_STRING, nullptr);
     GError* error = nullptr;
     if (action == 1)
-      secret_password_store_sync(schema, SECRET_COLLECTION_DEFAULT, "Omakade SteamGridDB API key",
+      secret_password_store_sync(schema, SECRET_COLLECTION_DEFAULT, "LEZU SteamGridDB API key",
                                  value.constData(), nullptr, &error, "service", "api-key", nullptr);
     if (action == 2)
       secret_password_clear_sync(schema, nullptr, &error, "service", "api-key", nullptr);

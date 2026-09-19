@@ -67,7 +67,7 @@ The first full test attempt was interrupted because its long private temporary p
 Unix socket limits. Those IPC tests passed with a short private path, followed by the complete
 successful suite above. No product source changes were needed for that environment correction.
 
-The candidate is staged at `build/library-polish-20260909/stage/usr/bin/omakade`.
+The candidate is staged at `build/library-polish-20260909/stage/usr/bin/LEZU`.
 The installed app and recorder remain on the previously accepted `80457ed` build. Nothing from
 this follow-up was pushed, tagged, released, or installed over it. Physical controller and
 real-game acceptance, ARM64 validation, and the optional real-ROM probe remain outstanding.

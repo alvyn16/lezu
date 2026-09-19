@@ -44,16 +44,16 @@ class FeatureWorkflowTests : public QObject {
   Q_OBJECT
 private slots:
   void liveEmulatorRecordingAndSaveRecovery() {
-    const auto root=qEnvironmentVariable("OMAKADE_LIVE_GAME_ROOT");
+    const auto root=qEnvironmentVariable("LEZU_LIVE_GAME_ROOT");
     if(root.isEmpty()) QSKIP("Opt-in live emulator fixture is not configured");
-    QCOMPARE(root,QString("/tmp/omakade-live-game"));
-    const auto content=root+"/Omakade QA.sfc", core=QString("/usr/lib/libretro/snes9x_libretro.so");
-    const auto save=root+"/saves/Omakade QA.srm";
+    QCOMPARE(root,QString("/tmp/LEZU-live-game"));
+    const auto content=root+"/LEZU QA.sfc", core=QString("/usr/lib/libretro/snes9x_libretro.so");
+    const auto save=root+"/saves/LEZU QA.srm";
     QVERIFY(QFileInfo(content).isFile());QVERIFY(QFileInfo(core).isFile());
     put(save,QByteArray(2048,0));
-    const auto database=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/omakade/library.sqlite3";
+    const auto database=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/LEZU/library.sqlite3";
     QProcess recorder;
-    recorder.setProgram(qEnvironmentVariable("OMAKADE_LIVE_RECORDER"));
+    recorder.setProgram(qEnvironmentVariable("LEZU_LIVE_RECORDER"));
     QVERIFY(!recorder.program().isEmpty());recorder.start();QVERIFY(recorder.waitForStarted());
     const auto cleanup=qScopeGuard([&] { recorder.terminate();recorder.waitForFinished(5000); });
     QTRY_VERIFY_WITH_TIMEOUT(QFileInfo(database).isFile(),10000);

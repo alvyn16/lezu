@@ -54,7 +54,7 @@ void ControllerInput::start() {
   }
   m_initWatcher.setFuture(QtConcurrent::run([] {
     // SDL would otherwise catch SIGTERM and SIGINT and turn them into SDL quit events that
-    // nothing here reads, so pkill, logout, and service stops could never close Omakade.
+    // nothing here reads, so pkill, logout, and service stops could never close LEZU.
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     if (SDL_Init(SDL_INIT_GAMEPAD)) {
       return InitResult{.ready = true, .error = {}};

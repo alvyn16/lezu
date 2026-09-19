@@ -9,13 +9,13 @@
 // Emulator launch profiles drive session attribution. A profile names the
 // binaries an emulator runs under; the matcher then looks for a command line
 // argument that looks like a game image. That covers every launch path that
-// names the game on the command line: Omakade launches, terminal launches, and
+// names the game on the command line: LEZU launches, terminal launches, and
 // wrapper scripts. Loading a game from inside the emulator's own file picker
 // shows no path on the command line and stays untracked for now.
 struct SessionProcessProfile {
   QString name;
   QStringList binaries;
-  // Omakade source to ask for a rescan when a session of this emulator ends,
+  // LEZU source to ask for a rescan when a session of this emulator ends,
   // for emulators whose own playtime is only written on exit. Empty when the
   // source keeps itself current.
   QString rescanSource;

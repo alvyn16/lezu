@@ -28,7 +28,7 @@ QJsonObject manifestFor(const BackupPayload& payload) {
   names.sort();
   for (const auto& name : names)
     artworks.append(name);
-  return {{"format", "omakade-backup"},     {"version", 2},
+  return {{"format", "LEZU-backup"},     {"version", 2},
           {"createdAt", payload.createdAt}, {"library", payload.library},
           {"settings", payload.settings},   {"artwork", artworks}};
 }
@@ -421,7 +421,7 @@ bool BackupArchive::write(const QString& path, const BackupPayload& payload, QSt
   const QFileInfo destination(path);
   if (!destination.isAbsolute() || destination.isSymLink())
     return fail(error, "Choose an absolute backup file path.");
-  QTemporaryFile temporary(destination.absolutePath() + "/.omakade-backup-XXXXXX");
+  QTemporaryFile temporary(destination.absolutePath() + "/.LEZU-backup-XXXXXX");
   if (!temporary.open())
     return fail(error, "Could not create the backup file.");
   const QString temporaryPath = temporary.fileName();
@@ -546,7 +546,7 @@ bool BackupArchive::read(const QString& path, BackupPayload* output, QString* er
   if (parse.error != QJsonParseError::NoError || !document.isObject())
     return fail(error, "The backup manifest is invalid.");
   const auto manifest = document.object();
-  if (manifest.size() != 6 || manifest.value("format").toString() != "omakade-backup" ||
+  if (manifest.size() != 6 || manifest.value("format").toString() != "LEZU-backup" ||
       !integer(manifest.value("version"), 1, 2) || !manifest.value("createdAt").isString() ||
       !manifest.value("library").isObject() || !manifest.value("settings").isObject() ||
       !manifest.value("artwork").isArray())

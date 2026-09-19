@@ -24,10 +24,10 @@ QString localUrl(const QString& path) {
 }
 } // namespace
 
-Shadps4GameModel::Shadps4GameModel(const QString& omakadeDatabasePath,
+Shadps4GameModel::Shadps4GameModel(const QString& LEZUDatabasePath,
                                    PlaySessionStore* playSessions, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-shadps4-%1").arg(reinterpret_cast<quintptr>(this))),
+      m_connectionName(QStringLiteral("LEZU-shadps4-%1").arg(reinterpret_cast<quintptr>(this))),
       m_playSessions(playSessions) {
   if (m_playSessions != nullptr) {
     connect(m_playSessions, &PlaySessionStore::totalsChanged, this, [this] {
@@ -43,7 +43,7 @@ Shadps4GameModel::Shadps4GameModel(const QString& omakadeDatabasePath,
     applyScan(m_scanWatcher.result());
     emit statusChanged();
   });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
   }

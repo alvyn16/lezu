@@ -11,7 +11,7 @@ native or Flatpak data directory is present on this machine; Flatpak itself is
 not installed. Custom or remote installations have not been ruled out.
 
 Prism documents `--launch` with the instance folder name and `--dir` for a custom
-application root. A native Prism installation can be entered through Omakade's
+application root. A native Prism installation can be entered through LEZU's
 manual executable workflow with each argument entered separately. This is a
 proposed user path, not a completed real-instance compatibility test. Accounts,
 Java, mods, downloads, and instance management remain in Prism.
@@ -34,9 +34,9 @@ already shipped before this completion candidate. Importing a game and providing
 controller support for that game are separate operations.
 
 User journey: add and configure the non-Steam game in Steam, verify its launch and
-controller behavior there, refresh Omakade, and select the Steam installation.
+controller behavior there, refresh LEZU, and select the Steam installation.
 For a linked game, make the Steam installation the preferred one when appropriate.
-Omakade sends the shortcut's launch ID to Steam and leaves compatibility and input
+LEZU sends the shortcut's launch ID to Steam and leaves compatibility and input
 configuration there. A direct Manual/Heroic/Lutris/Faugus launch is not automatically
 converted into a Steam launch. No universal Proton or Steam Input guarantee follows.
 
@@ -47,8 +47,8 @@ cover exact source selection overriding a linked default. These prove the contra
 not Steam Input on hardware.
 
 Remaining acceptance: record Steam version, shortcut, controller, compatibility
-selection, successful launch, in-game input, exit, and return to Omakade. Compare
-launching that same shortcut from Steam and Omakade. Do not change the user's
+selection, successful launch, in-game input, exit, and return to LEZU. Compare
+launching that same shortcut from Steam and LEZU. Do not change the user's
 Steam configuration or start games merely to manufacture this evidence.
 
 Primary user instructions:

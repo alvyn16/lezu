@@ -36,7 +36,7 @@ class SaveBackupsTests : public QObject {
 private slots:
   void preferencePersistsAndStaysLocalToThisMachine() {
     Fixture f;
-    const auto path = f.home + "/omakade.toml";
+    const auto path = f.home + "/LEZU.toml";
     AppSettings settings(path);
     QVERIFY(settings.protectRetroArchSaves());
     settings.setProtectRetroArchSaves(false);

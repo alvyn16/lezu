@@ -1,7 +1,7 @@
 #pragma once
 
 // Windows implementation of the SecretService abstraction.
-// On Linux, Omakade uses libsecret (GNOME Keyring / KWallet via Secret Service).
+// On Linux, LEZU uses libsecret (GNOME Keyring / KWallet via Secret Service).
 // On Windows we use the Windows Credential Manager (wincred) which persists
 // credentials in the user's encrypted vault (DPAPI-backed storage).
 //

@@ -1348,8 +1348,8 @@ GlassButton {
                     GlassButton {
                         objectName: "sunshineLezuButton"
                         compact: true
-                        text: Preferences.sunshineOmakadeApp ? "ENABLED" : "DISABLED"
-                        onClicked: Preferences.sunshineOmakadeApp = !Preferences.sunshineOmakadeApp
+                        text: Preferences.sunshineLEZUApp ? "ENABLED" : "DISABLED"
+                        onClicked: Preferences.sunshineLEZUApp = !Preferences.sunshineLEZUApp
                     }
                 }
                 RowLayout {

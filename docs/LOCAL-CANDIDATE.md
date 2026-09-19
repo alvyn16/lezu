@@ -7,7 +7,7 @@
 
 Branch: `codex/feature-quality-local`
 Base: `033ca9e62d2dcaa2911f1136825789b1fd9501e5`
-Worktree: `/home/bts/Projects/omakade-quality-local`
+Worktree: `/home/bts/Projects/LEZU-quality-local`
 
 ## Changes
 

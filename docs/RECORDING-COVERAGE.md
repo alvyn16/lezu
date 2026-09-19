@@ -15,7 +15,7 @@ change works. Recording does not inject code, control emulators, or detect pause
 The earlier local Ryujinx launch/return produced a closed session. That is
 historical evidence, not acceptance of the current candidate. Game tests remain
 paused at the maintainer's request. The Z-A freezes have not been attributed to
-Omakade, LSFG, or focus changes.
+LEZU, LSFG, or focus changes.
 
 New configurations default to recording off. Existing explicit choices persist;
 legacy configurations without the key retain the previous enabled default.

@@ -18,7 +18,7 @@ class RyujinxGameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit RyujinxGameModel(const QString& omakadeDatabasePath,
+  explicit RyujinxGameModel(const QString& LEZUDatabasePath,
                             PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~RyujinxGameModel() override;
 

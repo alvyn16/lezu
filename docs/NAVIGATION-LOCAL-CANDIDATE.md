@@ -30,7 +30,7 @@ The local installer records the exact source commit and binary SHA-256 in the ve
 2. Open a familiar game. Traverse Play, Favorite, Up next and Manage. Open and cancel artwork/identification, and check the same game remains selected.
 3. Check FFIII/FFVI regional information and expand/collapse Other names. Check a long title and a game with sparse metadata.
 4. Visit Settings categories, edit a field without saving, change categories and return. Check Back, Tab/Shift+Tab and the couch keyboard.
-5. Switch desktop/couch, browse Home, disconnect/reconnect the controller, then launch a game and return to Omakade.
+5. Switch desktop/couch, browse Home, disconnect/reconnect the controller, then launch a game and return to LEZU.
 
 Physical-controller feel, emulator-return behavior and real-library visual acceptance remain manual checks. This candidate does not add save-file versioning, RomM or new metadata matching rules.
 

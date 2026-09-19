@@ -26,13 +26,13 @@ Use fresh build/source/output directories. Export the pinned commit with
 exported copy's CMakeLists.txt:
 
 ```cmake
-add_executable(omakade_schema_fixture
+add_executable(LEZU_schema_fixture
   ../../tests/fixtures/released-v1.6.0/schema-harness.cpp)
-target_link_libraries(omakade_schema_fixture PRIVATE omakade_core)
+target_link_libraries(LEZU_schema_fixture PRIVATE LEZU_core)
 ```
 
 Configure that exported tree with `BUILD_TESTING=OFF`, build the
-`omakade_schema_fixture` target, and run it with an absolute path to a nonexistent
+`LEZU_schema_fixture` target, and run it with an absolute path to a nonexistent
 database in an existing output directory. It rejects an existing database.
 
 Export the schema using Python's sqlite3 module:

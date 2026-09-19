@@ -9,7 +9,7 @@
 #include "tracking/SessionRecorder.h"
 
 // In-process session tracking thread for Windows.
-// Eliminates the need for a separate omakade-sessiond background daemon.
+// Eliminates the need for a separate LEZU-sessiond background daemon.
 // Periodically snapshots running processes, matches against emulator profiles,
 // and records active play sessions directly into the SQLite database.
 class WinSessionWorker final : public QObject {

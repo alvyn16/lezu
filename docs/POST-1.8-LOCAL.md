@@ -91,7 +91,7 @@ against its manifest and are unchanged.
 ## Local acceptance checklist
 
 The new binary is staged at
-`build/post18-local/final-stage/usr/bin/omakade`. The installed app and recorder
+`build/post18-local/final-stage/usr/bin/LEZU`. The installed app and recorder
 remain at the matching candidate. Close the running app before testing a different
 binary so single-instance activation does not bring the old build forward.
 

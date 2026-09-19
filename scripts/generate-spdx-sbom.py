@@ -132,7 +132,7 @@ def generate_sbom(package_path: Path) -> dict:
         version=version,
         architecture=architecture,
         namespace="btsouth",
-        supplier="Organization: Omakade",
+        supplier="Organization: LEZU",
     )
     main_package["packageFileName"] = package_path.name
     main_package["checksums"] = [{"algorithm": "SHA256", "checksumValue": digest}]
@@ -192,7 +192,7 @@ def generate_sbom(package_path: Path) -> dict:
         ),
         "creationInfo": {
             "created": created.replace("+00:00", "Z"),
-            "creators": ["Tool: Omakade SPDX generator"],
+            "creators": ["Tool: LEZU SPDX generator"],
         },
         "packages": [main_package, *dependencies],
         "relationships": relationships,

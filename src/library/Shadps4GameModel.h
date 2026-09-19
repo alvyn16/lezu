@@ -18,7 +18,7 @@ class Shadps4GameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit Shadps4GameModel(const QString& omakadeDatabasePath,
+  explicit Shadps4GameModel(const QString& LEZUDatabasePath,
                             PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~Shadps4GameModel() override;
 

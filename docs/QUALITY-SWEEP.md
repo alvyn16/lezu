@@ -1,4 +1,4 @@
-# Omakade quality sweep, September 8, 2026
+# LEZU quality sweep, September 8, 2026
 
 > Historical review and implementation record. For the reconciled September 8
 > candidate, push authorization, and remaining acceptance gates, see

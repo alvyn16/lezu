@@ -22,7 +22,7 @@ class DolphinGameModel final : public QAbstractListModel {
   Q_PROPERTY(qint64 lastScan READ lastScan NOTIFY statusChanged)
 
 public:
-  explicit DolphinGameModel(const QString& omakadeDatabasePath,
+  explicit DolphinGameModel(const QString& LEZUDatabasePath,
                             PlaySessionStore* playSessions = nullptr, QObject* parent = nullptr);
   ~DolphinGameModel() override;
 

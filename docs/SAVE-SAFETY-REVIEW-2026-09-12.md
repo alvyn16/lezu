@@ -47,7 +47,7 @@ behind their existing runtime and hardware acceptance gates in `POST-1.8-LOCAL.m
 
 ## Integration into the newer 1.9 worktree
 
-The initial review missed `/home/bts/Projects/omakade-1.9-testing`, which contained
+The initial review missed `/home/bts/Projects/LEZU-1.9-testing`, which contained
 11 more commits through `54e01d3`. The save fixes and WUA regression were carried
 into that branch as `f1da4f3` and `2c7de50`. Its installed candidate remains
 `ed79e44a1021fb02aa4bc3604d8a4bed50b37cb8`; do not replace it with the older branch's staged build.

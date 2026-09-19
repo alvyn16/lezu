@@ -97,7 +97,7 @@ bool PlayRequest::perform(UnifiedGameModel& games, GameLauncher& launcher, const
   int row = -1;
   const QVariantMap installation = findInstallation(games, key, &row);
   if (installation.isEmpty()) {
-    return fail(QStringLiteral("%1 is not in the Omakade library").arg(key.toString()));
+    return fail(QStringLiteral("%1 is not in the LEZU library").arg(key.toString()));
   }
   const QString title = installation.value(QStringLiteral("title")).toString();
   if (installation.contains(QStringLiteral("installed")) &&

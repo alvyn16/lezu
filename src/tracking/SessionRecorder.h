@@ -37,7 +37,7 @@ public:
   // Closes everything, used when tracking is switched off.
   void endAll(qint64 nowWall);
 
-  // Omakade sources that should rescan, one entry per ended session with a
+  // LEZU sources that should rescan, one entry per ended session with a
   // rescan mapping, deduplicated since the previous call.
   [[nodiscard]] QStringList takeRescanRequests();
 

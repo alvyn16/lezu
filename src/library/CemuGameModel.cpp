@@ -24,10 +24,10 @@ QString localUrl(const QString& path) {
 }
 } // namespace
 
-CemuGameModel::CemuGameModel(const QString& omakadeDatabasePath, PlaySessionStore* playSessions,
+CemuGameModel::CemuGameModel(const QString& LEZUDatabasePath, PlaySessionStore* playSessions,
                              QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-cemu-%1").arg(reinterpret_cast<quintptr>(this))),
+      m_connectionName(QStringLiteral("LEZU-cemu-%1").arg(reinterpret_cast<quintptr>(this))),
       m_playSessions(playSessions) {
   if (m_playSessions != nullptr) {
     connect(m_playSessions, &PlaySessionStore::totalsChanged, this, [this] {
@@ -43,7 +43,7 @@ CemuGameModel::CemuGameModel(const QString& omakadeDatabasePath, PlaySessionStor
     applyScan(m_scanWatcher.result());
     emit statusChanged();
   });
-  if (openDatabase(omakadeDatabasePath) && ensureSchema()) {
+  if (openDatabase(LEZUDatabasePath) && ensureSchema()) {
     loadDatabase();
     loadSourceState();
   }

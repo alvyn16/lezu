@@ -4,7 +4,7 @@
 
 ### Baseline
 
-- Worktree: `/home/bts/Projects/omakade-completion`
+- Worktree: `/home/bts/Projects/LEZU-completion`
 - Branch: `codex/completion`
 - Released baseline: `c91b14e` (v1.6.0, peeled annotated tag)
 - Original checkout remains on `codex/1.6-couch-polish` at `470d952`.
@@ -182,7 +182,7 @@ https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html
 - Actions explicitly favorite/unfavorite, hide/unhide, set or clear completion
   status, add/remove tags, and add/remove collection membership. Adding a new
   collection creates it; unrelated tags and collections remain intact.
-- Every batch runs in one transaction in the shared Omakade database. New
+- Every batch runs in one transaction in the shared LEZU database. New
   `user_game_flags` rows hold nullable favorite/hidden overrides; absent fields
   continue to use source state. Single-game toggles honor existing overrides.
   Backup/restore must include this table along with source personal state.
@@ -312,7 +312,7 @@ https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html
   into restore actions. Merge/replacement require a second confirmation, with
   Cancel initially focused. Path-based export confirms destination replacement.
 - Confirmation names the reviewed archive and stages that exact payload. It
-  focuses Close Omakade and leaves the queued message visible until the app closes.
+  focuses Close LEZU and leaves the queued message visible until the app closes.
   Source models stay live and unchanged until the next exclusive startup restore.
 - Normal libraries enable the manager; synthetic libraries disable it. Dedicated
   backup fixtures instead use an owned temporary database, settings path,
@@ -411,7 +411,7 @@ No commits, pushes, tags, public comments, releases, or installations performed.
   or controller settings are wanted. No Steam data was modified or game launched.
 - `ctest --preset dev -R core --output-on-failure`: 1/1 passed, 5.62 seconds.
   The initial `^core$` selector matched no tests; the corrected selector above
-  ran omakade_core_tests. `git diff --check` passed.
+  ran LEZU_core_tests. `git diff --check` passed.
 - Steam Input remains unchecked in the completion plan because live controller
   behavior has not been established.
 
@@ -439,7 +439,7 @@ No commits, pushes, tags, public comments, releases, or installations performed.
   retained local recovery copies, and restore failure reporting.
 - Packaging version is still 1.6.0 while the final candidate is prepared. No
   release package has been produced for the completion scope. Local Docker is
-  available, including an existing omakade-ci image, for isolated package checks.
+  available, including an existing LEZU-ci image, for isolated package checks.
 - Next: finish resource-link cleanup, choose candidate version and release notes,
   run isolated package/dependency checks, and prepare exact-candidate acceptance.
 
@@ -451,7 +451,7 @@ No commits, pushes, tags, public comments, releases, or installations performed.
 - Versioned Release rebuild and full matrix passed: 81/81, 27.94 seconds.
 - Recorded the package source in build/completion-package/source-manifest.json.
   Source archive SHA256: 90fed12634adb711071f74b8805c83045048300dee479788154cd68b783fe944.
-- Built the package in a disposable omakade-ci container after updating its
+- Built the package in a disposable LEZU-ci container after updating its
   dependencies. The first unrestricted build was intentionally stopped when
   compiler concurrency caused memory pressure; the successful run used
   CMAKE_BUILD_PARALLEL_LEVEL=2. No host packages were installed or removed.
@@ -465,7 +465,7 @@ No commits, pushes, tags, public comments, releases, or installations performed.
 - Added and verified canonical repository/site resources on the Linear project.
   The Toolport project API is append-only for links; the two legacy links remain
   alongside explicitly labeled current links. The GitHub Pages API confirms the
-  current btsouth.github.io/omakade URL.
+  current btsouth.github.io/LEZU URL.
 - Re-read GitHub #9/#13 comments: no new contributor validation report.
 - No commit, push, tag, release, upload, or public comment made.
 
@@ -482,13 +482,13 @@ No commits, pushes, tags, public comments, releases, or installations performed.
   c6a3afa57c8ab7bca4d6a0254613abd6c3fb599fd25ded066391a008d2f8a003.
 - Installed released 1.6 in a disposable Arch container, populated the frozen
   released schema with synthetic personal data, and exercised installed
-  `omakade --benchmark` through normal startup. Upgraded to local 1.7 and repeated
+  `LEZU --benchmark` through normal startup. Upgraded to local 1.7 and repeated
   normal Desktop startup, Couch startup, removal, reinstall, and normal startup.
   Verified unchanged links, organization, collections/membership, and activity at
   every checkpoint. Logs and verifier are in build/completion-package/upgrade*.
 - Existing binfmt support successfully ran the pinned ARM64 CI image. Started
   an emulated ARM64 package/lifecycle/regression run with two compiler jobs.
-  Container: omakade-completion-arm64-check. This is architecture automation,
+  Container: LEZU-completion-arm64-check. This is architecture automation,
   not physical hardware evidence. Logs: build/completion-package/arm64/.
 
 ### Combined large-library and offline acceptance
@@ -503,7 +503,7 @@ No commits, pushes, tags, public comments, releases, or installations performed.
   gives network-isolated evidence for the actual automated editor/navigation,
   backup/recovery, rendering, startup, and core flows. It is synthetic-library
   evidence, not physical controller or game compatibility acceptance.
-- The ARM64 run remains active under container omakade-completion-arm64-check.
+- The ARM64 run remains active under container LEZU-completion-arm64-check.
   Copied the updated CoreTests.cpp into its test source before test compilation,
   so the eventual ARM core suite also includes the new large-library regression.
   The package source archive is unchanged; this supplemental test-only change

@@ -45,7 +45,7 @@ bool isLandscapeHeader(const QString& path) {
 
 QString coverCacheRoot() {
   return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-         QStringLiteral("/omakade/covers");
+         QStringLiteral("/LEZU/covers");
 }
 
 QString coverCachePath(const QString& appId) {
@@ -62,7 +62,7 @@ QUrl coverUrl(const QString& appId, int attempt) {
 
 SteamGameModel::SteamGameModel(const QString& databasePath, AppSettings* settings, QObject* parent)
     : QAbstractListModel(parent),
-      m_connectionName(QStringLiteral("omakade-%1").arg(reinterpret_cast<quintptr>(this))),
+      m_connectionName(QStringLiteral("LEZU-%1").arg(reinterpret_cast<quintptr>(this))),
       m_settings(settings) {
   m_coverWriteTimer.setSingleShot(true);
   m_coverWriteTimer.setInterval(750);
