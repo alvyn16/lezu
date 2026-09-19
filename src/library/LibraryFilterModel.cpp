@@ -74,9 +74,8 @@ void LibraryFilterModel::setSourceModel(QAbstractItemModel* source) {
                 // Metadata arrives one game at a time. Invalidating the full mapping here
                 // recreates visible delegates and briefly replaces all covers with placeholders.
                 const bool hadConsoleCards = hasConsoleCards();
-                beginFilterChange();
                 recountSystems();
-                endFilterChange(Direction::Rows);
+                invalidateRowsFilter();
                 emit metadataOptionsChanged();
                 if (hadConsoleCards != hasConsoleCards())
                   emit consoleNavigationChanged();
@@ -90,9 +89,8 @@ void LibraryFilterModel::setSourceModel(QAbstractItemModel* source) {
     connect(games, &QAbstractItemModel::modelReset, this, &LibraryFilterModel::reconcileSelection);
     connect(games, &UnifiedGameModel::savedFiltersChanged, this, &LibraryFilterModel::savedFiltersChanged);
     connect(games, &UnifiedGameModel::collectionsChanged, this, [this] {
-      beginFilterChange();
       recountSystems();
-      endFilterChange(Direction::Rows);
+      invalidateRowsFilter();
       emit organizationNamesChanged();
       emit savedFiltersChanged();
     });
@@ -399,9 +397,8 @@ void LibraryFilterModel::setAvailability(Availability value) {
     return;
   }
   m_availability = value;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit availabilityChanged();
 }
 
@@ -412,9 +409,8 @@ void LibraryFilterModel::setShowHidden(bool value) {
     return;
   }
   m_showHidden = value;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit showHiddenChanged();
 }
 
@@ -499,9 +495,8 @@ void LibraryFilterModel::setSourceFilters(const QStringList& value) {
   if (leftConsole) {
     rebuildProxy();
   } else {
-    beginFilterChange();
     recountSystems();
-    endFilterChange(Direction::Rows);
+    invalidateRowsFilter();
   }
   emit sourceFilterChanged();
   emit consoleNavigationChanged();
@@ -515,9 +510,8 @@ void LibraryFilterModel::setCompletionFilter(const QString& value) {
     return;
   }
   m_completionFilter = normalized;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit organizationFilterChanged();
 }
 
@@ -529,9 +523,8 @@ void LibraryFilterModel::setCollectionFilter(const QString& value) {
     return;
   }
   m_collectionFilter = normalized;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit organizationFilterChanged();
 }
 
@@ -543,9 +536,8 @@ void LibraryFilterModel::setTagFilter(const QString& value) {
     return;
   }
   m_tagFilter = normalized;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit organizationFilterChanged();
 }
 
@@ -786,9 +778,8 @@ void LibraryFilterModel::setSearchText(const QString& value) {
   }
 
   m_searchText = normalized;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit searchTextChanged();
 }
 
@@ -800,9 +791,8 @@ void LibraryFilterModel::setMode(Mode value) {
   }
 
   m_mode = value;
-  beginFilterChange();
   recountSystems();
-  endFilterChange(Direction::Rows);
+  invalidateRowsFilter();
   emit modeChanged();
 }
 

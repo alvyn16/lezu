@@ -60,11 +60,10 @@ bool EpicGameModel::openDatabase(const QString& path) {
   }
   m_database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
   m_database.setDatabaseName(path);
-  if (!m_database.open()) {
+  if (!openTunedDatabase(m_database)) {
     setStatus(QStringLiteral("Could not open database"), m_database.lastError().text());
     return false;
   }
-  DatabaseTuning::tune(m_database);
   return true;
 }
 

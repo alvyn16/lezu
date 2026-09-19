@@ -60,11 +60,10 @@ bool GogGameModel::openDatabase(const QString& path) {
   }
   m_database = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
   m_database.setDatabaseName(path);
-  if (!m_database.open()) {
+  if (!openTunedDatabase(m_database)) {
     setStatus(QStringLiteral("Could not open database"), m_database.lastError().text());
     return false;
   }
-  DatabaseTuning::tune(m_database);
   return true;
 }
 
@@ -111,7 +110,7 @@ void GogGameModel::loadDatabase() {
     record.installDirectory = query.value(2).toString();
     record.executablePath = query.value(3).toString();
     record.arguments = query.value(4).toString();
-    record.icon_path = query.value(5).toString();
+    record.iconPath = query.value(5).toString();
     record.galaxyLaunchCommand = query.value(6).toString();
 
     Game game;
@@ -164,7 +163,7 @@ void GogGameModel::applyScan(const GogWindowsScanResult& result) {
     query.bindValue(2, game.installDirectory);
     query.bindValue(3, game.executablePath);
     query.bindValue(4, game.arguments);
-    query.bindValue(5, game.icon_path);
+    query.bindValue(5, game.iconPath);
     query.bindValue(6, game.galaxyLaunchCommand);
     query.bindValue(7, scanTimestamp);
     okay = okay && query.exec();
@@ -290,7 +289,7 @@ QVariant GogGameModel::valueForRole(const Game& game, int role) const {
   case GameRoles::AppId:
     return game.gog.gameId;
   case GameRoles::CoverPath:
-    return localUrl(game.gog.icon_path);
+    return localUrl(game.gog.iconPath);
   case GameRoles::HeroPath:
   case GameRoles::LogoPath:
     return QString{};

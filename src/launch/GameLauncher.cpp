@@ -1022,7 +1022,7 @@ bool GameLauncher::launchGog(const QString& id, const QString& installPath, bool
 #ifdef Q_OS_WIN
   const std::optional<GogLaunchTask> task = HeroicScanner::gogLaunchTask(installPath, id);
   if (task.has_value()) {
-    const QString exePath = QDir(installPath).absoluteFilePath(task->executable);
+    const QString exePath = QDir(installPath).absoluteFilePath(task->executablePath);
     if (QFileInfo::exists(exePath)) {
       if (startTracked({exePath, task->arguments}, task->workingDirectory.isEmpty() ? installPath : task->workingDirectory)) {
         setError({});
