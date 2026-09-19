@@ -4332,6 +4332,9 @@ int main(int argc, char* argv[]) {
                    });
   QObject::connect(&singleInstance, &SingleInstance::rescanRequested, &application,
                    [&retroArchLibrary, &pcsx2Library, &ryujinxLibrary, &dolphinLibrary,
+#ifdef Q_OS_WIN
+                    &epicLibrary, &gogLibrary,
+#endif
                     &preferences](const QString& source) {
                      // omakade-sessiond reports an emulator exit; some emulators only
                      // write their own playtime and last-played records on exit, so the
