@@ -23,7 +23,7 @@ export function gameCard(game) {
 }
 export function shelf(games) {
   return games.length ? `<div class="cover-shelf" aria-label="Sample game library">${games.map(gameCard).join('')}</div>`
-    : `<div class="empty-state" role="status"><h2>No games found</h2><p>Try another search or enable a store below.</p><button data-action="reset">Reset filters</button></div>`;
+    : `<div class="empty-state" role="status"><h2>No games found</h2><p>Try another search or reset your filters.</p><button data-action="reset">Reset filters</button></div>`;
 }
 export function stores(state) {
   return `<section class="stores" aria-labelledby="stores-heading"><h2 id="stores-heading">Stores</h2>
@@ -45,5 +45,5 @@ export function home(game, games, state) {
 }
 export function library(games, state) {
   const title = state.query ? 'Search results' : state.installedOnly ? 'Installed' : providers.find(p => p.id === state.source)?.name ?? 'All Games';
-  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games)}</section>${stores(state)}`;
+  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games)}</section>`;
 }

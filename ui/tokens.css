@@ -8,9 +8,9 @@
   --glass: #ffffff12; --glass-hover: #ffffff25; --line: #ffffff28;
   --blur-panel: 36px; --blur-control: 18px;
   --sidebar-width: 204px; --gutter: 32px; --row: 26px; --header: 40px;
-  --cover-width: 114px; --cover-ratio: 2 / 3;
+  --cover-width: clamp(184px, 16vw, 240px); --cover-ratio: 2 / 3;
   --ready-cover-width: clamp(168px, 16vw, 216px);
-  --font-ready-heading: 20px; --font-ready-title: 14px; --font-ready-caption: 12px;
+  --font-ready-heading: 20px; --font-card-title: 14px; --font-card-caption: 12px;
   --radius: 12px; --radius-small: 6px; --pill: 999px;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px;

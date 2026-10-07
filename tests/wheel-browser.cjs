@@ -46,7 +46,7 @@ async page => {
   await page.mouse.move(libraryBox.x + 120, libraryBox.y + 60);
   await page.mouse.wheel(0, 100);
   await page.waitForFunction(() => document.querySelector('.cover-shelf').scrollLeft > 0);
-  await page.getByRole('switch', { name: 'Include Epic Games sample games' }).click();
+  await page.locator('.sidebar [data-nav="steam"]').click();
   const updatedBox = await shelf.boundingBox();
   await page.mouse.move(updatedBox.x + 120, updatedBox.y + 60);
   await page.mouse.wheel(0, 100);

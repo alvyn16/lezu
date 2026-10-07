@@ -13,11 +13,6 @@
 .ready-section { --cover-width: var(--ready-cover-width); }
 .ready-section h2 { font-size: var(--font-ready-heading); }
 .ready-section .cover-shelf { gap: 20px; }
-.ready-section .game-card h3 { font-size: var(--font-ready-title); }
-.ready-section .card-caption { font-size: var(--font-ready-caption); gap: 4px; }
-.ready-section .card-caption .provider-mark { width: 12px; height: 12px; }
-.ready-section .cover-play { font-size: var(--font-body); padding: 8px 18px; }
-.ready-section .cover-play svg { width: 14px; height: 14px; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 18px; }
 .text-button { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: 32px; flex-shrink: 0; padding: 6px 0 6px 12px; border-radius: var(--radius-small); background: transparent; color: var(--muted); font-size: var(--font-body); font-weight: 500; line-height: 1.4; }
 .text-button svg { width: 14px; height: 14px; }
@@ -30,13 +25,13 @@
 .cover-button { display: block; width: 100%; aspect-ratio: var(--cover-ratio); padding: 0; border-radius: var(--radius); overflow: hidden; background: #ffffff13; }
 .cover-button img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cover-button:hover img { filter: brightness(.88); }
-.cover-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 6px 14px; opacity: 0; pointer-events: none; font-size: var(--font-caption); }
+.cover-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 8px 18px; opacity: 0; pointer-events: none; font-size: var(--font-body); }
 .cover-wrap:hover .cover-play, .cover-wrap:focus-within .cover-play { opacity: 1; pointer-events: auto; }
-.cover-play svg { width: 12px; height: 12px; }
-.game-card h3 { font-size: var(--font-caption); line-height: 1.3; font-weight: 600; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-caption { display: flex; align-items: center; gap: 3px; color: var(--muted); font-size: var(--font-label); line-height: 1.5; white-space: nowrap; overflow: hidden; }
+.cover-play svg { width: 14px; height: 14px; }
+.game-card h3 { font-size: var(--font-card-title); line-height: 1.3; font-weight: 600; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-caption { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: var(--font-card-caption); line-height: 1.5; white-space: nowrap; overflow: hidden; }
 .card-caption span { overflow: hidden; text-overflow: ellipsis; }
-.card-caption .provider-mark { width: 10px; height: 10px; }
+.card-caption .provider-mark { width: 12px; height: 12px; }
 .cover-fallback { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); padding: 12px; font-size: var(--font-caption); }
 .cover-fallback svg { width: 24px; height: 24px; }
 .stores { margin: 32px 0; }
@@ -58,6 +53,6 @@
 .empty-state button { border: 1px solid var(--line); border-radius: var(--radius-small); padding: 8px 12px; }
 .library-section { padding-top: 64px; }
 .results-count { font-size: var(--font-caption); color: var(--muted); }
-@media (min-width: 1500px) { :root { --cover-width: 152px; } .home-hero { height: 360px; } .home-hero .hero-art { height: 420px; } .home-hero .hero-shade { bottom: -60px; } .home-logo { width: 360px; height: 88px; top: 140px; } .eyebrow { top: 146px; } }
+@media (min-width: 1500px) { .home-hero { height: 360px; } .home-hero .hero-art { height: 420px; } .home-hero .hero-shade { bottom: -60px; } .home-logo { width: 360px; height: 88px; top: 140px; } .eyebrow { top: 146px; } }
 @media (max-width: 850px) { .store-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } .store-card:last-child { grid-column: 1 / -1; } .home-logo { width: 240px; top: 156px; } .eyebrow { top: 116px; } }
 @media (max-width: 600px) { .store-list { grid-template-columns: 1fr; } .home-hero { height: 300px; } .home-logo { width: 80%; } .section-head { align-items: baseline; } }
