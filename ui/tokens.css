@@ -1,0 +1,38 @@
+:root {
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px; color-scheme: dark;
+  --font-caption: 11px; --font-label: 10px; --font-body: 13px;
+  --font-heading: 18px; --font-stat: 18px; --font-description: 22px;
+  --font-title: 44px;
+  --text: #fff; --muted: #e6dce0; --page: #8b1239; --sidebar: #65112e;
+  --glass: #ffffff12; --glass-hover: #ffffff25; --line: #ffffff28;
+  --sidebar-width: 204px; --gutter: 32px; --row: 26px; --header: 40px;
+  --cover-width: 114px; --cover-ratio: 2 / 3;
+  --radius: 12px; --radius-small: 6px; --pill: 999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); }
+button, input { font: inherit; }
+button { color: inherit; cursor: pointer; }
+button, input { border: 0; }
+button { background: var(--glass); }
+button:hover { background: var(--glass-hover); }
+button:disabled { cursor: default; opacity: .55; }
+:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: var(--font-heading); font-weight: 650; }
+p { line-height: 1.5; }
+svg { display: block; width: 16px; height: 16px; flex-shrink: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.primary { border-radius: var(--pill); background: #fff; color: #171717; padding: 9px 24px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.primary:hover { background: #eee; }
+.primary:focus-visible { outline-color: #fff; box-shadow: 0 0 0 2px #292929; }
+.icon-button { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: var(--pill); }
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 10; background: white; color: black; padding: 12px; }
+.skip-link:focus { top: 12px; }
+dialog { border: 1px solid var(--line); background: #242428; color: white; border-radius: var(--radius); width: min(420px, calc(100% - 32px)); padding: 24px; }
+dialog::backdrop { background: #0009; }
+dialog p { margin: 12px 0 20px; color: #e6e6e9; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

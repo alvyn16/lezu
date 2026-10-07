@@ -1,0 +1,4 @@
+.playwright-cli/
+docs/shell-980.png
+docs/screenshots/
+__pycache__/
