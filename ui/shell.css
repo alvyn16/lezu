@@ -1,4 +1,5 @@
-#app { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 100dvh; }
+#app { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 100dvh; isolation: isolate; }
+#app::before { content: ''; position: fixed; inset: 0 auto 0 0; width: var(--sidebar-width); z-index: -1; pointer-events: none; background: var(--theme-art, none) center / cover no-repeat, var(--page); }
 .sidebar { position: sticky; top: 0; align-self: start; min-width: 0; height: 100dvh; padding: 8px; display: flex; flex-direction: column; background: linear-gradient(160deg, var(--sidebar), var(--page)); border-right: 1px solid #ffffff0e; }
 .sidebar-head { display: flex; height: 24px; align-items: center; justify-content: space-between; padding: 0 8px; }
 .brand { font-weight: 650; letter-spacing: .2px; }
@@ -8,16 +9,26 @@
 .count { margin-left: auto; font-size: var(--font-caption); opacity: .8; }
 .nav-label { color: var(--muted); font-size: var(--font-label); font-weight: 400; margin: 12px 0 4px; padding-left: 4px; }
 .preview-label { color: var(--muted); font-size: var(--font-caption); margin-top: auto; padding: 12px 8px 4px; }
-main { min-width: 0; position: relative; isolation: isolate; }
+main { min-width: 0; position: relative; isolation: isolate; background: var(--page); }
 .topbar { position: absolute; inset: 0 0 auto; z-index: 2; display: flex; gap: 12px; justify-content: space-between; align-items: center; height: var(--header); padding: 0 8px 0 16px; }
 .topbar h1 { font-size: var(--font-body); font-weight: 600; }
-.search { display: flex; align-items: center; gap: 6px; width: min(236px, 48%); padding: 5px 10px; background: #ffffff18; border: 1px solid var(--line); border-radius: var(--pill); backdrop-filter: blur(20px); }
+.search { display: flex; align-items: center; gap: 6px; width: min(236px, 48%); padding: 5px 10px; background: #ffffff26; border: 1px solid #ffffff38; border-radius: var(--pill); box-shadow: inset 0 1px 0 #ffffff12, 0 2px 8px #00000012; }
 .search svg { width: 12px; height: 12px; }
 .search input { width: 100%; min-width: 0; background: transparent; color: white; font-size: var(--font-caption); outline: 0; }
 .search:focus-within { outline: 2px solid white; outline-offset: 2px; }
 .search input::placeholder { color: var(--muted); opacity: 1; }
 .provider-mark { display: block; object-fit: contain; width: 16px; height: 16px; flex-shrink: 0; filter: invert(1); }
 .shell-placeholder { padding: 100px var(--gutter); }
+@media (max-width: 420px) { #app::before { width: 100%; } }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar { background: linear-gradient(160deg, color-mix(in srgb, var(--sidebar) 56%, transparent), color-mix(in srgb, var(--page) 76%, transparent)); -webkit-backdrop-filter: blur(var(--blur-panel)) saturate(145%); backdrop-filter: blur(var(--blur-panel)) saturate(145%); box-shadow: inset -1px 0 0 #ffffff0c; }
+  .search, .hero-actions .icon-button, .topbar .icon-button, .store-card { -webkit-backdrop-filter: blur(var(--blur-control)) saturate(140%); backdrop-filter: blur(var(--blur-control)) saturate(140%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar { background: linear-gradient(160deg, var(--sidebar), var(--page)); }
+  .search, .hero-actions .icon-button, .topbar .icon-button, .store-list .store-card { background: color-mix(in srgb, var(--sidebar) 90%, #fff); }
+  .sidebar, .search, .hero-actions .icon-button, .topbar .icon-button, .store-card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 @media (max-width: 850px) { :root { --sidebar-width: 176px; --gutter: 24px; } }
 @media (max-width: 600px) { :root { --sidebar-width: 144px; --gutter: 16px; } .nav-row { padding: 0 6px; gap: 6px; } .count { display: none; } .search { width: 50%; } .preview-label { font-size: var(--font-label); } }
 @media (max-width: 420px) { #app { grid-template-columns: minmax(0, 1fr); } .sidebar { position: relative; height: auto; } .sidebar-head { margin: 0; } .sidebar nav { display: flex; overflow-x: auto; gap: 4px; padding: 4px; } .nav-row { flex-shrink: 0; width: auto; } .nav-label, .preview-label { display: none; } .topbar { padding-left: 16px; } }

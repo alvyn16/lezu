@@ -21,6 +21,7 @@ function render(focusKey) {
   const game = activeGame(games, state);
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
   document.documentElement.style.setProperty('--sidebar', game?.theme.sidebar ?? '#23272d');
+  document.documentElement.style.setProperty('--theme-art', game?.hero ? `url("${asset(game.hero)}")` : 'none');
   if (state.view === 'details' && game) document.querySelector('#screen').innerHTML = details(game);
   else if (state.view === 'home' && !state.query) document.querySelector('#screen').innerHTML = home(game, visibleGames(games, state), state);
   else document.querySelector('#screen').innerHTML = library(visibleGames(games, state), state);

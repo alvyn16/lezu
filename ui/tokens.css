@@ -6,6 +6,7 @@
   --font-title: 44px;
   --text: #fff; --muted: #e6dce0; --page: #8b1239; --sidebar: #65112e;
   --glass: #ffffff12; --glass-hover: #ffffff25; --line: #ffffff28;
+  --blur-panel: 36px; --blur-control: 18px;
   --sidebar-width: 204px; --gutter: 32px; --row: 26px; --header: 40px;
   --cover-width: 114px; --cover-ratio: 2 / 3;
   --ready-cover-width: clamp(168px, 16vw, 216px);

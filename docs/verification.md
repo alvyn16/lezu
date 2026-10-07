@@ -13,6 +13,7 @@ Verified locally on 2026-10-07 using Node 22.18.0, Python 3.14, Chrome, and Play
 | Mouse-wheel shelf browsing | Real wheel events moved Home and Library shelves in both directions without moving the page. Horizontal gestures, line/page wheel units, Ctrl+wheel preservation, end-of-shelf page scrolling, scrolling outside the shelf, filtering/rerendering, and keyboard reveal passed. A non-overflowing shelf releases the wheel. The native shelf scrollbar is hidden. |
 | Resolution / density | 56 Home/Details layout checks passed: 7 sizes × 4 densities × 2 screens. No page-width overflow, header/search overlap, failed assets, or runtime errors in these normal scenarios. |
 | Source review | Checked correctness, simplicity, module separation, fixture text escaping, and bounded local rendering. No old project code, remote integrations, or native action execution. |
+| Frosted glass | Home and Sifu details visually checked at 980 × 760. Sidebar artwork follows the selected game, search and controls use backdrop blur, missing artwork resets to the theme color, and search works without runtime errors. No width overflow at 800 × 600. Opaque styles remain available when blur is unsupported or reduced transparency is requested. |
 | Syntax and whitespace | Module syntax checks and `git diff --check` passed. |
 
 Sizes: 800×600, 980×760, 1024×768, 1366×768, 1920×1080, 3840×2160, and an additional 320×740 compact check. Densities: 1, 1.25, 1.5, and 2 device pixels per logical pixel. Resolution contexts use reduced motion.
