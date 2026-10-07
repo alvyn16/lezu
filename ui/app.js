@@ -41,7 +41,11 @@ document.addEventListener('click', event => {
   if (!button) return;
   const { nav, source, play, game, action, screenshot } = button.dataset;
   if (nav === 'downloads') notify('Downloads', 'Downloads are not available in this UI prototype. Nothing is being downloaded.');
-  else if (nav) { state = navigate(state, nav); render(); window.scrollTo(0, 0); }
+  else if (nav) {
+    const fromSidebar = !!button.closest('nav');
+    state = navigate(state, nav); render(); window.scrollTo(0, 0);
+    if (!fromSidebar) document.querySelector(`nav [data-nav="${nav}"]`)?.focus();
+  }
   else if (source) { state = toggleSource(state, source); render(source); }
   else if (play) notify('Play — preview only', 'Native game launching will follow UI approval. This button has not launched a game.');
   else if (game) {
@@ -86,5 +90,9 @@ document.addEventListener('error', event => {
   if (!(img instanceof HTMLImageElement)) return;
   img.hidden = true;
   if (img.closest('.cover-button')) img.closest('.cover-button').insertAdjacentHTML('beforeend', '<span class="cover-fallback">Artwork unavailable</span>');
+  else if (img.classList.contains('game-logo')) {
+    const title = document.createElement('h2'); title.className = img.className.replace('game-logo', 'game-title'); title.textContent = img.alt;
+    img.replaceWith(title);
+  }
 }, true);
 render();

@@ -5,7 +5,7 @@ export const games = [
     description: 'Follow two protagonists through a psychological horror story where fiction reshapes reality.',
     theme: { page: '#a91740', sidebar: '#71142e' }, screenshots: ['alan-screen.png'], cover: 'alan-cover.png', hero: 'alan-hero.webp', logo: 'alan-logo.png' },
   { id: 'sifu', title: 'Sifu', source: 'epic', installed: true, played: '0 h', lastPlayed: 'Today', size: null,
-    developer: 'Sloclap', year: '2023', tags: ['Single-player', 'Martial arts', 'Action'],
+    developer: 'Sloclap', year: '2022', tags: ['Single-player', 'Martial arts', 'Action'],
     description: 'Master close-quarters Kung Fu combat on a journey of revenge. Learn from each defeat as your character ages with every return.',
     theme: { page: '#a32213', sidebar: '#6b1b19' }, screenshots: ['sifu-screen-0.jpg', 'sifu-screen-1.jpg'], cover: 'sifu-cover.jpg', hero: 'sifu-hero.jpg', logo: 'sifu-logo.png' },
   { id: 'witcher', title: 'The Witcher 3: Wild Hunt — Complete Edition', source: 'gog', installed: true, played: '4 h', lastPlayed: 'Yesterday', size: null,

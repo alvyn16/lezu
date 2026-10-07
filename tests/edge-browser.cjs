@@ -1,0 +1,34 @@
+async page => {
+  await page.reload();
+  await page.getByRole('button', {name:'See All',exact:true}).click();
+  if (!(await page.getByRole('button',{name:'All Games 8'}).evaluate(el=>el===document.activeElement))) throw Error('See All lost focus');
+  const missing = page.getByRole('button',{name:'View A game waiting for artwork',exact:true});
+  await missing.focus(); await missing.press('Enter');
+  await page.getByText('Screenshots are not available for this sample.').waitFor();
+  if (!(await page.getByRole('button',{name:'Not installed',exact:true}).isDisabled())) throw Error('Uninstalled game Play enabled');
+  await page.getByRole('button',{name:'Back to library'}).click();
+  if (!(await missing.evaluate(el=>el===document.activeElement))) throw Error('Missing art return focus lost');
+  for (const source of ['Steam','Epic Games','GOG']) await page.getByRole('switch',{name:`Include ${source} sample games`}).click();
+  await page.getByRole('heading',{name:'No games found'}).waitFor();
+  await page.getByRole('button',{name:'Reset filters'}).click();
+  await page.getByRole('heading',{name:'Ready to Play'}).waitFor();
+  if (!(await page.getByRole('searchbox').evaluate(el=>el===document.activeElement))) throw Error('Reset focus failed');
+  await page.getByRole('button',{name:'Play',exact:true}).click();
+  await page.getByRole('dialog').waitFor();
+  await page.keyboard.press('Escape');
+  if (await page.getByRole('dialog').isVisible()) throw Error('Escape did not close dialog');
+  await page.getByRole('button',{name:'About Alan Wake II'}).click();
+  await page.getByRole('button',{name:'View Alan Wake II screenshot 1'}).click();
+  if (!(await page.locator('.notice-image').isVisible())) throw Error('Screenshot dialog failed');
+  await page.keyboard.press('Escape');
+  const names = await page.evaluate(() => [...document.querySelectorAll('button')].filter(b=>!b.getAttribute('aria-label')&&!b.textContent.trim()).length);
+  if (names) throw Error(`${names} unnamed buttons`);
+  await page.reload();
+  await page.route('**/assets/sifu-cover.jpg',route=>route.fulfill({status:404,body:'Unavailable'}));
+  await page.reload();
+  await page.getByRole('button',{name:'View Sifu',exact:true}).getByText('Artwork unavailable').waitFor();
+  if (await page.getByRole('button',{name:'View Sifu',exact:true}).locator('img').isVisible()) throw Error('Broken artwork visible');
+  await page.unroute('**/assets/sifu-cover.jpg');
+  await page.reload();
+  return { missingArt:'passed', disabledPlay:'passed', emptySources:'passed', navigationFocus:'passed', dialog:'passed', imageErrorRecovery:'passed', unnamedButtons:names };
+}

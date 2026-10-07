@@ -2,8 +2,8 @@
 #location h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #location .icon-button { width: 26px; height: 26px; flex-shrink: 0; }
 .details-hero { height: 340px; position: relative; isolation: isolate; }
-.details-hero .hero-art { height: 400px; object-position: center; }
-.details-hero .hero-shade { bottom: -60px; background: linear-gradient(to bottom, #00000018, #00000005 40%, var(--page)); }
+.details-hero .hero-art { height: 400px; object-position: center 28%; }
+.details-hero .hero-shade { bottom: -60px; }
 .details-logo { position: absolute; top: 154px; left: var(--gutter); width: min(210px, 60%); height: 76px; }
 .details-logo[src*="sifu"] { top: 126px; width: min(260px, 70%); height: 130px; }
 .details-hero .hero-actions { bottom: 26px; gap: 10px; }
