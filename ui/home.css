@@ -10,6 +10,14 @@
 .hero-actions .primary { min-width: 106px; }
 .hero-empty { padding: 140px var(--gutter) 0; }
 .ready-section, .stores, .library-section { position: relative; padding: 0 var(--gutter); }
+.ready-section { --cover-width: var(--ready-cover-width); }
+.ready-section h2 { font-size: var(--font-ready-heading); }
+.ready-section .cover-shelf { gap: 20px; }
+.ready-section .game-card h3 { font-size: var(--font-ready-title); }
+.ready-section .card-caption { font-size: var(--font-ready-caption); gap: 4px; }
+.ready-section .card-caption .provider-mark { width: 12px; height: 12px; }
+.ready-section .cover-play { font-size: var(--font-body); padding: 8px 18px; }
+.ready-section .cover-play svg { width: 14px; height: 14px; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 18px; }
 .text-button { background: transparent; color: var(--muted); font-size: var(--font-caption); padding: 6px 0 6px 12px; }
 .cover-shelf { display: flex; overflow-x: auto; gap: 16px; margin: -4px calc(-1 * var(--gutter)); padding: 4px var(--gutter) 12px; scrollbar-width: thin; scrollbar-color: #ffffff55 transparent; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); }

@@ -92,4 +92,8 @@ node --test tests/*.test.mjs
 
 ## Completion criterion
 
+### User revision: larger Ready to Play shelf
+
+After reviewing the working prototype, the user accepted the direction and requested that the Ready to Play section be larger. Its covers now use a responsive width of 168–216 px (168×252 px at the reference window size), replacing the initial 114×171 px Home covers. Its heading is 20 px, game titles 14 px, captions 12 px, and provider caption marks 12 px. The horizontal shelf remains scrollable. Library and Details sizing retains the approved baseline.
+
 Deliver a working local preview plus Home/details screenshots at the reference size and a larger Windows size, with a concise comparison of remaining differences. Obtain the user's visual approval before integrating real scanners and launchers.

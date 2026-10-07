@@ -25,7 +25,7 @@ These are browser density checks, not a claim that a native Windows executable h
 | Sidebar | 204 px at the 980 px reference width, compact 26 px flat rows, white selection, correct navigation order and right-aligned counts. |
 | Search | 236 px pill at the upper-right, compact SVG magnifier, consistent left-aligned text. |
 | Home hero | Matching Alan Wake II key art, centered 300 px logo, eyebrow at the left, white 106 px Play pill and circular info control. |
-| Home shelf | 114×171 px portrait covers at reference size, single horizontal shelf, rounded artwork, captions below, hover and keyboard Play. |
+| Home shelf | Following the user's size revision: 168×252 px portrait covers at reference size, growing to 216 px wide on larger windows. Single horizontal shelf, rounded artwork, 14 px titles and 12 px captions, hover and keyboard Play. |
 | Stores | Three equal translucent cards at reference size, 38 px marks, switches at the upper-right. Wraps for compact windows. |
 | Details | Back/name and search in the same shell; Sifu hero/logo, Play/folder/More row; six stat columns; About label and 22 px description; horizontal screenshots below. |
 | Type | Segoe UI throughout: 13 px navigation, 11 px captions, 18 px headings/stats, 22 px description. SVG navigation icons are 16 px. |
@@ -43,6 +43,8 @@ Corrections made during rendered review: reduced sidebar spacing; made provider 
 - Palettes are curated per game; automatic extraction is pending. In-session choices reset on reload; native browser history routing is not implemented.
 
 ## Saved renders
+
+The larger Ready to Play revision passed the Home interaction checks and all 56 resolution/density checks again. Its refreshed screenshots are the current Home renders. Browser preview was refreshed for the user. No JavaScript or native behavior changed in this CSS revision.
 
 Local QA PNGs are in `docs/screenshots/` (excluded from Git): Home and Details at 800, 980, and 1920 px; both at 980 px with 200% density; a 4K Details render. The supplied reference originals remain in `docs/references/`.
 
