@@ -36,7 +36,7 @@ export function stores(state) {
 export function home(game, games, state) {
   return `<section class="home-hero" aria-label="Continue playing">
     ${heroArt(game)}<div class="hero-shade"></div>
-    ${game ? `<p class="eyebrow">Continue Playing</p>${gameTitle(game, 'home-logo')}
+    ${game ? `${gameTitle(game, 'home-logo')}
       <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled' : ''}>${icon('play')} Play</button><button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
       : '<p class="hero-empty">Enable a store to see its sample games.</p>'}
     </section>
