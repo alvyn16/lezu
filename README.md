@@ -29,6 +29,8 @@ Open [the local preview](http://127.0.0.1:4173). Stop the server with Ctrl+C. Py
 
 Click a cover outside its hover Play control to open details, or focus the cover and press Enter. Play explains that native launching is pending.
 
+Hover over a game shelf and turn the mouse wheel: down moves right, up moves left. The scrollbar is hidden; horizontal trackpad gestures and keyboard navigation also work. At the ends, or when every game already fits, the wheel scrolls the page normally. Ctrl+wheel retains browser zoom.
+
 ## Prototype boundaries
 
 The eight entries are fixtures, not a scan of your computer. Source assignments, installation flags, playtime, and last-played values are demonstration data. Missing metadata remains unavailable. Palettes are curated from artwork in the fixture module; automatic color extraction is later work.
@@ -49,6 +51,7 @@ playwright-cli -s=lezu-fresh resize 980 760
 playwright-cli -s=lezu-fresh run-code --filename=tests/home-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/details-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/edge-browser.cjs
+playwright-cli -s=lezu-fresh run-code --filename=tests/wheel-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/resolution-browser.cjs
 ```
 

@@ -3,6 +3,7 @@ import { asset, games } from './fixtures.js';
 import { initialState, visibleGames, activeGame, counts, navigate, toggleSource, openGame } from './state.js';
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
+import { enableWheelScrolling } from './shelf-scroll.js';
 document.querySelector('#app').innerHTML = shell();
 let state = initialState();
 let previousState = state;
@@ -23,6 +24,7 @@ function render(focusKey) {
   if (state.view === 'details' && game) document.querySelector('#screen').innerHTML = details(game);
   else if (state.view === 'home' && !state.query) document.querySelector('#screen').innerHTML = home(game, visibleGames(games, state), state);
   else document.querySelector('#screen').innerHTML = library(visibleGames(games, state), state);
+  document.querySelectorAll('.cover-shelf').forEach(enableWheelScrolling);
   const context = state.view === 'details' ? previousState : state;
   const selected = context.view === 'home' ? 'home' : context.installedOnly ? 'installed' : context.source;
   document.querySelectorAll('[data-nav]').forEach(button => {

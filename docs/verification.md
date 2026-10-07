@@ -10,6 +10,7 @@ Verified locally on 2026-10-07 using Node 22.18.0, Python 3.14, Chrome, and Play
 | Home browser flow | Search focus, empty search, disabled store filtering, switch focus, and keyboard shelf reveal passed. |
 | Details browser flow | Open/Back focus, search from Details, whole-shell theme changes, and Feature on Home passed. |
 | Edge browser flow | Missing art, disabled Play, all stores disabled, Reset, See All focus, Escape dismissal, screenshot dialog, and forced cover failure recovery passed. No unnamed buttons. |
+| Mouse-wheel shelf browsing | Real wheel events moved Home and Library shelves in both directions without moving the page. Horizontal gestures, line/page wheel units, Ctrl+wheel preservation, end-of-shelf page scrolling, scrolling outside the shelf, filtering/rerendering, and keyboard reveal passed. A non-overflowing shelf releases the wheel. The native shelf scrollbar is hidden. |
 | Resolution / density | 56 Home/Details layout checks passed: 7 sizes × 4 densities × 2 screens. No page-width overflow, header/search overlap, failed assets, or runtime errors in these normal scenarios. |
 | Source review | Checked correctness, simplicity, module separation, fixture text escaping, and bounded local rendering. No old project code, remote integrations, or native action execution. |
 | Syntax and whitespace | Module syntax checks and `git diff --check` passed. |

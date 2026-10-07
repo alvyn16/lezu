@@ -20,7 +20,8 @@
 .ready-section .cover-play svg { width: 14px; height: 14px; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 18px; }
 .text-button { background: transparent; color: var(--muted); font-size: var(--font-caption); padding: 6px 0 6px 12px; }
-.cover-shelf { display: flex; overflow-x: auto; gap: 16px; margin: -4px calc(-1 * var(--gutter)); padding: 4px var(--gutter) 12px; scrollbar-width: thin; scrollbar-color: #ffffff55 transparent; scroll-snap-type: x proximity; scroll-padding-inline: var(--gutter); }
+.cover-shelf { display: flex; overflow-x: auto; gap: 16px; margin: -4px calc(-1 * var(--gutter)); padding: 4px var(--gutter) 12px; scrollbar-width: none; scroll-padding-inline: var(--gutter); }
+.cover-shelf::-webkit-scrollbar { display: none; }
 .game-card { flex: 0 0 var(--cover-width); min-width: 0; scroll-snap-align: start; }
 .cover-wrap { position: relative; }
 .cover-button { display: block; width: 100%; aspect-ratio: var(--cover-ratio); padding: 0; border-radius: var(--radius); overflow: hidden; background: #ffffff13; }
