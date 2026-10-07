@@ -1,5 +1,5 @@
 :root {
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI", "Segoe UI Variable Text", system-ui, sans-serif;
   font-size: 13px; color-scheme: dark;
   --font-caption: 11px; --font-label: 10px; --font-body: 13px;
   --font-heading: 18px; --font-stat: 18px; --font-description: 22px;
