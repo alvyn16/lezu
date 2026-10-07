@@ -19,7 +19,10 @@
 .ready-section .cover-play { font-size: var(--font-body); padding: 8px 18px; }
 .ready-section .cover-play svg { width: 14px; height: 14px; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 18px; }
-.text-button { background: transparent; color: var(--muted); font-size: var(--font-caption); padding: 6px 0 6px 12px; }
+.text-button { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; min-height: 32px; flex-shrink: 0; padding: 6px 0 6px 12px; border-radius: var(--radius-small); background: transparent; color: var(--muted); font-size: var(--font-body); font-weight: 500; line-height: 1.4; }
+.text-button svg { width: 14px; height: 14px; }
+.text-button:hover, .text-button:active { background: transparent; color: var(--text); }
+.text-button:hover { text-decoration: underline; text-underline-offset: 4px; }
 .cover-shelf { display: flex; overflow-x: auto; gap: 16px; margin: -4px calc(-1 * var(--gutter)); padding: 4px var(--gutter) 12px; scrollbar-width: none; scroll-padding-inline: var(--gutter); }
 .cover-shelf::-webkit-scrollbar { display: none; }
 .game-card { flex: 0 0 var(--cover-width); min-width: 0; scroll-snap-align: start; }

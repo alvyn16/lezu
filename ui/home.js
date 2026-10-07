@@ -40,7 +40,7 @@ export function home(game, games, state) {
       <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled' : ''}>${icon('play')} Play</button><button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
       : '<p class="hero-empty">Enable a store to see its sample games.</p>'}
     </section>
-    <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All</button></div>${shelf(games.filter(game => game.installed))}</section>
+    <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button></div>${shelf(games.filter(game => game.installed))}</section>
     ${stores(state)}`;
 }
 export function library(games, state) {
