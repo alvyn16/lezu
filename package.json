@@ -7,7 +7,8 @@
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
-    "test": "node --import tsx --test tests/*.test.mjs"
+    "test": "node --import tsx --test tests/*.test.mjs",
+    "test:ui": "node tests/run-ui.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

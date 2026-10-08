@@ -1,15 +1,16 @@
+import type { Game } from './domain/models';
 import { icon, providers } from './shell.js';
 import { asset } from './fixtures.js';
 import { escape, heroArt, gameTitle } from './home.js';
-export function detailsLocation(game) {
+export function detailsLocation(game: Game) {
   return `<button class="icon-button" data-action="back" aria-label="Back to library">${icon('back')}</button><h1 title="${escape(game.title)}">${escape(game.title)}</h1>`;
 }
-export function details(game) {
+export function details(game: Game) {
   const provider = providers.find(provider => provider.id === game.source);
   const facts = [ ['Developer', game.developer], ['Released', game.year], ['Rating', null], ['Played', game.played], ['Last played', game.lastPlayed], ['Size', game.size] ];
   return `<section class="details-hero" aria-label="${escape(game.title)}">
     ${heroArt(game)}<div class="hero-shade"></div>${gameTitle(game, 'details-logo')}
-    <p class="game-meta">${[game.developer, game.year, game.tags[0], provider.name].filter(Boolean).map(escape).join('<span>·</span>')}</p>
+    <p class="game-meta">${[game.developer, game.year, game.tags[0], provider?.name ?? game.source].filter(Boolean).map(escape).join('<span>·</span>')}</p>
     <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This demo game is marked as not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button><button class="icon-button" data-action="folder" aria-label="Open game folder">${icon('folder')}</button><button class="icon-button" data-action="more" aria-label="More game actions">${icon('more')}</button></div>
   </section>
   <div class="details-body">

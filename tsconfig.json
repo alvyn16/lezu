@@ -6,8 +6,6 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noEmit": true,
-    "allowJs": true,
-    "checkJs": false,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true
   },
