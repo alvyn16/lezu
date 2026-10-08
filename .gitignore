@@ -2,3 +2,6 @@
 docs/shell-980.png
 docs/screenshots/
 __pycache__/
+node_modules/
+dist/
+src-tauri/target/
