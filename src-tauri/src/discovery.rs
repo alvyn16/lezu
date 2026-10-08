@@ -3,12 +3,35 @@ use std::{
     collections::{HashSet, VecDeque},
     fs,
     path::Path,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 const MAX_ENTRIES: usize = 20_000;
 const MAX_DEPTH: usize = 10;
 const MAX_CANDIDATES: usize = 250;
+
+#[derive(Default)]
+pub struct ScanCoordinator(Arc<AtomicBool>);
+
+impl ScanCoordinator {
+    pub fn begin(&self) -> Option<ScanPermit> {
+        self.0
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| ScanPermit(Arc::clone(&self.0)))
+    }
+}
+
+pub struct ScanPermit(Arc<AtomicBool>);
+
+impl Drop for ScanPermit {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -218,5 +241,14 @@ mod tests {
         assert!(report.truncated);
         assert!(report.candidates.is_empty());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn only_one_scan_can_hold_the_permit() {
+        let coordinator = ScanCoordinator::default();
+        let first = coordinator.begin().expect("first scan starts");
+        assert!(coordinator.begin().is_none());
+        drop(first);
+        assert!(coordinator.begin().is_some());
     }
 }

@@ -1,19 +1,22 @@
-use crate::{discovery::ScanReport, library::LibraryStore};
+use crate::{
+    discovery::{ScanCoordinator, ScanReport},
+    library::LibraryStore,
+};
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use tauri::State;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandError {
-    code: &'static str,
+    pub(crate) code: &'static str,
     message: &'static str,
     retryable: bool,
 }
 
-fn error(code: &'static str, message: &'static str) -> CommandError {
+pub(crate) fn error(code: &'static str, message: &'static str) -> CommandError {
     CommandError {
         code,
         message,
@@ -21,7 +24,7 @@ fn error(code: &'static str, message: &'static str) -> CommandError {
     }
 }
 
-fn database_error() -> CommandError {
+pub(crate) fn database_error() -> CommandError {
     error("database", "The game library could not be read or saved.")
 }
 
@@ -210,78 +213,17 @@ fn insert_manual_game(
     Ok(game_id)
 }
 
-fn installation_path(
-    store: State<'_, LibraryStore>,
-    installation_id: &str,
-) -> Result<(PathBuf, PathBuf), CommandError> {
-    let connection = store.0.lock().map_err(|_| database_error())?;
-    let found = connection
-        .query_row(
-            "SELECT executable_path, working_dir FROM installations WHERE id = ?1 AND install_state = 'installed'",
-            [installation_id],
-            |row| Ok((PathBuf::from(row.get::<_, String>(0)?), PathBuf::from(row.get::<_, String>(1)?))),
-        )
-        .optional()
-        .map_err(|_| database_error())?;
-    found.ok_or_else(|| {
-        error(
-            "missing_installation",
-            "This installation is no longer available.",
-        )
-    })
-}
-
-fn validate_target(path: &Path, working_dir: &Path) -> Result<(), CommandError> {
-    if !path.is_file() || !working_dir.is_dir() {
-        return Err(error(
-            "missing_file",
-            "The game's executable or folder is missing. Rescan or edit this game.",
-        ));
-    }
-    if !path
-        .extension()
-        .is_some_and(|part| part.eq_ignore_ascii_case("exe"))
-    {
-        return Err(error(
-            "invalid_target",
-            "This installation has no valid Windows executable.",
-        ));
-    }
-    Ok(())
-}
-
 #[tauri::command]
-pub fn launch_installation(
-    store: State<'_, LibraryStore>,
-    installation_id: String,
-) -> Result<(), CommandError> {
-    let (path, working_dir) = installation_path(store, &installation_id)?;
-    validate_target(&path, &working_dir)?;
-    std::process::Command::new(path)
-        .current_dir(working_dir)
-        .spawn()
-        .map_err(|_| error("launch_failed", "Windows could not start this game."))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn reveal_installation(
-    store: State<'_, LibraryStore>,
-    installation_id: String,
-) -> Result<(), CommandError> {
-    let (path, working_dir) = installation_path(store, &installation_id)?;
-    validate_target(&path, &working_dir)?;
-    std::process::Command::new("explorer.exe")
-        .arg(working_dir)
-        .spawn()
-        .map_err(|_| error("folder_failed", "Windows could not open this game folder."))?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn scan_folder_preview(root: String) -> Result<ScanReport, CommandError> {
+pub async fn scan_folder_preview(
+    coordinator: State<'_, ScanCoordinator>,
+    root: String,
+) -> Result<ScanReport, CommandError> {
+    let permit = coordinator
+        .begin()
+        .ok_or_else(|| error("scan_busy", "A folder scan is already running."))?;
     let path = PathBuf::from(root);
     let result = tauri::async_runtime::spawn_blocking(move || {
+        let _permit = permit;
         crate::discovery::scan_folder(&path, &AtomicBool::new(false))
     })
     .await
@@ -364,11 +306,6 @@ mod tests {
                 insert_manual_game(&store, text_file.to_str().unwrap(), None, None).unwrap_err();
             assert_eq!(failure.code, "invalid_path");
             assert!(query_library(&store).unwrap().is_empty());
-            let missing = directory.join("missing.exe");
-            assert_eq!(
-                validate_target(&missing, &directory).unwrap_err().code,
-                "missing_file"
-            );
         }
         fs::remove_dir_all(&directory).unwrap();
     }

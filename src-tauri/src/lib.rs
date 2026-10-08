@@ -1,5 +1,6 @@
 mod commands;
 mod discovery;
+mod launch;
 mod library;
 mod window;
 
@@ -28,6 +29,7 @@ fn runtime_info(window: tauri::WebviewWindow) -> Result<RuntimeInfo, &'static st
 
 pub fn run() {
     tauri::Builder::default()
+        .manage(discovery::ScanCoordinator::default())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
@@ -43,8 +45,8 @@ pub fn run() {
             runtime_info,
             commands::list_library,
             commands::add_manual_game,
-            commands::launch_installation,
-            commands::reveal_installation,
+            launch::launch_installation,
+            launch::reveal_installation,
             commands::scan_folder_preview,
         ])
         .run(tauri::generate_context!())

@@ -22,6 +22,8 @@ const mode: LibraryMode = isDesktop() ? 'desktop' : 'demo';
 let games: Game[] = mode === 'demo' ? demoGames : [];
 const launchRequests = new Set<string>();
 let scanCandidates: ScanCandidate[] = [];
+let scanSequence = 0;
+let activeScanSequence: number | null = null;
 let state = initialState();
 let previousState = state;
 let returnFocus: string | null = null;
@@ -36,9 +38,15 @@ function notify(title: string, copy: string) {
   notice.querySelector('.scan-results')?.remove();
   required('#notice-title').textContent = title;
   required('#notice-copy').textContent = copy;
-  if (notice.open) notice.close();
-  notice.showModal();
+  if (!notice.open) notice.showModal();
 }
+function dismissActiveScan() {
+  if (activeScanSequence !== null) {
+    activeScanSequence = null;
+    scanSequence++;
+  }
+}
+notice.addEventListener('cancel', dismissActiveScan);
 function render(focusKey?: string) {
   const game = activeGame(games, state);
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
@@ -95,12 +103,19 @@ function showAddGameDialog(path: string, suggestedTitle?: string) {
   required<HTMLInputElement>('#add-game-name').focus();
 }
 async function scanChosenFolder() {
+  let sequence: number | null = null;
   try {
+    dismissActiveScan();
     if (notice.open) notice.close();
     const picked = await openFile({ multiple: false, directory: true, title: 'Choose a game folder to scan' });
     if (typeof picked !== 'string') return;
+    sequence = ++scanSequence;
+    activeScanSequence = sequence;
+    scanCandidates = [];
     notify('Scanning folder', 'Searching subfolders for possible game executables…');
     const report = await scanFolderPreview(picked);
+    if (activeScanSequence !== sequence) return;
+    activeScanSequence = null;
     scanCandidates = report.candidates;
     const limit = report.truncated ? ' The scan reached its safety limit; choose a smaller folder for more results.' : '';
     const warnings = report.warnings ? ` ${report.warnings} folder entries could not be read.` : '';
@@ -117,6 +132,8 @@ async function scanChosenFolder() {
     }
     required('form', notice).before(list);
   } catch (reason) {
+    if (sequence !== null && activeScanSequence !== sequence) return;
+    activeScanSequence = null;
     notify('Folder scan failed', desktopErrorMessage(reason));
   }
 }
@@ -202,6 +219,7 @@ document.addEventListener('click', event => {
     if (candidate) { notice.close(); showAddGameDialog(candidate.executablePath, candidate.title); }
   }
   else if (action === 'cancel-add') addGameDialog.close();
+  else if (action === 'dismiss-notice') dismissActiveScan();
   else if (action === 'refresh-library' && mode === 'desktop') { notice.close(); void refreshLibrary(); }
   else if (action === 'more') {
     notify('Game actions', 'Choose the game shown on Home.');
