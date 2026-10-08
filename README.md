@@ -2,6 +2,12 @@
 
 A fresh Windows game-library project built around the user's Home and Sifu detail references. Its first deliverable is an interactive browser UI prototype, written from scratch in HTML, CSS, and JavaScript.
 
+## Selected desktop stack
+
+The user selected **Tauri 2 + Rust + TypeScript**. The [desktop app plan](tasks/plan.md) and [ordered task checklist](tasks/todo.md) describe how to preserve this interface, add Windows hosting, persist a real library, scan Steam/GOG/Epic and nested game folders, launch games, and recover artwork.
+
+This is a planned migration. The current runnable deliverable remains the browser prototype described below; no desktop implementation has been added by the planning work.
+
 ## First deliverable
 
 A local, interactive Home and game-details prototype. Verify the appearance and navigation before introducing real library discovery, launcher integrations, or persistence.
