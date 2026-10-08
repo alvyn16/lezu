@@ -19,6 +19,16 @@
     <h2 id="notice-title"></h2><p id="notice-copy"></p>
     <form method="dialog"><button class="primary">Close</button></form>
   </dialog>
+  <dialog id="add-game" aria-labelledby="add-game-title">
+    <h2 id="add-game-title">Add a game</h2>
+    <form id="add-game-form">
+      <label>Game title<input id="add-game-name" name="title" maxlength="160" required autocomplete="off"></label>
+      <label>Executable<input id="add-game-path" name="executable" readonly></label>
+      <label>Working folder<input id="add-game-folder" name="workingDirectory" required autocomplete="off"></label>
+      <p id="add-game-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button type="button" data-action="cancel-add">Cancel</button><button type="submit" class="primary">Add game</button></div>
+    </form>
+  </dialog>
   <script type="module" src="app.ts"></script>
 </body>
 </html>

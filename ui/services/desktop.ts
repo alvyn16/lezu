@@ -26,8 +26,8 @@ export async function listLibrary() {
   return invoke<import('../domain/models').Game[]>('list_library');
 }
 
-export async function addManualGame(path: string): Promise<string> {
-  return invoke<string>('add_manual_game', { executablePath: path });
+export async function addManualGame(path: string, title: string, workingDirectory: string): Promise<string> {
+  return invoke<string>('add_manual_game', { executablePath: path, title, workingDirectory });
 }
 
 export async function launchInstallation(installationId: string): Promise<void> {

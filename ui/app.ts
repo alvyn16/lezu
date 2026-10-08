@@ -21,6 +21,8 @@ let previousState = state;
 let returnFocus: string | null = null;
 let returnScroll = { page: 0, shelf: 0 };
 const notice = required<HTMLDialogElement>('#notice');
+const addGameDialog = required<HTMLDialogElement>('#add-game');
+const addGameForm = required<HTMLFormElement>('#add-game-form');
 const search = required<HTMLInputElement>('#search');
 function notify(title: string, copy: string) {
   notice.querySelector('.notice-image')?.remove();
@@ -67,14 +69,41 @@ async function chooseManualGame() {
     if (notice.open) notice.close();
     const picked = await openFile({ multiple: false, directory: false, filters: [{ name: 'Windows games', extensions: ['exe'] }] });
     if (typeof picked !== 'string') return;
-    await addManualGame(picked);
-    await refreshLibrary();
-    state = navigate(state, 'all');
-    render();
+    const filename = picked.split(/[\\/]/).pop() ?? picked;
+    required<HTMLInputElement>('#add-game-name').value = filename.replace(/\.exe$/i, '');
+    required<HTMLInputElement>('#add-game-path').value = picked;
+    required<HTMLInputElement>('#add-game-folder').value = picked.slice(0, picked.length - filename.length).replace(/[\\/]$/, '');
+    required('#add-game-error').hidden = true;
+    addGameDialog.showModal();
+    required<HTMLInputElement>('#add-game-name').focus();
   } catch (reason) {
     notify('Could not add game', desktopErrorMessage(reason));
   }
 }
+addGameForm.addEventListener('submit', event => {
+  event.preventDefault();
+  if (mode !== 'desktop') return;
+  const submit = required<HTMLButtonElement>('button[type="submit"]', addGameForm);
+  submit.disabled = true;
+  const error = required('#add-game-error');
+  error.hidden = true;
+  void (async () => {
+    try {
+      await addManualGame(
+        required<HTMLInputElement>('#add-game-path').value,
+        required<HTMLInputElement>('#add-game-name').value,
+        required<HTMLInputElement>('#add-game-folder').value,
+      );
+      addGameDialog.close();
+      await refreshLibrary();
+      state = navigate(state, 'all');
+      render();
+    } catch (reason) {
+      error.textContent = desktopErrorMessage(reason);
+      error.hidden = false;
+    } finally { submit.disabled = false; }
+  })();
+});
 async function playGame(id: string) {
   if (launchRequests.has(id)) return;
   const installationId = games.find(game => game.id === id)?.installationId;
@@ -126,6 +155,7 @@ document.addEventListener('click', event => {
     else void openGameFolder();
   }
   else if (action === 'add-manual' && mode === 'desktop') void chooseManualGame();
+  else if (action === 'cancel-add') addGameDialog.close();
   else if (action === 'refresh-library' && mode === 'desktop') { notice.close(); void refreshLibrary(); }
   else if (action === 'more') {
     notify('Game actions', 'Choose the game shown on Home.');

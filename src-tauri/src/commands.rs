@@ -109,14 +109,21 @@ pub fn add_manual_game(
     store: State<'_, LibraryStore>,
     executable_path: String,
     title: Option<String>,
+    working_directory: Option<String>,
 ) -> Result<String, CommandError> {
-    insert_manual_game(&store, &executable_path, title.as_deref())
+    insert_manual_game(
+        &store,
+        &executable_path,
+        title.as_deref(),
+        working_directory.as_deref(),
+    )
 }
 
 fn insert_manual_game(
     store: &LibraryStore,
     executable_path: &str,
     title: Option<&str>,
+    working_directory: Option<&str>,
 ) -> Result<String, CommandError> {
     let path = std::fs::canonicalize(executable_path).map_err(|_| {
         error(
@@ -150,9 +157,23 @@ fn insert_manual_game(
         ));
     }
     let normalized = path.to_string_lossy().to_lowercase();
-    let working_dir = path
+    let default_dir = path
         .parent()
         .ok_or_else(|| error("invalid_path", "Choose a game executable."))?;
+    let working_dir = match working_directory
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        Some(selected) => std::fs::canonicalize(selected)
+            .map_err(|_| error("invalid_folder", "Choose an existing game working folder."))?,
+        None => default_dir.to_path_buf(),
+    };
+    if !working_dir.is_dir() {
+        return Err(error(
+            "invalid_folder",
+            "Choose an existing game working folder.",
+        ));
+    }
     let game_id = uuid::Uuid::new_v4().to_string();
     let install_id = uuid::Uuid::new_v4().to_string();
     let mut connection = store.0.lock().map_err(|_| database_error())?;
@@ -268,19 +289,38 @@ mod tests {
         fs::create_dir(&directory).unwrap();
         let executable = directory.join("Example Game.exe");
         fs::write(&executable, b"test fixture").unwrap();
+        let working_dir = directory.join("Game Data");
+        fs::create_dir(&working_dir).unwrap();
         {
             let store = LibraryStore::open(&directory.join("library.db")).unwrap();
-            let first =
-                insert_manual_game(&store, executable.to_str().unwrap(), Some(" Example Game "))
-                    .unwrap();
+            let first = insert_manual_game(
+                &store,
+                executable.to_str().unwrap(),
+                Some(" Éxample 游戏 "),
+                working_dir.to_str(),
+            )
+            .unwrap();
             let entries = query_library(&store).unwrap();
             assert_eq!(entries.len(), 1);
             assert_eq!(entries[0].id, first);
-            assert_eq!(entries[0].title, "Example Game");
+            assert_eq!(entries[0].title, "Éxample 游戏");
             assert!(entries[0].installed);
             assert!(entries[0].installation_id.is_some());
+            let connection = store.0.lock().unwrap();
+            let saved_dir: String = connection
+                .query_row(
+                    "SELECT working_dir FROM installations WHERE game_id = ?1",
+                    [&first],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                PathBuf::from(saved_dir),
+                fs::canonicalize(&working_dir).unwrap()
+            );
+            drop(connection);
             let duplicate =
-                insert_manual_game(&store, executable.to_str().unwrap(), None).unwrap_err();
+                insert_manual_game(&store, executable.to_str().unwrap(), None, None).unwrap_err();
             assert_eq!(duplicate.code, "duplicate");
 
             let second_installation = uuid::Uuid::new_v4().to_string();
@@ -293,7 +333,7 @@ mod tests {
             drop(connection);
             let entries = query_library(&store).unwrap();
             assert_eq!(entries.len(), 1);
-            assert_eq!(entries[0].title, "Example Game");
+            assert_eq!(entries[0].title, "Éxample 游戏");
             assert!(entries[0].installed);
         }
         fs::remove_dir_all(&directory).unwrap();
@@ -309,7 +349,7 @@ mod tests {
         {
             let store = LibraryStore::open(&directory.join("library.db")).unwrap();
             let failure =
-                insert_manual_game(&store, text_file.to_str().unwrap(), None).unwrap_err();
+                insert_manual_game(&store, text_file.to_str().unwrap(), None, None).unwrap_err();
             assert_eq!(failure.code, "invalid_path");
             assert!(query_library(&store).unwrap().is_empty());
             let missing = directory.join("missing.exe");
