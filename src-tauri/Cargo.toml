@@ -1,0 +1,24 @@
+[package]
+name = "lezu"
+version = "0.1.0"
+description = "Lezu Windows game library"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "lezu_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-window-state = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
+uuid = { version = "1", features = ["v4"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Graphics_Dwm", "Win32_Foundation"] }

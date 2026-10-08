@@ -1,15 +1,21 @@
 import { shell } from './shell.js';
-import { asset, games } from './fixtures.js';
+import { asset, games as demoGames } from './fixtures.js';
+import type { Game, LibraryMode } from './domain/models';
 import { initialState, visibleGames, activeGame, counts, navigate, toggleSource, openGame } from './state.js';
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
+import { addManualGame, desktopErrorMessage, getRuntimeInfo, isDesktop, launchInstallation, listLibrary, revealInstallation } from './services/desktop';
+import { open as openFile } from '@tauri-apps/plugin-dialog';
 function required<T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T {
   const element = root.querySelector<T>(selector);
   if (!element) throw new Error(`Missing interface element: ${selector}`);
   return element;
 }
 required('#app').innerHTML = shell();
+const mode: LibraryMode = isDesktop() ? 'desktop' : 'demo';
+let games: Game[] = mode === 'demo' ? demoGames : [];
+const launchRequests = new Set<string>();
 let state = initialState();
 let previousState = state;
 let returnFocus: string | null = null;
@@ -28,9 +34,9 @@ function render(focusKey?: string) {
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
   document.documentElement.style.setProperty('--sidebar', game?.theme.sidebar ?? '#23272d');
   document.documentElement.style.setProperty('--theme-art', game?.hero ? `url("${asset(game.hero)}")` : 'none');
-  if (state.view === 'details' && game) required('#screen').innerHTML = details(game);
-  else if (state.view === 'home' && !state.query) required('#screen').innerHTML = home(game, visibleGames(games, state), state);
-  else required('#screen').innerHTML = library(visibleGames(games, state), state);
+  if (state.view === 'details' && game) required('#screen').innerHTML = details(game, mode);
+  else if (state.view === 'home' && !state.query) required('#screen').innerHTML = home(game, visibleGames(games, state), state, mode);
+  else required('#screen').innerHTML = library(visibleGames(games, state), state, mode);
   document.querySelectorAll<HTMLElement>('.cover-shelf').forEach(enableWheelScrolling);
   const context = state.view === 'details' ? previousState : state;
   const selected = context.view === 'home' ? 'home' : context.installedOnly ? 'installed' : context.source;
@@ -40,9 +46,49 @@ function render(focusKey?: string) {
   });
   for (const [id, count] of Object.entries(counts(games, state))) required(`[data-count="${id}"]`).textContent = String(count);
   required('#location').innerHTML = state.view === 'details' && game ? detailsLocation(game) : `<h1>${selected === 'home' ? 'Home' : 'Library'}</h1>`;
-  document.title = `${state.view === 'details' && game ? game.title : 'Lezu'} — UI preview`;
+  document.title = `${state.view === 'details' && game ? game.title : 'Lezu'} — ${mode === 'desktop' ? 'Game library' : 'UI preview'}`;
   search.value = state.query;
   if (focusKey) document.querySelector<HTMLElement>(`[data-source="${focusKey}"]`)?.focus({ preventScroll: true });
+}
+async function refreshLibrary() {
+  if (mode !== 'desktop') return;
+  try {
+    games = await listLibrary();
+    render();
+  } catch (reason) {
+    notify('Library unavailable', desktopErrorMessage(reason));
+    const actions = document.createElement('div'); actions.className = 'dialog-actions';
+    const retry = document.createElement('button'); retry.textContent = 'Try again'; retry.dataset.action = 'refresh-library';
+    actions.append(retry); required('form', notice).before(actions);
+  }
+}
+async function chooseManualGame() {
+  try {
+    if (notice.open) notice.close();
+    const picked = await openFile({ multiple: false, directory: false, filters: [{ name: 'Windows games', extensions: ['exe'] }] });
+    if (typeof picked !== 'string') return;
+    await addManualGame(picked);
+    await refreshLibrary();
+    state = navigate(state, 'all');
+    render();
+  } catch (reason) {
+    notify('Could not add game', desktopErrorMessage(reason));
+  }
+}
+async function playGame(id: string) {
+  if (launchRequests.has(id)) return;
+  const installationId = games.find(game => game.id === id)?.installationId;
+  if (!installationId) { notify('Installation unavailable', 'Select an installed game before playing.'); return; }
+  launchRequests.add(id);
+  try { await launchInstallation(installationId); }
+  catch (reason) { notify('Game could not start', desktopErrorMessage(reason)); }
+  finally { launchRequests.delete(id); }
+}
+async function openGameFolder() {
+  const installationId = activeGame(games, state)?.installationId;
+  if (!installationId) { notify('Folder unavailable', 'This game has no installation folder.'); return; }
+  try { await revealInstallation(installationId); }
+  catch (reason) { notify('Folder unavailable', desktopErrorMessage(reason)); }
 }
 search.addEventListener('input', () => { state = { ...state, view: state.view === 'details' ? 'library' : state.view, query: search.value }; render(); window.scrollTo(0, 0); });
 document.addEventListener('click', event => {
@@ -50,14 +96,17 @@ document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
   const { nav, source, play, game, action, screenshot } = button.dataset;
-  if (nav === 'downloads') notify('Downloads unavailable', 'Downloads aren’t available in this preview.');
+  if (nav === 'downloads') notify('Downloads unavailable', 'Downloads aren’t available yet.');
   else if (nav) {
     const fromSidebar = !!button.closest('nav');
     state = navigate(state, nav); render(); window.scrollTo(0, 0);
     if (!fromSidebar) document.querySelector<HTMLElement>(`nav [data-nav="${nav}"]`)?.focus();
   }
   else if (source) { state = toggleSource(state, source); render(source); }
-  else if (play) notify('Launching unavailable', 'This preview uses demo games. Game launching isn’t available yet.');
+  else if (play) {
+    if (mode === 'demo') notify('Launching unavailable', 'This preview uses demo games. Game launching isn’t available yet.');
+    else void playGame(play);
+  }
   else if (game) {
     previousState = state;
     returnFocus = button.classList.contains('cover-button') ? `[data-game="${game}"].cover-button` : `[data-game="${game}"]`;
@@ -72,7 +121,12 @@ document.addEventListener('click', event => {
     window.scrollTo(0, returnScroll.page);
     if (returnFocus) document.querySelector<HTMLElement>(returnFocus)?.focus({ preventScroll: true });
   }
-  else if (action === 'folder') notify('Folder unavailable', 'This demo game has no installation folder.');
+  else if (action === 'folder') {
+    if (mode === 'demo') notify('Folder unavailable', 'This demo game has no installation folder.');
+    else void openGameFolder();
+  }
+  else if (action === 'add-manual' && mode === 'desktop') void chooseManualGame();
+  else if (action === 'refresh-library' && mode === 'desktop') { notice.close(); void refreshLibrary(); }
   else if (action === 'more') {
     notify('Game actions', 'Choose the game shown on Home.');
     const actions = document.createElement('div'); actions.className = 'dialog-actions';
@@ -89,7 +143,16 @@ document.addEventListener('click', event => {
     required('form', notice).before(image);
   }
   else if (action === 'reset') { state = initialState(); render(); search.focus(); }
-  else if (action === 'settings') notify('Preview settings', 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.');
+  else if (action === 'settings') {
+    notify(mode === 'demo' ? 'Preview settings' : 'Library settings', mode === 'demo'
+      ? 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.'
+      : 'Add Windows games to your local library. Automatic store scanning and downloads are coming later.');
+    if (mode === 'desktop') {
+      const actions = document.createElement('div'); actions.className = 'dialog-actions';
+      const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
+      actions.append(add); required('form', notice).before(actions);
+    }
+  }
 });
 document.addEventListener('focusin', event => {
   if (!(event.target instanceof Element)) return;
@@ -108,3 +171,10 @@ document.addEventListener('error', event => {
   }
 }, true);
 render();
+if (isDesktop()) {
+  required('.preview-label').textContent = 'Desktop · local library';
+  void refreshLibrary();
+  getRuntimeInfo().then(info => {
+    if (info?.libraryMode !== 'desktop') notify('Desktop version mismatch', 'The desktop host and library interface are out of sync. Restart Lezu.');
+  }).catch(() => notify('Desktop connection unavailable', 'Lezu could not reach its desktop service. Restart the app to try again.'));
+}

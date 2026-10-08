@@ -19,7 +19,7 @@ export const providers: { id: ProviderId; name: string; description: string }[] 
   { id: 'epic', name: 'Epic Games', description: 'Show games from Epic Games.' },
   { id: 'gog', name: 'GOG', description: 'Show games from GOG.' },
 ];
-export const providerMark = (id: ProviderId) => `<img class="provider-mark" src="assets/${id}.svg" alt="" width="16" height="16">`;
+export const providerMark = (id: ProviderId | 'manual') => id === 'manual' ? icon('grid') : `<img class="provider-mark" src="assets/${id}.svg" alt="" width="16" height="16">`;
 function nav(id: string, label: string, glyph: string, count = '') {
   return `<button class="nav-row" data-nav="${id}">${glyph}<span>${label}</span><span class="count">${count}</span></button>`;
 }

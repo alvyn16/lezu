@@ -5,7 +5,7 @@ export function initialState(): LibraryState {
 }
 export function visibleGames(games: readonly Game[], state: LibraryState): Game[] {
   const query = state.query.trim().toLocaleLowerCase();
-  return games.filter(game => state.enabled[game.source]
+  return games.filter(game => (game.source === 'manual' || state.enabled[game.source])
     && (state.source === 'all' || game.source === state.source)
     && (!state.installedOnly || game.installed)
     && game.title.toLocaleLowerCase().includes(query));
@@ -18,7 +18,7 @@ export function activeGame(games: readonly Game[], state: LibraryState): Game | 
   return state.view === 'details' ? games.find(game => game.id === state.selectedId) ?? null : featuredGame(games, state);
 }
 export function counts(games: readonly Game[], state: LibraryState) {
-  const enabled = games.filter(game => state.enabled[game.source]);
+  const enabled = games.filter(game => game.source === 'manual' || state.enabled[game.source]);
   return { all: enabled.length, installed: enabled.filter(game => game.installed).length,
     steam: enabled.filter(game => game.source === 'steam').length,
     epic: enabled.filter(game => game.source === 'epic').length,

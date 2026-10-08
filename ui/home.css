@@ -10,6 +10,7 @@
 .hero-actions { position: absolute; bottom: 18px; left: var(--gutter); display: flex; align-items: center; gap: 12px; }
 .hero-actions .primary { min-width: 106px; }
 .hero-empty { padding: 140px var(--gutter) 0; }
+.hero-empty p { font-size: var(--font-heading); font-weight: 600; margin-bottom: 14px; }
 .ready-section, .stores, .library-section { position: relative; padding: 0 var(--gutter); }
 .ready-section { --cover-width: var(--ready-cover-width); }
 .ready-section h2 { font-size: var(--font-ready-heading); }

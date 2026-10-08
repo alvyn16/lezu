@@ -1,4 +1,4 @@
-import type { Game, LibraryState } from './domain/models';
+import type { Game, LibraryMode, LibraryState } from './domain/models';
 import { icon, providers, providerMark } from './shell.js';
 import { asset } from './fixtures.js';
 const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -10,7 +10,7 @@ export function gameTitle(game: Game, className = '') {
   return game.logo ? `<img class="game-logo ${className}" src="${asset(game.logo)}" alt="${escape(game.title)}">`
     : `<h2 class="game-title ${className}" title="${escape(game.title)}">${escape(game.title)}</h2>`;
 }
-export function gameCard(game: Game) {
+export function gameCard(game: Game, mode: LibraryMode = 'demo') {
   const provider = providers.find(provider => provider.id === game.source);
   return `<article class="game-card">
     <div class="cover-wrap">
@@ -20,12 +20,13 @@ export function gameCard(game: Game) {
       ${game.installed ? `<button class="cover-play primary" data-play="${game.id}" aria-label="Play ${escape(game.title)}">${icon('play')} Play</button>` : ''}
     </div>
     <h3 title="${escape(game.title)}">${escape(game.title)}</h3>
-    <p class="card-caption">${providerMark(game.source)} ${provider?.name ?? game.source} <span>· ${game.installed ? (game.size ?? 'Demo game') : 'Not installed'}</span></p>
+    <p class="card-caption">${providerMark(game.source)} ${provider?.name ?? 'Manual'} <span>· ${game.installed ? (game.size ?? (mode === 'demo' ? 'Demo game' : 'Installed')) : 'Not installed'}</span></p>
   </article>`;
 }
-export function shelf(games: readonly Game[]) {
-  return games.length ? `<div class="cover-shelf" aria-label="Sample game library">${games.map(gameCard).join('')}</div>`
-    : `<div class="empty-state" role="status"><h2>No games found</h2><p>Try another search or reset your filters.</p><button data-action="reset">Reset filters</button></div>`;
+export function shelf(games: readonly Game[], mode: LibraryMode = 'demo') {
+  return games.length ? `<div class="cover-shelf" aria-label="${mode === 'demo' ? 'Sample' : 'Your'} game library">${games.map(game => gameCard(game, mode)).join('')}</div>`
+    : mode === 'desktop' ? `<div class="empty-state" role="status"><h2>No games found</h2><p>Add a game or change your search.</p><button data-action="add-manual">Add a game</button></div>`
+      : `<div class="empty-state" role="status"><h2>No games found</h2><p>Try another search or reset your filters.</p><button data-action="reset">Reset filters</button></div>`;
 }
 export function stores(state: LibraryState) {
   return `<section class="stores" aria-labelledby="stores-heading"><h2 id="stores-heading">Stores</h2>
@@ -35,17 +36,17 @@ export function stores(state: LibraryState) {
       <h3>${provider.name}</h3><p>${provider.description}</p>
     </article>`).join('')}</div></section>`;
 }
-export function home(game: Game | null, games: readonly Game[], state: LibraryState) {
+export function home(game: Game | null, games: readonly Game[], state: LibraryState, mode: LibraryMode = 'demo') {
   return `<section class="home-hero" aria-label="Continue playing">
     ${heroArt(game)}<div class="hero-shade"></div>
     ${game ? `${gameTitle(game, 'home-logo')}
       <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This demo game is marked as not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button><button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
-      : '<p class="hero-empty">Turn on a store below to show its demo games.</p>'}
+      : mode === 'desktop' ? '<div class="hero-empty"><p>Your library is empty.</p><button class="primary" data-action="add-manual">Add a game</button></div>' : '<p class="hero-empty">Turn on a store below to show its demo games.</p>'}
     </section>
-    <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button></div>${shelf(games.filter(game => game.installed))}</section>
+    <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button></div>${shelf(games.filter(game => game.installed), mode)}</section>
     ${stores(state)}`;
 }
-export function library(games: readonly Game[], state: LibraryState) {
+export function library(games: readonly Game[], state: LibraryState, mode: LibraryMode = 'demo') {
   const title = state.query ? 'Search results' : state.installedOnly ? 'Installed' : providers.find(p => p.id === state.source)?.name ?? 'All Games';
-  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games)}</section>`;
+  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games, mode)}</section>`;
 }

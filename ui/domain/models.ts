@@ -5,8 +5,9 @@ export type LibraryMode = 'demo' | 'desktop';
 export interface Game {
   id: string;
   title: string;
-  source: ProviderId;
+  source: ProviderId | 'manual';
   installed: boolean;
+  installationId?: string | null;
   played: string | null;
   lastPlayed: string | null;
   size: string | null;

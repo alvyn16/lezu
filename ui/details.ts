@@ -1,21 +1,21 @@
-import type { Game } from './domain/models';
+import type { Game, LibraryMode } from './domain/models';
 import { icon, providers } from './shell.js';
 import { asset } from './fixtures.js';
 import { escape, heroArt, gameTitle } from './home.js';
 export function detailsLocation(game: Game) {
   return `<button class="icon-button" data-action="back" aria-label="Back to library">${icon('back')}</button><h1 title="${escape(game.title)}">${escape(game.title)}</h1>`;
 }
-export function details(game: Game) {
+export function details(game: Game, mode: LibraryMode = 'demo') {
   const provider = providers.find(provider => provider.id === game.source);
   const facts = [ ['Developer', game.developer], ['Released', game.year], ['Rating', null], ['Played', game.played], ['Last played', game.lastPlayed], ['Size', game.size] ];
   return `<section class="details-hero" aria-label="${escape(game.title)}">
     ${heroArt(game)}<div class="hero-shade"></div>${gameTitle(game, 'details-logo')}
-    <p class="game-meta">${[game.developer, game.year, game.tags[0], provider?.name ?? game.source].filter(Boolean).map(escape).join('<span>·</span>')}</p>
+    <p class="game-meta">${[game.developer, game.year, game.tags[0], provider?.name ?? 'Manual'].filter(Boolean).map(escape).join('<span>·</span>')}</p>
     <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This demo game is marked as not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button><button class="icon-button" data-action="folder" aria-label="Open game folder">${icon('folder')}</button><button class="icon-button" data-action="more" aria-label="More game actions">${icon('more')}</button></div>
   </section>
   <div class="details-body">
     <dl class="stats">${facts.map(([label, value]) => `<div><dt>${label}</dt><dd>${value ? escape(value) : '<span class="unknown" title="Not available"><span aria-hidden="true">—</span><span class="sr-only">Not available</span></span>'}</dd></div>`).join('')}</dl>
-    <p class="sample-note">Demo playtime and activity. Your installed games haven’t been scanned.</p>
+    ${mode === 'demo' ? '<p class="sample-note">Demo playtime and activity. Your installed games haven’t been scanned.</p>' : ''}
     <section class="about-section" aria-labelledby="about-heading"><h2 id="about-heading" class="eyebrow-label">About</h2><div>
       <p class="description${game.description ? '' : ' is-empty'}">${game.description ? escape(game.description) : 'No description available.'}</p>
       <p class="genres">${game.tags.map(escape).join('<span>/</span>')}</p>

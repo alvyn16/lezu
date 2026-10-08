@@ -58,7 +58,7 @@
 
 # Windows desktop app tasks — Tauri 2 + Rust + TypeScript
 
-Prepared October 7, 2026. Stack selected by the user; desktop implementation has not started. Preserve the prototype checklist above. Full decisions and scope are in `plan.md`.
+Prepared October 7, 2026. The selected desktop stack is now in development. Preserve the prototype checklist above. Full decisions and scope are in `plan.md`.
 
 For each task, run the focused verification below and the applicable type/build checks. Commands referring to new scripts are planned until D01/D04/D05 introduce them. Each task targets a small (1–2 files) or medium (3–5 files) change; the listed paths are estimates, not a reason to exceed the scope. Split a task if implementation grows. Task numbers are stable identifiers.
 
@@ -66,33 +66,33 @@ For each task, run the focused verification below and the applicable type/build 
 
 ### D01 — Frontend build setup
 
-- [ ] Add strict TypeScript and Vite configuration without changing the rendered interface; preserve current tests while JS and TS coexist.
-- [ ] Development/preview uses loopback and a strict port; production assets resolve without the Python server.
+- [x] Add strict TypeScript and Vite configuration without changing the rendered interface; preserve current tests while JS and TS coexist.
+- [x] Development/preview uses loopback and a strict port; production assets resolve without the Python server.
 - Verify: `npm run typecheck`, `npm run build`, existing `npm test`; compare Home preview with baseline.
 - Dependencies: none. Files: `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `.gitignore`. Scope: medium.
 
 ### D02 — Typed library view model
 
-- [ ] Define nullable game/installation/artwork DTOs and migrate fixture/state modules to strict TS; no untyped escape hatches for library records.
-- [ ] Current demo counts, filtering, featured game and missing values behave identically; real/demo source modes are explicit.
+- [x] Define nullable game/installation/artwork DTOs and migrate fixture/state modules to strict TS; no untyped escape hatches for library records.
+- [x] Current demo counts, filtering, featured game and missing values behave identically; real/demo source modes are explicit.
 - Verify: migrated focused state tests and typecheck; demo fixture counts remain correct.
 - Dependencies: D01. Files: `ui/domain/models.ts`, `ui/fixtures.ts`, `ui/state.ts`, `tests/state.test.mjs`, `ui/services/demo.ts`. Scope: medium.
 
 ### Checkpoint — Typed data
 
-- [ ] Existing frontend checks pass; current visual appearance and demo labeling remain intact.
+- [x] Existing frontend checks pass; current visual appearance and demo labeling remain intact.
 
 ### D03 — Typed shell and Home
 
-- [ ] Convert shell/Home/shelf modules to TS, preserving typography, control placement, enlarged covers and blur.
-- [ ] Mouse wheel, keyboard access, See All and source switches retain current behavior.
+- [x] Convert shell/Home/shelf modules to TS, preserving typography, control placement, enlarged covers and blur.
+- [x] Mouse wheel, keyboard access, See All and source switches retain current behavior.
 - Verify: Home/wheel browser regressions and screenshots at 980×760 and 1920×1080.
 - Dependencies: D02. Files: `ui/shell.ts`, `ui/home.ts`, `ui/shelf-scroll.ts`, `tests/home-browser.cjs`, `tests/wheel-browser.cjs`. Scope: medium.
 
 ### D04 — Typed Details and application entry
 
-- [ ] Convert Details and the app entry, handling nullable metadata and DOM types explicitly.
-- [ ] Navigation/focus, artwork failure/title fallback, dialogs and Library layouts remain correct; add a repeatable `test:ui` script.
+- [x] Convert Details and the app entry, handling nullable metadata and DOM types explicitly.
+- [x] Navigation/focus, artwork failure/title fallback, dialogs and Library layouts remain correct; add a repeatable `test:ui` script.
 - Verify: Details/edge/title-fallback/resolution regressions, `npm run typecheck`, `npm run build`, `npm run test:ui`.
 - Dependencies: D03. Files: `ui/details.ts`, `ui/app.ts`, `ui/index.html`, `package.json`, `tests/run-ui.mjs`. Scope: medium.
 
@@ -141,8 +141,8 @@ For each task, run the focused verification below and the applicable type/build 
 
 ### D09 — SQLite foundation
 
-- [ ] Create versioned migrations for the minimal game/installation/preferences model in per-user app data; add remaining tables with the relevant later slices.
-- [ ] Migration failures roll back; restart preserves valid records and never seeds fixtures into the real library.
+- [x] Create versioned migrations for the minimal game/installation/preferences model in per-user app data; add remaining tables with the relevant later slices.
+- [x] Migration failures roll back; restart preserves valid records and never seeds fixtures into the real library.
 - Verify: fresh/open-again/migration-failure tests with temporary databases; `cargo test --manifest-path src-tauri/Cargo.toml`.
 - Dependencies: D06. Files: `src-tauri/Cargo.toml`, `src-tauri/src/library/mod.rs`, `src-tauri/src/library/migrations.rs`, `src-tauri/src/domain/mod.rs`, `src-tauri/tests/storage.rs`. Scope: medium; update lockfile with dependency changes.
 
