@@ -51,3 +51,31 @@ export interface ScanReport {
 export async function scanFolderPreview(root: string): Promise<ScanReport> {
   return invoke<ScanReport>('scan_folder_preview', { root });
 }
+
+export async function cancelScan(): Promise<void> {
+  return invoke<void>('cancel_scan');
+}
+
+export interface StoreCandidate {
+  source: 'steam' | 'epic' | 'gog';
+  storeId: string | null;
+  title: string;
+  executablePath: string;
+  workingDirectory: string;
+}
+export interface StoreReport {
+  candidates: StoreCandidate[];
+  warnings: number;
+  cancelled: boolean;
+}
+export async function discoverStores(): Promise<StoreReport> {
+  return invoke<StoreReport>('discover_stores');
+}
+export async function importStoreGames(candidates: StoreCandidate[]): Promise<number> {
+  return invoke<number>('import_store_games', { candidates });
+}
+
+export interface ArtworkReport { updated: number; unavailable: number }
+export async function refreshArtwork(clientId?: string, clientSecret?: string): Promise<ArtworkReport> {
+  return invoke<ArtworkReport>('refresh_artwork', { clientId, clientSecret });
+}

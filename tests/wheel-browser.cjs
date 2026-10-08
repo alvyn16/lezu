@@ -6,12 +6,15 @@ async page => {
   await page.evaluate(() => window.scrollTo(0, 0));
   const shelf = page.locator('.cover-shelf');
   await shelf.waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForFunction(() => scrollY === 0);
   const box = await shelf.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + 80);
   await page.mouse.wheel(0, 120);
   await page.waitForFunction(() => document.querySelector('.cover-shelf').scrollLeft > 50);
   const forward = await shelf.evaluate(el => el.scrollLeft);
-  if (await page.evaluate(() => scrollY) !== 0) throw Error('Wheel moved the page instead of the shelf');
+  const pageY = await page.evaluate(() => scrollY);
+  if (pageY !== 0) throw Error(`Wheel moved the page instead of the shelf (${JSON.stringify({ pageY, forward, box })})`);
   await page.mouse.wheel(0, -60);
   await page.waitForFunction(previous => document.querySelector('.cover-shelf').scrollLeft < previous, forward);
   const reverse = await shelf.evaluate(el => el.scrollLeft);

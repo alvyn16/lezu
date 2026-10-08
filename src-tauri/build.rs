@@ -7,6 +7,10 @@ fn main() {
             "launch_installation",
             "reveal_installation",
             "scan_folder_preview",
+            "cancel_scan",
+            "discover_stores",
+            "import_store_games",
+            "refresh_artwork",
         ]),
     ))
     .expect("failed to build Lezu desktop resources");

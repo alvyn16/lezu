@@ -5,7 +5,7 @@ use std::{
     path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Mutex,
     },
 };
 
@@ -14,22 +14,47 @@ const MAX_DEPTH: usize = 10;
 const MAX_CANDIDATES: usize = 250;
 
 #[derive(Default)]
-pub struct ScanCoordinator(Arc<AtomicBool>);
+pub struct ScanCoordinator(Arc<Mutex<Option<Arc<AtomicBool>>>>);
 
 impl ScanCoordinator {
     pub fn begin(&self) -> Option<ScanPermit> {
-        self.0
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .ok()
-            .map(|_| ScanPermit(Arc::clone(&self.0)))
+        let mut active = self.0.lock().ok()?;
+        if active.is_some() {
+            return None;
+        }
+        let cancelled = Arc::new(AtomicBool::new(false));
+        *active = Some(Arc::clone(&cancelled));
+        Some(ScanPermit {
+            coordinator: Arc::clone(&self.0),
+            cancelled,
+        })
+    }
+
+    pub fn cancel(&self) {
+        if let Ok(active) = self.0.lock() {
+            if let Some(cancelled) = active.as_ref() {
+                cancelled.store(true, Ordering::Release);
+            }
+        }
     }
 }
 
-pub struct ScanPermit(Arc<AtomicBool>);
+pub struct ScanPermit {
+    coordinator: Arc<Mutex<Option<Arc<AtomicBool>>>>,
+    cancelled: Arc<AtomicBool>,
+}
+
+impl ScanPermit {
+    pub fn cancelled(&self) -> &AtomicBool {
+        &self.cancelled
+    }
+}
 
 impl Drop for ScanPermit {
     fn drop(&mut self) {
-        self.0.store(false, Ordering::Release);
+        if let Ok(mut active) = self.coordinator.lock() {
+            *active = None;
+        }
     }
 }
 
@@ -52,6 +77,14 @@ pub struct ScanReport {
 }
 
 pub fn scan_folder(root: &Path, cancelled: &AtomicBool) -> std::io::Result<ScanReport> {
+    scan_folder_with_progress(root, cancelled, |_| {})
+}
+
+pub fn scan_folder_with_progress(
+    root: &Path,
+    cancelled: &AtomicBool,
+    mut progress: impl FnMut(usize),
+) -> std::io::Result<ScanReport> {
     let root = fs::canonicalize(root)?;
     if !root.is_dir() {
         return Err(std::io::Error::new(
@@ -69,6 +102,7 @@ pub fn scan_folder(root: &Path, cancelled: &AtomicBool) -> std::io::Result<ScanR
     };
     let mut folders = VecDeque::from([(root, 0usize)]);
     let mut seen = HashSet::new();
+    let mut next_progress = 256;
     while let Some((folder, depth)) = folders.pop_front() {
         if cancelled.load(Ordering::Relaxed) {
             report.cancelled = true;
@@ -91,6 +125,10 @@ pub fn scan_folder(root: &Path, cancelled: &AtomicBool) -> std::io::Result<ScanR
                 break;
             }
             report.entries_checked += 1;
+            if report.entries_checked >= next_progress {
+                progress(report.entries_checked);
+                next_progress += 256;
+            }
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(_) => {
@@ -141,6 +179,7 @@ pub fn scan_folder(root: &Path, cancelled: &AtomicBool) -> std::io::Result<ScanR
     report
         .candidates
         .sort_by_key(|candidate| candidate.title.to_lowercase());
+    progress(report.entries_checked);
     Ok(report)
 }
 
@@ -248,6 +287,8 @@ mod tests {
         let coordinator = ScanCoordinator::default();
         let first = coordinator.begin().expect("first scan starts");
         assert!(coordinator.begin().is_none());
+        coordinator.cancel();
+        assert!(first.cancelled().load(Ordering::Acquire));
         drop(first);
         assert!(coordinator.begin().is_some());
     }

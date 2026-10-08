@@ -10,6 +10,12 @@
     "allow-launch-installation",
     "allow-reveal-installation",
     "allow-scan-folder-preview",
-    "dialog:allow-open"
+    "allow-cancel-scan",
+    "allow-discover-stores",
+    "allow-import-store-games",
+    "allow-refresh-artwork",
+    "dialog:allow-open",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

@@ -29,4 +29,6 @@ export const games: Game[] = [
     developer: null, year: null, tags: [], description: null,
     theme: { page: '#30343b', sidebar: '#23272d' }, screenshots: [], cover: null, hero: null, logo: null },
 ];
-export const asset = (name: string | null): string => name ? `assets/${name}` : '';
+export const asset = (name: string | null): string => name
+  ? /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(name) ? name : 'assets/' + name
+  : '';

@@ -5,7 +5,10 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, desktopErrorMessage, getRuntimeInfo, isDesktop, launchInstallation, listLibrary, revealInstallation, scanFolderPreview, type ScanCandidate } from './services/desktop';
+import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { listen } from '@tauri-apps/api/event';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { open as openFile } from '@tauri-apps/plugin-dialog';
 function required<T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T {
   const element = root.querySelector<T>(selector);
@@ -22,6 +25,8 @@ const mode: LibraryMode = isDesktop() ? 'desktop' : 'demo';
 let games: Game[] = mode === 'demo' ? demoGames : [];
 const launchRequests = new Set<string>();
 let scanCandidates: ScanCandidate[] = [];
+let storeCandidates: StoreCandidate[] = [];
+let availableUpdate: Awaited<ReturnType<typeof check>> = null;
 let scanSequence = 0;
 let activeScanSequence: number | null = null;
 let state = initialState();
@@ -36,6 +41,7 @@ function notify(title: string, copy: string) {
   notice.querySelector('.notice-image')?.remove();
   notice.querySelector('.dialog-actions')?.remove();
   notice.querySelector('.scan-results')?.remove();
+  notice.querySelector('.artwork-settings')?.remove();
   required('#notice-title').textContent = title;
   required('#notice-copy').textContent = copy;
   if (!notice.open) notice.showModal();
@@ -44,6 +50,7 @@ function dismissActiveScan() {
   if (activeScanSequence !== null) {
     activeScanSequence = null;
     scanSequence++;
+    if (mode === 'desktop') void cancelScan().catch(() => {});
   }
 }
 notice.addEventListener('cancel', dismissActiveScan);
@@ -104,6 +111,7 @@ function showAddGameDialog(path: string, suggestedTitle?: string) {
 }
 async function scanChosenFolder() {
   let sequence: number | null = null;
+  let unlisten: (() => void) | null = null;
   try {
     dismissActiveScan();
     if (notice.open) notice.close();
@@ -113,6 +121,12 @@ async function scanChosenFolder() {
     activeScanSequence = sequence;
     scanCandidates = [];
     notify('Scanning folder', 'Searching subfolders for possible game executables…');
+    unlisten = await listen<number>('scan-progress', event => {
+      if (activeScanSequence === sequence && notice.open) {
+        required('#notice-copy').textContent = 'Searching subfolders… ' + event.payload.toLocaleString() + ' entries checked.';
+      }
+    });
+    if (activeScanSequence !== sequence) return;
     const report = await scanFolderPreview(picked);
     if (activeScanSequence !== sequence) return;
     activeScanSequence = null;
@@ -135,6 +149,127 @@ async function scanChosenFolder() {
     if (sequence !== null && activeScanSequence !== sequence) return;
     activeScanSequence = null;
     notify('Folder scan failed', desktopErrorMessage(reason));
+  } finally {
+    unlisten?.();
+  }
+}
+async function scanStores() {
+  let sequence: number | null = null;
+  let unlisten: (() => void) | null = null;
+  try {
+    dismissActiveScan();
+    if (notice.open) notice.close();
+    sequence = ++scanSequence;
+    activeScanSequence = sequence;
+    storeCandidates = [];
+    notify('Finding installed games', 'Checking Steam, Epic Games, and GOG installations…');
+    unlisten = await listen<string>('store-progress', event => {
+      if (activeScanSequence === sequence && notice.open) {
+        required('#notice-copy').textContent = 'Checking ' + event.payload + ' installations…';
+      }
+    });
+    if (activeScanSequence !== sequence) return;
+    const report = await discoverStores();
+    if (activeScanSequence !== sequence) return;
+    activeScanSequence = null;
+    await refreshLibrary();
+    storeCandidates = report.candidates;
+    const warning = report.warnings ? ' ' + report.warnings + ' entries could not be read.' : '';
+    notify('Review found games', report.candidates.length + ' new installed games found.' + warning + ' Existing entries were checked for missing files.');
+    if (!storeCandidates.length) return;
+    const list = document.createElement('div'); list.className = 'scan-results';
+    for (const [index, candidate] of storeCandidates.entries()) {
+      const row = document.createElement('div'); row.className = 'scan-result';
+      const label = document.createElement('div');
+      const title = document.createElement('strong'); title.textContent = candidate.title + ' · ' + candidate.source.toUpperCase();
+      const path = document.createElement('small'); path.textContent = displayWindowsPath(candidate.executablePath);
+      label.append(title, path);
+      const button = document.createElement('button'); button.textContent = 'Add'; button.dataset.action = 'import-store'; button.dataset.index = String(index);
+      row.append(label, button); list.append(row);
+    }
+    const actions = document.createElement('div'); actions.className = 'dialog-actions';
+    const addAll = document.createElement('button'); addAll.className = 'primary'; addAll.textContent = 'Add all found games';
+    addAll.dataset.action = 'import-all-stores'; actions.append(addAll);
+    required('form', notice).before(list, actions);
+  } catch (reason) {
+    if (sequence !== null && activeScanSequence !== sequence) return;
+    activeScanSequence = null;
+    notify('Store scan failed', desktopErrorMessage(reason));
+  } finally {
+    unlisten?.();
+  }
+}
+async function addStoreGames(selected: StoreCandidate[]) {
+  try {
+    const count = await importStoreGames(selected);
+    await refreshLibrary();
+    notify('Games added', count + ' game' + (count === 1 ? '' : 's') + ' added to your library.');
+    if (count) void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
+  } catch (reason) {
+    notify('Could not add games', desktopErrorMessage(reason));
+  }
+}
+function showArtworkSettings() {
+  notify('Find game covers', 'Steam covers can be recovered automatically. For Epic, GOG, and manually added games, you can optionally enter IGDB credentials for this refresh. They are not saved.');
+  const fields = document.createElement('div'); fields.className = 'artwork-settings';
+  for (const [id, labelText, type] of [
+    ['igdb-client-id', 'IGDB Client ID', 'text'],
+    ['igdb-secret', 'IGDB Client Secret', 'password'],
+  ]) {
+    const label = document.createElement('label'); label.textContent = labelText;
+    const input = document.createElement('input'); input.id = id; input.type = type; input.autocomplete = 'off';
+    label.append(input); fields.append(label);
+  }
+  const actions = document.createElement('div'); actions.className = 'dialog-actions';
+  const button = document.createElement('button'); button.textContent = 'Refresh covers'; button.className = 'primary';
+  button.dataset.action = 'refresh-artwork'; actions.append(button);
+  required('form', notice).before(fields, actions);
+}
+async function updateArtwork() {
+  const clientId = required<HTMLInputElement>('#igdb-client-id').value.trim();
+  const clientSecret = required<HTMLInputElement>('#igdb-secret').value.trim();
+  notify('Finding game covers', 'Checking local Steam artwork and available cover sources…');
+  try {
+    const report = await refreshArtwork(clientId || undefined, clientSecret || undefined);
+    await refreshLibrary();
+    notify('Artwork refreshed', report.updated + ' images added. ' + report.unavailable + ' images are still unavailable.');
+  } catch (reason) {
+    notify('Artwork refresh failed', desktopErrorMessage(reason));
+  }
+}
+async function checkForUpdates() {
+  notify('Checking for updates', 'Contacting the Lezu release feed…');
+  try {
+    availableUpdate = await check();
+    if (!availableUpdate) { notify('Lezu is up to date', 'No newer signed release is available.'); return; }
+    notify('Update available', 'Version ' + availableUpdate.version + ' is ready to download and install.');
+    const actions = document.createElement('div'); actions.className = 'dialog-actions';
+    const install = document.createElement('button'); install.textContent = 'Install update';
+    install.className = 'primary'; install.dataset.action = 'install-update';
+    actions.append(install); required('form', notice).before(actions);
+  } catch (reason) {
+    notify('Update check failed', desktopErrorMessage(reason));
+  }
+}
+async function installAvailableUpdate() {
+  const update = availableUpdate;
+  if (!update) return;
+  availableUpdate = null;
+  notify('Installing update', 'Downloading the signed Windows installer…');
+  let downloaded = 0;
+  let total = 0;
+  try {
+    await update.downloadAndInstall(event => {
+      if (event.event === 'Started') total = event.data.contentLength ?? 0;
+      if (event.event === 'Progress') downloaded += event.data.chunkLength;
+      if (notice.open) required('#notice-copy').textContent = total
+        ? 'Downloaded ' + Math.min(100, Math.floor(downloaded / total * 100)) + '% of the signed update.'
+        : 'Downloading the signed update…';
+    });
+    notify('Update installed', 'Lezu will restart to finish the update.');
+    await relaunch();
+  } catch (reason) {
+    notify('Update failed', desktopErrorMessage(reason));
   }
 }
 addGameForm.addEventListener('submit', event => {
@@ -214,6 +349,16 @@ document.addEventListener('click', event => {
   }
   else if (action === 'add-manual' && mode === 'desktop') void chooseManualGame();
   else if (action === 'scan-folder' && mode === 'desktop') void scanChosenFolder();
+  else if (action === 'scan-stores' && mode === 'desktop') void scanStores();
+  else if (action === 'import-store' && mode === 'desktop') {
+    const candidate = storeCandidates[Number(button.dataset.index)];
+    if (candidate) void addStoreGames([candidate]);
+  }
+  else if (action === 'import-all-stores' && mode === 'desktop') void addStoreGames(storeCandidates);
+  else if (action === 'artwork-settings' && mode === 'desktop') showArtworkSettings();
+  else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
+  else if (action === 'check-update' && mode === 'desktop') void checkForUpdates();
+  else if (action === 'install-update' && mode === 'desktop') void installAvailableUpdate();
   else if (action === 'review-candidate' && mode === 'desktop') {
     const candidate = scanCandidates[Number(button.dataset.index)];
     if (candidate) { notice.close(); showAddGameDialog(candidate.executablePath, candidate.title); }
@@ -240,12 +385,15 @@ document.addEventListener('click', event => {
   else if (action === 'settings') {
     notify(mode === 'demo' ? 'Preview settings' : 'Library settings', mode === 'demo'
       ? 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.'
-      : 'Add Windows games to your local library. Automatic store scanning and downloads are coming later.');
+      : 'Find installed games in Steam, Epic Games, and GOG, or scan another folder. Review new games before adding them.');
     if (mode === 'desktop') {
       const actions = document.createElement('div'); actions.className = 'dialog-actions';
       const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
       const scan = document.createElement('button'); scan.textContent = 'Scan a folder'; scan.dataset.action = 'scan-folder';
-      actions.append(add, scan); required('form', notice).before(actions);
+      const stores = document.createElement('button'); stores.textContent = 'Find installed games'; stores.dataset.action = 'scan-stores';
+      const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'artwork-settings';
+      const update = document.createElement('button'); update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
+      actions.append(stores, add, scan, artwork, update); required('form', notice).before(actions);
     }
   }
 });

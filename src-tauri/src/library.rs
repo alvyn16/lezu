@@ -30,15 +30,38 @@ impl LibraryStore {
                         normalized_path TEXT NOT NULL UNIQUE,
                         working_dir TEXT NOT NULL,
                         install_state TEXT NOT NULL DEFAULT 'installed',
-                        last_observed_at INTEGER
+                        last_observed_at INTEGER,
+                        store_id TEXT
                     );
                     CREATE INDEX installations_game_id ON installations(game_id);
                     CREATE TABLE preferences (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-                    PRAGMA user_version = 1;",
+                    CREATE TABLE artwork (
+                        game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                        kind TEXT NOT NULL,
+                        mime TEXT NOT NULL,
+                        image BLOB NOT NULL,
+                        PRIMARY KEY(game_id, kind)
+                    );
+                    PRAGMA user_version = 2;",
                 )?;
                 migration.commit()?;
             }
-            1 => {}
+            1 => {
+                let migration = connection.transaction()?;
+                migration.execute_batch(
+                    "ALTER TABLE installations ADD COLUMN store_id TEXT;
+                     CREATE TABLE artwork (
+                         game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                         kind TEXT NOT NULL,
+                         mime TEXT NOT NULL,
+                         image BLOB NOT NULL,
+                         PRIMARY KEY(game_id, kind)
+                     );
+                     PRAGMA user_version = 2;",
+                )?;
+                migration.commit()?;
+            }
+            2 => {}
             future => {
                 return Err(
                     format!("Library schema version {future} is newer than this app").into(),

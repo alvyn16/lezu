@@ -2,12 +2,16 @@ async page => {
   await page.addInitScript(() => {
     window.isTauri = true;
     window.__scanPending = [];
+    window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
+      transformCallback() { return 1; },
       invoke(command) {
         if (command === 'runtime_info') return Promise.resolve({appVersion:'0.1.0',platform:'windows',libraryMode:'desktop'});
         if (command === 'list_library') return Promise.resolve([]);
         if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
         if (command === 'scan_folder_preview') return new Promise(resolve => window.__scanPending.push(resolve));
+        if (command === 'plugin:event|listen') return Promise.resolve(1);
+        if (command === 'plugin:event|unlisten' || command === 'cancel_scan') return Promise.resolve();
         throw Error(`Unexpected desktop command: ${command}`);
       },
     };

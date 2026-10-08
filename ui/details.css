@@ -44,6 +44,9 @@
 .scan-result strong, .scan-result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scan-result small { color: var(--muted); }
 .scan-result button { flex: none; }
+.artwork-settings { display: grid; gap: 12px; margin-bottom: 18px; }
+.artwork-settings label { display: grid; gap: 6px; font-size: var(--font-caption); }
+.artwork-settings input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-small); color: var(--text); background: #ffffff18; font: inherit; }
 @media (min-width: 1500px) { .details-hero { height: 400px; } .details-hero .hero-art { height: 460px; } .details-logo { top: 180px; width: 260px; height: 90px; } .details-body { max-width: 1400px; } }
 @media (max-width: 850px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stats > div:nth-child(4) { padding-left: 0; } .stats > div:nth-child(3) { border-right: 0; } .about-section, .screenshots-section { grid-template-columns: 1fr; gap: 12px; } }
 @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stats > div:nth-child(n) { padding: 12px 8px; border-right: 0; } .stats > div:nth-child(odd) { padding-left: 0; border-right: 1px solid var(--line); } .details-hero { height: 350px; } .details-logo { top: 120px; } .game-meta { bottom: 86px; } .description { font-size: var(--font-heading); } .screenshot-shelf button { flex-basis: 220px; } }

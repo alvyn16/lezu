@@ -1,7 +1,10 @@
+mod artwork;
 mod commands;
 mod discovery;
 mod launch;
 mod library;
+mod library_sync;
+mod store_discovery;
 mod window;
 
 use serde::Serialize;
@@ -32,6 +35,8 @@ pub fn run() {
         .manage(discovery::ScanCoordinator::default())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let path = app.path().app_data_dir()?.join("library.db");
             app.manage(library::LibraryStore::open(&path)?);
@@ -48,6 +53,10 @@ pub fn run() {
             launch::launch_installation,
             launch::reveal_installation,
             commands::scan_folder_preview,
+            commands::cancel_scan,
+            store_discovery::discover_stores,
+            store_discovery::import_store_games,
+            artwork::refresh_artwork,
         ])
         .run(tauri::generate_context!())
         .expect("Lezu could not start");

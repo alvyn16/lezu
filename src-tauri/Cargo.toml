@@ -3,7 +3,7 @@ name = "lezu"
 version = "0.1.0"
 description = "Lezu Windows game library"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.90"
 
 [lib]
 name = "lezu_lib"
@@ -16,9 +16,15 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-window-state = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls", "json", "query"] }
 rusqlite = { version = "0.40", default-features = false, features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Graphics_Dwm", "Win32_Foundation"] }
+winreg = "0.56"

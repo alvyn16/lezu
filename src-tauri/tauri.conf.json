@@ -30,5 +30,18 @@
       "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost http://127.0.0.1:4173 ws://127.0.0.1:4173; object-src 'none'; base-uri 'self'; frame-src 'none'"
     }
   },
-  "bundle": { "active": false, "targets": ["nsis"], "icon": [] }
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/icon.ico", "icons/32x32.png", "icons/128x128.png"],
+    "windows": { "nsis": { "installMode": "currentUser" }, "webviewInstallMode": { "type": "downloadBootstrapper" } }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhGM0E0REQ5RjhBRjc1MTQKUldRVWRhLzQyVTA2aitFVEhlZ1NyOHdRWnM3SVBVRlluNkFyUXVmQWN0cStsYjBFZU02N1pYb0gK",
+      "endpoints": ["https://github.com/alvyn16/lezu/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
 }

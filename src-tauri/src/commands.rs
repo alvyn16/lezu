@@ -2,10 +2,11 @@ use crate::{
     discovery::{ScanCoordinator, ScanReport},
     library::LibraryStore,
 };
+use base64::Engine;
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use tauri::Emitter;
 use tauri::State;
 
 #[derive(Debug, Serialize)]
@@ -65,7 +66,8 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
     let connection = store.0.lock().map_err(|_| database_error())?;
     let mut statement = connection
         .prepare(
-            "SELECT g.id, g.title, g.source, i.id, i.install_state
+            "SELECT g.id, g.title, g.source, i.id, i.install_state,
+                    cover.mime, cover.image, hero.mime, hero.image
              FROM games g LEFT JOIN installations i ON i.id = (
                  SELECT candidate.id FROM installations candidate
                  WHERE candidate.game_id = g.id
@@ -73,12 +75,18 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
                           candidate.rowid
                  LIMIT 1
              )
+             LEFT JOIN artwork cover ON cover.game_id = g.id AND cover.kind = 'cover'
+             LEFT JOIN artwork hero ON hero.game_id = g.id AND hero.kind = 'hero'
              ORDER BY g.title COLLATE NOCASE, g.id",
         )
         .map_err(|_| database_error())?;
     let records = statement
         .query_map([], |row| {
             let state: Option<String> = row.get(4)?;
+            let mime: Option<String> = row.get(5)?;
+            let image: Option<Vec<u8>> = row.get(6)?;
+            let hero_mime: Option<String> = row.get(7)?;
+            let hero_image: Option<Vec<u8>> = row.get(8)?;
             Ok(GameView {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -97,8 +105,18 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
                     sidebar: "#23272d",
                 },
                 screenshots: vec![],
-                cover: None,
-                hero: None,
+                cover: mime.zip(image).map(|(mime, image)| {
+                    format!(
+                        "data:{mime};base64,{}",
+                        base64::engine::general_purpose::STANDARD.encode(image)
+                    )
+                }),
+                hero: hero_mime.zip(hero_image).map(|(mime, image)| {
+                    format!(
+                        "data:{mime};base64,{}",
+                        base64::engine::general_purpose::STANDARD.encode(image)
+                    )
+                }),
                 logo: None,
             })
         })
@@ -216,6 +234,7 @@ fn insert_manual_game(
 #[tauri::command]
 pub async fn scan_folder_preview(
     coordinator: State<'_, ScanCoordinator>,
+    app: tauri::AppHandle,
     root: String,
 ) -> Result<ScanReport, CommandError> {
     let permit = coordinator
@@ -223,12 +242,18 @@ pub async fn scan_folder_preview(
         .ok_or_else(|| error("scan_busy", "A folder scan is already running."))?;
     let path = PathBuf::from(root);
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let _permit = permit;
-        crate::discovery::scan_folder(&path, &AtomicBool::new(false))
+        crate::discovery::scan_folder_with_progress(&path, permit.cancelled(), |entries_checked| {
+            let _ = app.emit("scan-progress", entries_checked);
+        })
     })
     .await
     .map_err(|_| error("scan_failed", "The folder scan stopped unexpectedly."))?;
     result.map_err(|_| error("invalid_folder", "Choose an accessible folder to scan."))
+}
+
+#[tauri::command]
+pub fn cancel_scan(coordinator: State<'_, ScanCoordinator>) {
+    coordinator.cancel();
 }
 
 #[cfg(test)]
