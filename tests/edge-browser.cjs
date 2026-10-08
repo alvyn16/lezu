@@ -4,12 +4,12 @@ async page => {
   if (!(await page.getByRole('button',{name:'All Games 8'}).evaluate(el=>el===document.activeElement))) throw Error('See All lost focus');
   const missing = page.getByRole('button',{name:'View A game waiting for artwork',exact:true});
   await missing.focus(); await missing.press('Enter');
-  await page.getByText('Screenshots are not available for this sample.').waitFor();
+  await page.getByText('No screenshots available.').waitFor();
   if (!(await page.getByRole('button',{name:'Not installed',exact:true}).isDisabled())) throw Error('Uninstalled game Play enabled');
   await page.getByRole('button',{name:'Back to library'}).click();
   if (!(await missing.evaluate(el=>el===document.activeElement))) throw Error('Missing art return focus lost');
   await page.locator('.sidebar [data-nav="home"]').click();
-  for (const source of ['Steam','Epic Games','GOG']) await page.getByRole('switch',{name:`Include ${source} sample games`}).click();
+  for (const source of ['Steam','Epic Games','GOG']) await page.getByRole('switch',{name:`Show games from ${source}`}).click();
   await page.getByRole('heading',{name:'No games found'}).waitFor();
   await page.getByRole('button',{name:'Reset filters'}).click();
   await page.getByRole('heading',{name:'Ready to Play'}).waitFor();

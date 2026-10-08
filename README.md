@@ -52,6 +52,7 @@ playwright-cli -s=lezu-fresh run-code --filename=tests/home-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/details-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/edge-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/wheel-browser.cjs
+playwright-cli -s=lezu-fresh run-code --filename=tests/title-fallback-browser.cjs
 playwright-cli -s=lezu-fresh run-code --filename=tests/resolution-browser.cjs
 ```
 

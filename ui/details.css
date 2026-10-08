@@ -13,13 +13,14 @@
 .stats > div { min-width: 0; padding: 14px 14px 12px; border-right: 1px solid var(--line); }
 .stats > div:first-child { padding-left: 0; }
 .stats > div:last-child { border: 0; }
-.stats dt, .eyebrow-label, .genres { color: var(--muted); font-size: var(--font-label); font-weight: 400; letter-spacing: 1.6px; text-transform: uppercase; }
+.stats dt, .eyebrow-label, .genres { color: var(--muted); font-size: var(--font-label); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
 .stats dd { margin: 6px 0 0; font-size: var(--font-stat); font-weight: 600; overflow-wrap: anywhere; }
 .unknown { font-size: var(--font-caption); font-weight: 400; color: var(--muted); }
 .sample-note { font-size: var(--font-caption); color: var(--muted); padding: 14px 0 18px; }
 .about-section, .screenshots-section { border-top: 1px solid var(--line); padding: 24px 0 32px; display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 24px; }
 .eyebrow-label { padding-top: 6px; }
 .description { font-size: var(--font-description); font-weight: 600; line-height: 1.4; letter-spacing: -.4px; }
+.description.is-empty { font-size: var(--font-body); font-weight: 400; color: var(--muted); letter-spacing: normal; }
 .genres { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
 .screenshot-shelf { display: flex; min-width: 0; gap: 10px; overflow-x: auto; scrollbar-width: thin; padding: 4px; margin: -4px; scroll-snap-type: x proximity; }
 .screenshot-shelf button { flex: 0 0 280px; aspect-ratio: 16 / 9; padding: 0; scroll-snap-align: start; border-radius: var(--radius-small); overflow: hidden; }

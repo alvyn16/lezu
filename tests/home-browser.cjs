@@ -7,7 +7,7 @@ async page => {
   await page.getByRole('heading', { name: 'No games found' }).waitFor();
   if (!(await page.getByRole('searchbox').evaluate(el => el === document.activeElement))) throw Error('Search lost focus');
   await page.getByRole('searchbox').fill('');
-  const epic = page.getByRole('switch', { name: 'Include Epic Games sample games' });
+  const epic = page.getByRole('switch', { name: 'Show games from Epic Games' });
   await epic.click();
   if (await epic.getAttribute('aria-checked') !== 'false') throw Error('Source switch failed');
   if (!(await epic.evaluate(el => el === document.activeElement))) throw Error('Switch lost focus');

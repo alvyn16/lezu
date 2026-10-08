@@ -13,9 +13,9 @@ const paths = {
 };
 export const icon = (name) => `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths[name] ?? ''}</svg>`;
 export const providers = [
-  { id: 'steam', name: 'Steam', description: 'Your Steam games, together in one place.' },
-  { id: 'epic', name: 'Epic Games', description: 'Your library from Epic Games.' },
-  { id: 'gog', name: 'GOG', description: 'Your collection of DRM-free games.' },
+  { id: 'steam', name: 'Steam', description: 'Show games from Steam.' },
+  { id: 'epic', name: 'Epic Games', description: 'Show games from Epic Games.' },
+  { id: 'gog', name: 'GOG', description: 'Show games from GOG.' },
 ];
 export const providerMark = (id) => `<img class="provider-mark" src="assets/${id}.svg" alt="" width="16" height="16">`;
 function nav(id, label, glyph, count = '') {
@@ -34,11 +34,11 @@ export function shell() {
       <h2 class="nav-label">Activity</h2>
       ${nav('downloads', 'Downloads', icon('download'))}
     </nav>
-    <p class="preview-label">UI preview · sample library</p>
+    <p class="preview-label">UI preview · demo library</p>
   </aside>
   <main id="content" tabindex="-1">
     <header class="topbar"><div id="location"><h1>Home</h1></div>
-      <label class="search">${icon('search')}<input id="search" type="search" placeholder="Search games" aria-label="Search sample games" autocomplete="off"></label>
+      <label class="search">${icon('search')}<input id="search" type="search" placeholder="Search games" aria-label="Search games" autocomplete="off"></label>
     </header><div id="screen"><p class="shell-placeholder">Preparing your preview…</p></div>
   </main>`;
 }

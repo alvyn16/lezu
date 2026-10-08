@@ -16,6 +16,7 @@ Verified locally on 2026-10-07 using Node 22.18.0, Python 3.14, Chrome, and Play
 | Larger library portraits | Steam, Epic, and GOG checked at 800, 980, and 1920 px. Covers scale from 184 × 276 to 240 × 360 with 14 px titles and 12 px captions. Repeated Stores panels removed from library/search pages; Home switches and sidebar filters remain. No page-width overflow. Details/Back focus, wheel browsing, missing-art fallback, source reset, and all 12 Node tests passed. |
 | Frosted glass | Home and Sifu details visually checked at 980 × 760. Sidebar artwork follows the selected game, search and controls use backdrop blur, missing artwork resets to the theme color, and search works without runtime errors. No width overflow at 800 × 600. Opaque styles remain available when blur is unsupported or reduced transparency is requested. |
 | Syntax and whitespace | Module syntax checks and `git diff --check` passed. |
+| Typography and wording | 12 px minimum labels/captions, 14 px body/search, regular and semibold weights, two-line card names, shorter demo copy, and accessible missing values. Full review in `typography-review.md`. Normal resolution, interaction, and nine title-fallback checks passed. |
 
 Sizes: 800×600, 980×760, 1024×768, 1366×768, 1920×1080, 3840×2160, and an additional 320×740 compact check. Densities: 1, 1.25, 1.5, and 2 device pixels per logical pixel. Resolution contexts use reduced motion.
 
@@ -27,11 +28,11 @@ These are browser density checks, not a claim that a native Windows executable h
 |---|---|
 | Sidebar | 204 px at the 980 px reference width, compact 26 px flat rows, white selection, correct navigation order and right-aligned counts. |
 | Search | 236 px pill at the upper-right, compact SVG magnifier, consistent left-aligned text. |
-| Home hero | Matching Alan Wake II key art, centered 300 px logo, eyebrow at the left, white 106 px Play pill and circular info control. |
+| Home hero | Matching Alan Wake II key art, centered 300 px logo, white 106 px Play pill and circular info control. Continue Playing label removed at the user's request. |
 | Home shelf | Following the user's size revision: 168×252 px portrait covers at reference size, growing to 216 px wide on larger windows. Single horizontal shelf, rounded artwork, 14 px titles and 12 px captions, hover and keyboard Play. |
-| Stores | Three equal translucent cards at reference size, 38 px marks, switches at the upper-right. Wraps for compact windows. |
+| Stores | Home only: three equal translucent cards at reference size, 38 px marks, switches at the upper-right. Wraps for compact windows. Library pages use the sidebar source filters. |
 | Details | Back/name and search in the same shell; Sifu hero/logo, Play/folder/More row; six stat columns; About label and 22 px description; horizontal screenshots below. |
-| Type | Segoe UI throughout: 13 px navigation, 11 px captions, 18 px headings/stats, 22 px description. SVG navigation icons are 16 px. |
+| Type | Segoe UI throughout: 14 px navigation/search, 12 px labels/captions, 18 px headings/stats, 22 px description. Regular and semibold weights; two-line card names. SVG navigation icons are 16 px. |
 | Colors | Crimson Alan Wake, orange-red Sifu, teal Witcher, and distinct other palettes continue throughout the shell. No fixed purple sidebar or black content cutoff. |
 
 Corrections made during rendered review: reduced sidebar spacing; made provider SVGs visible; recovered the Ready to Play heading from the hero overlay; fixed shelf scroll padding; enlarged the Sifu logo; added the rating position with an honest unavailable value; fixed the 320 px grid overflow; preserved See All focus; hid failed artwork; improved the 4K Sifu artwork crop.
@@ -47,7 +48,7 @@ Corrections made during rendered review: reduced sidebar spacing; made provider 
 
 ## Saved renders
 
-The larger Ready to Play revision passed the Home interaction checks and all 56 resolution/density checks again. Its refreshed screenshots are the current Home renders. Browser preview was refreshed for the user. No JavaScript or native behavior changed in this CSS revision.
+The typography revision passed the interaction checks and all 56 resolution/density checks again. Updated Home, Details, Library, dialog, and missing-artwork renders are saved locally. Nine title-fallback checks cover missing and failed logos at narrow, reference, and wide sizes.
 
 Local QA PNGs are in `docs/screenshots/` (excluded from Git): Home and Details at 800, 980, and 1920 px; both at 980 px with 200% density; a 4K Details render. The supplied reference originals remain in `docs/references/`.
 
