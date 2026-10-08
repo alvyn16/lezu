@@ -6,6 +6,7 @@ fn main() {
             "add_manual_game",
             "launch_installation",
             "reveal_installation",
+            "scan_folder_preview",
         ]),
     ))
     .expect("failed to build Lezu desktop resources");

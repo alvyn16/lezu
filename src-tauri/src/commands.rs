@@ -1,7 +1,8 @@
-use crate::library::LibraryStore;
+use crate::{discovery::ScanReport, library::LibraryStore};
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use tauri::State;
 
 #[derive(Debug, Serialize)]
@@ -275,6 +276,17 @@ pub fn reveal_installation(
         .spawn()
         .map_err(|_| error("folder_failed", "Windows could not open this game folder."))?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn scan_folder_preview(root: String) -> Result<ScanReport, CommandError> {
+    let path = PathBuf::from(root);
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        crate::discovery::scan_folder(&path, &AtomicBool::new(false))
+    })
+    .await
+    .map_err(|_| error("scan_failed", "The folder scan stopped unexpectedly."))?;
+    result.map_err(|_| error("invalid_folder", "Choose an accessible folder to scan."))
 }
 
 #[cfg(test)]

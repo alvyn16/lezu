@@ -5,17 +5,23 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, desktopErrorMessage, getRuntimeInfo, isDesktop, launchInstallation, listLibrary, revealInstallation } from './services/desktop';
+import { addManualGame, desktopErrorMessage, getRuntimeInfo, isDesktop, launchInstallation, listLibrary, revealInstallation, scanFolderPreview, type ScanCandidate } from './services/desktop';
 import { open as openFile } from '@tauri-apps/plugin-dialog';
 function required<T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T {
   const element = root.querySelector<T>(selector);
   if (!element) throw new Error(`Missing interface element: ${selector}`);
   return element;
 }
+function displayWindowsPath(path: string): string {
+  if (path.startsWith('\\\\?\\UNC\\')) return `\\\\${path.slice(8)}`;
+  if (path.startsWith('\\\\?\\')) return path.slice(4);
+  return path;
+}
 required('#app').innerHTML = shell();
 const mode: LibraryMode = isDesktop() ? 'desktop' : 'demo';
 let games: Game[] = mode === 'demo' ? demoGames : [];
 const launchRequests = new Set<string>();
+let scanCandidates: ScanCandidate[] = [];
 let state = initialState();
 let previousState = state;
 let returnFocus: string | null = null;
@@ -27,8 +33,10 @@ const search = required<HTMLInputElement>('#search');
 function notify(title: string, copy: string) {
   notice.querySelector('.notice-image')?.remove();
   notice.querySelector('.dialog-actions')?.remove();
+  notice.querySelector('.scan-results')?.remove();
   required('#notice-title').textContent = title;
   required('#notice-copy').textContent = copy;
+  if (notice.open) notice.close();
   notice.showModal();
 }
 function render(focusKey?: string) {
@@ -69,15 +77,47 @@ async function chooseManualGame() {
     if (notice.open) notice.close();
     const picked = await openFile({ multiple: false, directory: false, filters: [{ name: 'Windows games', extensions: ['exe'] }] });
     if (typeof picked !== 'string') return;
-    const filename = picked.split(/[\\/]/).pop() ?? picked;
-    required<HTMLInputElement>('#add-game-name').value = filename.replace(/\.exe$/i, '');
-    required<HTMLInputElement>('#add-game-path').value = picked;
-    required<HTMLInputElement>('#add-game-folder').value = picked.slice(0, picked.length - filename.length).replace(/[\\/]$/, '');
-    required('#add-game-error').hidden = true;
-    addGameDialog.showModal();
-    required<HTMLInputElement>('#add-game-name').focus();
+    showAddGameDialog(picked);
   } catch (reason) {
     notify('Could not add game', desktopErrorMessage(reason));
+  }
+}
+function showAddGameDialog(path: string, suggestedTitle?: string) {
+  const visiblePath = displayWindowsPath(path);
+  const filename = visiblePath.split(/[\\/]/).pop() ?? visiblePath;
+  required<HTMLInputElement>('#add-game-name').value = suggestedTitle ?? filename.replace(/\.exe$/i, '');
+  const pathInput = required<HTMLInputElement>('#add-game-path');
+  pathInput.value = visiblePath;
+  pathInput.dataset.rawPath = path;
+  required<HTMLInputElement>('#add-game-folder').value = visiblePath.slice(0, visiblePath.length - filename.length).replace(/[\\/]$/, '');
+  required('#add-game-error').hidden = true;
+  addGameDialog.showModal();
+  required<HTMLInputElement>('#add-game-name').focus();
+}
+async function scanChosenFolder() {
+  try {
+    if (notice.open) notice.close();
+    const picked = await openFile({ multiple: false, directory: true, title: 'Choose a game folder to scan' });
+    if (typeof picked !== 'string') return;
+    notify('Scanning folder', 'Searching subfolders for possible game executables…');
+    const report = await scanFolderPreview(picked);
+    scanCandidates = report.candidates;
+    const limit = report.truncated ? ' The scan reached its safety limit; choose a smaller folder for more results.' : '';
+    const warnings = report.warnings ? ` ${report.warnings} folder entries could not be read.` : '';
+    notify('Review scan results', `${report.candidates.length} possible ${report.candidates.length === 1 ? 'game' : 'games'} found among ${report.entriesChecked} entries.${warnings}${limit} Select a game to review its title and working folder before adding it.`);
+    const list = document.createElement('div'); list.className = 'scan-results';
+    for (const [index, candidate] of report.candidates.entries()) {
+      const row = document.createElement('div'); row.className = 'scan-result';
+      const label = document.createElement('div');
+      const title = document.createElement('strong'); title.textContent = candidate.title;
+      const path = document.createElement('small'); path.textContent = displayWindowsPath(candidate.executablePath);
+      label.append(title, path);
+      const button = document.createElement('button'); button.textContent = 'Review'; button.dataset.action = 'review-candidate'; button.dataset.index = String(index);
+      row.append(label, button); list.append(row);
+    }
+    required('form', notice).before(list);
+  } catch (reason) {
+    notify('Folder scan failed', desktopErrorMessage(reason));
   }
 }
 addGameForm.addEventListener('submit', event => {
@@ -89,8 +129,9 @@ addGameForm.addEventListener('submit', event => {
   error.hidden = true;
   void (async () => {
     try {
+      const pathInput = required<HTMLInputElement>('#add-game-path');
       await addManualGame(
-        required<HTMLInputElement>('#add-game-path').value,
+        pathInput.dataset.rawPath ?? pathInput.value,
         required<HTMLInputElement>('#add-game-name').value,
         required<HTMLInputElement>('#add-game-folder').value,
       );
@@ -155,6 +196,11 @@ document.addEventListener('click', event => {
     else void openGameFolder();
   }
   else if (action === 'add-manual' && mode === 'desktop') void chooseManualGame();
+  else if (action === 'scan-folder' && mode === 'desktop') void scanChosenFolder();
+  else if (action === 'review-candidate' && mode === 'desktop') {
+    const candidate = scanCandidates[Number(button.dataset.index)];
+    if (candidate) { notice.close(); showAddGameDialog(candidate.executablePath, candidate.title); }
+  }
   else if (action === 'cancel-add') addGameDialog.close();
   else if (action === 'refresh-library' && mode === 'desktop') { notice.close(); void refreshLibrary(); }
   else if (action === 'more') {
@@ -180,7 +226,8 @@ document.addEventListener('click', event => {
     if (mode === 'desktop') {
       const actions = document.createElement('div'); actions.className = 'dialog-actions';
       const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
-      actions.append(add); required('form', notice).before(actions);
+      const scan = document.createElement('button'); scan.textContent = 'Scan a folder'; scan.dataset.action = 'scan-folder';
+      actions.append(add, scan); required('form', notice).before(actions);
     }
   }
 });

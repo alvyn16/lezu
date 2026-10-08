@@ -184,6 +184,8 @@ For each task, run the focused verification below and the applicable type/build 
 
 ## Stage 3: Nested folder discovery
 
+An initial bounded, on-demand folder preview is implemented locally. It finds nested executable candidates and requires individual review before import. Persisted scan jobs, cancellation UI, richer executable evidence, and reconciliation in D14–D16 remain open.
+
 ### D14 — Scan jobs
 
 - [ ] Add persisted scan roots/run records, typed job status/progress, cancel command and a bounded background coordinator.

@@ -1,4 +1,5 @@
 mod commands;
+mod discovery;
 mod library;
 mod window;
 
@@ -44,6 +45,7 @@ pub fn run() {
             commands::add_manual_game,
             commands::launch_installation,
             commands::reveal_installation,
+            commands::scan_folder_preview,
         ])
         .run(tauri::generate_context!())
         .expect("Lezu could not start");

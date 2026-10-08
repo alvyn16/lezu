@@ -37,3 +37,17 @@ export async function launchInstallation(installationId: string): Promise<void> 
 export async function revealInstallation(installationId: string): Promise<void> {
   return invoke<void>('reveal_installation', { installationId });
 }
+
+export interface ScanCandidate { title: string; executablePath: string }
+export interface ScanReport {
+  root: string;
+  entriesChecked: number;
+  candidates: ScanCandidate[];
+  warnings: number;
+  truncated: boolean;
+  cancelled: boolean;
+}
+
+export async function scanFolderPreview(root: string): Promise<ScanReport> {
+  return invoke<ScanReport>('scan_folder_preview', { root });
+}

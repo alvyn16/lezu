@@ -6,7 +6,7 @@ A fresh Windows game-library project built around the user's Home and Sifu detai
 
 The user selected **Tauri 2 + Rust + TypeScript**. The [desktop app plan](tasks/plan.md) and [ordered task checklist](tasks/todo.md) describe how to preserve this interface, add Windows hosting, persist a real library, scan Steam/GOG/Epic and nested game folders, launch games, and recover artwork.
 
-The browser preview uses sample games. The Windows app uses a separate SQLite library in the user's app data folder. Select an installed game's `.exe` and review its title and working folder; the entry remains across restarts. You can launch the game and open its installation folder. Steam, GOG, and Epic discovery are still planned.
+The browser preview uses sample games. The Windows app uses a separate SQLite library in the user's app data folder. Select an installed game's `.exe` and review its title and working folder; the entry remains across restarts. You can launch the game and open its installation folder. From Settings, **Scan a folder** searches nested folders and presents possible games for individual review. Steam, GOG, and Epic discovery are still planned.
 
 Build the local desktop executable on Windows with `npm ci` then `npm run tauri build -- --no-bundle`. Run `src-tauri/target/release/lezu.exe`. Rust with the MSVC toolchain and WebView2 are required to build and run it. `npm run tauri dev` runs the native development window, while `npm run dev` runs the browser preview. The native window checks are in [the Windows checklist](docs/windows-window-checklist.md).
 
@@ -44,7 +44,7 @@ Hover over a game shelf and turn the mouse wheel: down moves right, up moves lef
 
 The eight entries are fixtures, not a scan of your computer. Source assignments, installation flags, playtime, and last-played values are demonstration data. Missing metadata remains unavailable. Palettes are curated from artwork in the fixture module; automatic color extraction is later work.
 
-The desktop host has a dark native Windows title bar and restores its last window size and position. Its manually added games persist locally. Automatic scanning, artwork retrieval, downloads, and account integration are still pending. Preview changes reset on reload. No repository remote is configured.
+The desktop host has a dark native Windows title bar and restores its last window size and position. Its manually added games persist locally. The folder scan is a bounded preview: it checks up to 20,000 entries, descends at most 10 levels, returns up to 250 candidates, skips reparse points and common installer tools, and does not import anything automatically. Store-specific discovery, saved scan jobs, artwork retrieval, downloads, and account integration are still pending. Preview changes reset on reload. No repository remote is configured.
 
 ## Verify
 

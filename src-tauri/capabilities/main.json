@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "Only the local main window can query this preview's runtime information.",
+  "description": "The local main window can access the game library and selected folders.",
   "windows": ["main"],
   "permissions": [
     "allow-runtime-info",
@@ -9,6 +9,7 @@
     "allow-add-manual-game",
     "allow-launch-installation",
     "allow-reveal-installation",
+    "allow-scan-folder-preview",
     "dialog:allow-open"
   ]
 }
