@@ -1,5 +1,7 @@
 // Demonstration data only. Session values are samples, never an installed-library scan.
-export const games = [
+import type { Game } from './domain/models';
+
+export const games: Game[] = [
   { id: 'alan', title: 'Alan Wake II', source: 'epic', installed: true, played: '1 h', lastPlayed: 'Today', size: null,
     developer: 'Remedy Entertainment', year: '2023', tags: ['Survival horror', 'Single-player'],
     description: 'Follow two protagonists through a psychological horror story where fiction reshapes reality.',
@@ -27,4 +29,4 @@ export const games = [
     developer: null, year: null, tags: [], description: null,
     theme: { page: '#30343b', sidebar: '#23272d' }, screenshots: [], cover: null, hero: null, logo: null },
 ];
-export const asset = name => name ? `assets/${name}` : '';
+export const asset = (name: string | null): string => name ? `assets/${name}` : '';
