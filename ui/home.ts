@@ -1,14 +1,16 @@
+import type { Game, LibraryState } from './domain/models';
 import { icon, providers, providerMark } from './shell.js';
 import { asset } from './fixtures.js';
-export const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-export function heroArt(game) {
+const entities: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export const escape = (value: unknown): string => String(value).replace(/[&<>"']/g, char => entities[char] ?? char);
+export function heroArt(game: Game | null) {
   return game?.hero ? `<img class="hero-art" src="${asset(game.hero)}" alt="" fetchpriority="high">` : '';
 }
-export function gameTitle(game, className = '') {
+export function gameTitle(game: Game, className = '') {
   return game.logo ? `<img class="game-logo ${className}" src="${asset(game.logo)}" alt="${escape(game.title)}">`
     : `<h2 class="game-title ${className}" title="${escape(game.title)}">${escape(game.title)}</h2>`;
 }
-export function gameCard(game) {
+export function gameCard(game: Game) {
   const provider = providers.find(provider => provider.id === game.source);
   return `<article class="game-card">
     <div class="cover-wrap">
@@ -18,14 +20,14 @@ export function gameCard(game) {
       ${game.installed ? `<button class="cover-play primary" data-play="${game.id}" aria-label="Play ${escape(game.title)}">${icon('play')} Play</button>` : ''}
     </div>
     <h3 title="${escape(game.title)}">${escape(game.title)}</h3>
-    <p class="card-caption">${providerMark(game.source)} ${provider.name} <span>· ${game.installed ? (game.size ?? 'Demo game') : 'Not installed'}</span></p>
+    <p class="card-caption">${providerMark(game.source)} ${provider?.name ?? game.source} <span>· ${game.installed ? (game.size ?? 'Demo game') : 'Not installed'}</span></p>
   </article>`;
 }
-export function shelf(games) {
+export function shelf(games: readonly Game[]) {
   return games.length ? `<div class="cover-shelf" aria-label="Sample game library">${games.map(gameCard).join('')}</div>`
     : `<div class="empty-state" role="status"><h2>No games found</h2><p>Try another search or reset your filters.</p><button data-action="reset">Reset filters</button></div>`;
 }
-export function stores(state) {
+export function stores(state: LibraryState) {
   return `<section class="stores" aria-labelledby="stores-heading"><h2 id="stores-heading">Stores</h2>
     <div class="store-list">${providers.map(provider => `<article class="store-card">
       <div class="store-mark ${provider.id}">${providerMark(provider.id)}</div>
@@ -33,7 +35,7 @@ export function stores(state) {
       <h3>${provider.name}</h3><p>${provider.description}</p>
     </article>`).join('')}</div></section>`;
 }
-export function home(game, games, state) {
+export function home(game: Game | null, games: readonly Game[], state: LibraryState) {
   return `<section class="home-hero" aria-label="Continue playing">
     ${heroArt(game)}<div class="hero-shade"></div>
     ${game ? `${gameTitle(game, 'home-logo')}
@@ -43,7 +45,7 @@ export function home(game, games, state) {
     <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button></div>${shelf(games.filter(game => game.installed))}</section>
     ${stores(state)}`;
 }
-export function library(games, state) {
+export function library(games: readonly Game[], state: LibraryState) {
   const title = state.query ? 'Search results' : state.installedOnly ? 'Installed' : providers.find(p => p.id === state.source)?.name ?? 'All Games';
   return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games)}</section>`;
 }

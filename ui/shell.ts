@@ -1,3 +1,5 @@
+import type { ProviderId } from './domain/models';
+
 const paths = {
   home: '<path d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -11,14 +13,14 @@ const paths = {
   more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   play: '<path fill="currentColor" stroke="none" d="m7 4 13 8-13 8Z"/>',
 };
-export const icon = (name) => `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths[name] ?? ''}</svg>`;
-export const providers = [
+export const icon = (name: keyof typeof paths) => `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
+export const providers: { id: ProviderId; name: string; description: string }[] = [
   { id: 'steam', name: 'Steam', description: 'Show games from Steam.' },
   { id: 'epic', name: 'Epic Games', description: 'Show games from Epic Games.' },
   { id: 'gog', name: 'GOG', description: 'Show games from GOG.' },
 ];
-export const providerMark = (id) => `<img class="provider-mark" src="assets/${id}.svg" alt="" width="16" height="16">`;
-function nav(id, label, glyph, count = '') {
+export const providerMark = (id: ProviderId) => `<img class="provider-mark" src="assets/${id}.svg" alt="" width="16" height="16">`;
+function nav(id: string, label: string, glyph: string, count = '') {
   return `<button class="nav-row" data-nav="${id}">${glyph}<span>${label}</span><span class="count">${count}</span></button>`;
 }
 export function shell() {

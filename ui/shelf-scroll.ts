@@ -1,4 +1,4 @@
-export function enableWheelScrolling(shelf) {
+export function enableWheelScrolling(shelf: HTMLElement) {
   shelf.addEventListener('wheel', event => {
     // Preserve browser zoom and native horizontal trackpad gestures.
     if (event.ctrlKey || !event.deltaY || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
