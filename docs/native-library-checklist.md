@@ -12,6 +12,6 @@ The native window was tested at 1120×740 on a 1920×1080 desktop. The separate 
 - [ ] Have the maintainer launch one chosen game on their own machine.
 - [ ] Confirm native UI behavior at smaller windows and high DPI settings.
 
-On October 8, the native folder picker selected a temporary root containing a game executable two levels down and a setup executable beside it. The review displayed one candidate, opened its Add game dialog, and left the database empty when review was cancelled. The temporary tree was removed afterward.
+On October 8, the native folder picker selected a temporary root containing a game executable two levels down and a setup executable beside it. The review displayed one candidate, opened its Add game dialog, and left the database empty when review was cancelled. A second temporary tree completed scan → review → add → restart: the nested executable persisted as one installed manual game. Both temporary trees and entries were removed afterward.
 
 Folder scans are bounded previews and do not save scan roots, run persistent jobs, or identify Steam/GOG/Epic ownership. Unknown details and absent artwork use explicit placeholders.
