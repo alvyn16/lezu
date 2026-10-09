@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 // Arguments are a fixed list, never constructed from page or user input.
 const commands = [
   'open http://127.0.0.1:4173 --browser=chrome',
-  ...['home', 'details', 'edge', 'wheel', 'title-fallback', 'resolution', 'scan-race', 'store-scan', 'epic'].flatMap(name => [
+  ...['home', 'details', 'edge', 'wheel', 'title-fallback', 'resolution', 'scan-race', 'store-scan', 'epic', 'gog', 'steam'].flatMap(name => [
     'resize 980 760',
     `run-code --filename=tests/${name}-browser.cjs`,
   ]),

@@ -40,8 +40,8 @@ export function home(game: Game | null, games: readonly Game[], state: LibrarySt
   return `<section class="home-hero" aria-label="Continue playing">
     ${heroArt(game)}<div class="hero-shade"></div>
     ${game ? `${gameTitle(game, 'home-logo')}
-      <div class="hero-actions">${!game.installed && game.owned && game.source === 'epic'
-        ? `<button class="primary" data-action="install-epic" data-id="${escape(game.id)}">${icon('download')} Download</button>`
+      <div class="hero-actions">${!game.installed && game.owned && (game.source === 'epic' || game.source === 'gog' || game.source === 'steam')
+        ? `<button class="primary" data-action="install-${game.source}" data-id="${escape(game.id)}">${icon('download')} Download</button>`
         : `<button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This game is not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button>`}<button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
       : mode === 'desktop' ? '<div class="hero-empty"><p>Your library is empty.</p><button class="primary" data-action="add-manual">Add a game</button></div>' : '<p class="hero-empty">Turn on a store below to show its demo games.</p>'}
     </section>
@@ -52,6 +52,10 @@ export function library(games: readonly Game[], state: LibraryState, mode: Libra
   const title = state.query ? 'Search results' : state.installedOnly ? 'Installed' : providers.find(p => p.id === state.source)?.name ?? 'All Games';
   const content = mode === 'desktop' && state.source === 'epic' && !games.length && !state.query
     ? '<div class="empty-state" role="status"><h2>Your Epic library is empty</h2><p>Connect your Epic account to see owned games.</p><button data-action="connect-epic">Connect Epic Games</button></div>'
+    : mode === 'desktop' && state.source === 'gog' && !games.length && !state.query
+      ? '<div class="empty-state" role="status"><h2>Your GOG library is empty</h2><p>Connect your GOG account to see owned games.</p><button data-action="connect-gog">Connect GOG</button></div>'
+      : mode === 'desktop' && state.source === 'steam' && !games.length && !state.query
+        ? '<div class="empty-state" role="status"><h2>Your Steam library is empty</h2><p>Connect your Steam account to see owned games.</p><button data-action="connect-steam">Connect Steam</button></div>'
     : shelf(games, mode);
   return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${content}</section>`;
 }

@@ -11,4 +11,6 @@ test('desktop errors surface native command messages', () => {
 
 test('older native builds get an actionable sign-in error', () => {
   assert.match(desktopErrorMessage('Command epic_connect not found'), /latest Lezu build/);
+  assert.match(desktopErrorMessage('Command gog_connect not found'), /latest Lezu build/);
+  assert.match(desktopErrorMessage('Command steam_connect not found'), /latest Lezu build/);
 });

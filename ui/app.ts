@@ -5,7 +5,8 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
@@ -29,6 +30,7 @@ let scanCandidates: ScanCandidate[] = [];
 let storeCandidates: StoreCandidate[] = [];
 let availableUpdate: Awaited<ReturnType<typeof check>> = null;
 let activeDownload: string | null = null;
+let steamSigningIn = false;
 let downloadProgress: number | null = null;
 let scanSequence = 0;
 let activeScanSequence: number | null = null;
@@ -46,6 +48,8 @@ function notify(title: string, copy: string) {
   notice.querySelector('.scan-results')?.remove();
   notice.querySelector('.artwork-settings')?.remove();
   notice.querySelector('.epic-auth')?.remove();
+  notice.querySelector('.gog-auth')?.remove();
+  notice.querySelector('.steam-auth')?.remove();
   required('#notice-title').textContent = title;
   required('#notice-copy').textContent = copy;
   if (!notice.open) notice.showModal();
@@ -58,6 +62,7 @@ function dismissActiveScan() {
   }
 }
 notice.addEventListener('cancel', dismissActiveScan);
+notice.addEventListener('close', () => { if (steamSigningIn) void steamCancel(); });
 function render(focusKey?: string) {
   const game = activeGame(games, state);
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
@@ -295,13 +300,116 @@ async function disconnectEpic() {
     notify('Epic signed out', 'Installed game files were left in place.');
   } catch (reason) { notify('Epic sign-out failed', desktopErrorMessage(reason)); }
 }
-function showDownload() {
-  const title = games.find(game => game.id === activeDownload)?.title ?? 'Epic game';
-  notify('Downloading ' + title, downloadProgress === null
-    ? 'Preparing the download…' : `Downloaded ${downloadProgress}% of game data.`);
+async function connectSteam() {
+  if (steamSigningIn) return;
+  steamSigningIn = true;
+  notify('Connect Steam', 'Open Steam Mobile, choose the QR sign-in scanner, and approve this Lezu sign-in. Your password stays with Steam.');
+  const area = document.createElement('div'); area.className = 'steam-auth';
+  const image = document.createElement('img'); image.alt = 'Steam Mobile sign-in QR code'; image.hidden = true;
+  const hint = document.createElement('p'); hint.textContent = 'Preparing a Steam QR code…';
+  area.append(image, hint);
   const actions = document.createElement('div'); actions.className = 'dialog-actions';
-  const cancel = document.createElement('button'); cancel.textContent = 'Cancel download'; cancel.dataset.action = 'cancel-epic-download';
+  const cancel = document.createElement('button'); cancel.textContent = 'Cancel sign-in'; cancel.dataset.action = 'cancel-steam-login';
+  actions.append(cancel); area.append(actions); required('form', notice).before(area);
+  let unlisten: (() => void) | undefined;
+  try {
+    unlisten = await listen<{ status: string; url: string | null }>('steam-login-event', event => {
+      if (!steamSigningIn) return;
+      if (event.payload.status === 'qr' && event.payload.url) {
+        void QRCode.toDataURL(event.payload.url, { margin: 2, width: 240, color: { dark: '#111827', light: '#ffffff' } })
+          .then(url => { if (steamSigningIn) { image.src = url; image.hidden = false; hint.textContent = 'Scan with Steam Mobile and approve the sign-in.'; } });
+      } else if (event.payload.status === 'scanned') {
+        hint.textContent = 'QR code scanned. Approve the sign-in in Steam Mobile.';
+      }
+    });
+    await steamConnect();
+    steamSigningIn = false;
+    await syncSteam();
+  } catch (reason) {
+    steamSigningIn = false;
+    if ((reason as { code?: string })?.code !== 'steam_cancelled') notify('Steam sign-in failed', desktopErrorMessage(reason));
+  } finally { unlisten?.(); }
+}
+async function syncSteam() {
+  notify('Loading Steam library', 'Fetching your owned games…');
+  try {
+    const result = await steamSync();
+    await refreshLibrary();
+    notify('Steam library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+  } catch (reason) { notify('Steam library unavailable', desktopErrorMessage(reason)); }
+}
+async function disconnectSteam() {
+  notify('Signing out of Steam', 'Removing the Steam account session and owned-game entries…');
+  try { await steamDisconnect(); await refreshLibrary(); notify('Steam signed out', 'Installed game files were left in place.'); }
+  catch (reason) { notify('Steam sign-out failed', desktopErrorMessage(reason)); }
+}
+const gogLoginUrl = 'https://auth.gog.com/auth?client_id=46899977096215655&redirect_uri=https%3A%2F%2Fembed.gog.com%2Fon_login_success%3Forigin%3Dclient&response_type=code&layout=client2';
+function showGogSignIn() {
+  notify('Connect GOG', 'Open GOG sign-in, then paste the final redirect URL or its code here. Lezu uses the code once to load your owned Windows games.');
+  const fields = document.createElement('div'); fields.className = 'gog-auth';
+  const label = document.createElement('label'); label.textContent = 'GOG redirect URL or code';
+  const input = document.createElement('input'); input.type = 'text'; input.id = 'gog-code'; input.autocomplete = 'off'; input.spellcheck = false; input.maxLength = 2048; input.placeholder = 'Paste the final GOG URL or code';
+  label.append(input); fields.append(label);
+  const actions = document.createElement('div'); actions.className = 'dialog-actions';
+  const open = document.createElement('button'); open.type = 'button'; open.textContent = 'Open GOG sign-in'; open.dataset.action = 'open-gog-login';
+  const connect = document.createElement('button'); connect.type = 'button'; connect.className = 'primary'; connect.textContent = 'Connect account'; connect.dataset.action = 'submit-gog-code';
+  actions.append(open, connect); fields.append(actions);
+  required('form', notice).before(fields);
+}
+async function connectGog(code: string) {
+  notify('Connecting GOG', 'Verifying your one-time code…');
+  try { await gogConnect(code); await syncGog(); }
+  catch (reason) { notify('GOG sign-in failed', desktopErrorMessage(reason)); }
+}
+async function syncGog() {
+  notify('Loading GOG library', 'Fetching your owned Windows games…');
+  try {
+    const result = await gogSync();
+    await refreshLibrary();
+    notify('GOG library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+  } catch (reason) { notify('GOG library unavailable', desktopErrorMessage(reason)); }
+}
+async function disconnectGog() {
+  notify('Signing out of GOG', 'Removing the GOG session and owned-game entries…');
+  try { await gogDisconnect(); await refreshLibrary(); notify('GOG signed out', 'Installed game files were left in place.'); }
+  catch (reason) { notify('GOG sign-out failed', desktopErrorMessage(reason)); }
+}
+function showDownload() {
+  const selected = games.find(game => game.id === activeDownload);
+  const title = selected?.title ?? 'game';
+  notify('Downloading ' + title, downloadProgress === null
+    ? 'Downloading game files…' : `Downloaded ${downloadProgress}% of game data.`);
+  const actions = document.createElement('div'); actions.className = 'dialog-actions';
+  const cancel = document.createElement('button'); cancel.textContent = 'Cancel download'; cancel.dataset.action = selected?.source === 'gog' ? 'cancel-gog-download' : selected?.source === 'steam' ? 'cancel-steam-download' : 'cancel-epic-download';
   actions.append(cancel); required('form', notice).before(actions);
+}
+async function downloadGog(id: string) {
+  if (activeDownload) { showDownload(); return; }
+  const selected = games.find(game => game.id === id);
+  if (!selected?.owned || selected.source !== 'gog') return;
+  try {
+    const folder = await openFile({ multiple: false, directory: true, title: `Choose a library folder for ${selected.title}` });
+    if (typeof folder !== 'string') return;
+    activeDownload = id; downloadProgress = null; showDownload();
+    await gogInstall(id, folder);
+    await refreshLibrary();
+    notify('Download complete', `${selected.title} is installed.`);
+  } catch (reason) { notify('Download stopped', desktopErrorMessage(reason)); }
+  finally { activeDownload = null; downloadProgress = null; }
+}
+async function downloadSteam(id: string) {
+  if (activeDownload) { showDownload(); return; }
+  const selected = games.find(game => game.id === id);
+  if (!selected?.owned || selected.source !== 'steam') return;
+  try {
+    const folder = await openFile({ multiple: false, directory: true, title: `Choose a Steam library folder for ${selected.title}` });
+    if (typeof folder !== 'string') return;
+    activeDownload = id; downloadProgress = null; showDownload();
+    await steamInstall(id, folder);
+    await refreshLibrary();
+    notify('Download complete', `${selected.title} is installed.`);
+  } catch (reason) { notify('Download stopped', desktopErrorMessage(reason)); }
+  finally { activeDownload = null; downloadProgress = null; }
 }
 async function downloadEpic(id: string) {
   if (activeDownload) { showDownload(); return; }
@@ -384,6 +492,20 @@ async function playGame(id: string) {
     finally { launchRequests.delete(id); }
     return;
   }
+  if (selected?.source === 'gog' && selected.owned && selected.installed && !selected.installationId) {
+    launchRequests.add(id);
+    try { await gogLaunch(id); }
+    catch (reason) { notify('Game could not start', desktopErrorMessage(reason)); }
+    finally { launchRequests.delete(id); }
+    return;
+  }
+  if (selected?.source === 'steam' && selected.owned && selected.installed && !selected.installationId) {
+    launchRequests.add(id);
+    try { await steamLaunch(id); }
+    catch (reason) { notify('Game could not start', desktopErrorMessage(reason)); }
+    finally { launchRequests.delete(id); }
+    return;
+  }
   const installationId = selected?.installationId;
   if (!installationId) { notify('Installation unavailable', 'Select an installed game before playing.'); return; }
   launchRequests.add(id);
@@ -404,9 +526,9 @@ document.addEventListener('click', event => {
   if (!button) return;
   const { nav, source, play, game, action, screenshot } = button.dataset;
   if (nav === 'downloads') {
-    if (mode === 'demo') notify('Downloads unavailable', 'The browser preview uses sample games. Downloads are available in the Windows app for connected Epic games.');
+    if (mode === 'demo') notify('Downloads unavailable', 'The browser preview uses sample games. Downloads are available in the Windows app for connected store accounts.');
     else if (activeDownload) showDownload();
-    else notify('Downloads', 'No game is downloading right now. Open an owned Epic game to start a download.');
+    else notify('Downloads', 'No game is downloading right now. Open an owned game to start a download.');
   }
   else if (nav) {
     const fromSidebar = !!button.closest('nav');
@@ -456,8 +578,25 @@ document.addEventListener('click', event => {
   }
   else if (action === 'sync-epic' && mode === 'desktop') void syncEpic();
   else if (action === 'disconnect-epic' && mode === 'desktop') void disconnectEpic();
+  else if (action === 'connect-gog' && mode === 'desktop') showGogSignIn();
+  else if (action === 'open-gog-login' && mode === 'desktop') void openUrl(gogLoginUrl).catch(reason => notify('Could not open GOG sign-in', desktopErrorMessage(reason)));
+  else if (action === 'submit-gog-code' && mode === 'desktop') {
+    const code = required<HTMLInputElement>('#gog-code', notice).value.trim();
+    if (!code) { required<HTMLInputElement>('#gog-code', notice).focus(); return; }
+    void connectGog(code);
+  }
+  else if (action === 'sync-gog' && mode === 'desktop') void syncGog();
+  else if (action === 'disconnect-gog' && mode === 'desktop') void disconnectGog();
+  else if (action === 'connect-steam' && mode === 'desktop') void connectSteam();
+  else if (action === 'cancel-steam-login' && mode === 'desktop') { void steamCancel(); notice.close(); }
+  else if (action === 'sync-steam' && mode === 'desktop') void syncSteam();
+  else if (action === 'disconnect-steam' && mode === 'desktop') void disconnectSteam();
   else if (action === 'install-epic' && mode === 'desktop' && button.dataset.id) void downloadEpic(button.dataset.id);
+  else if (action === 'install-gog' && mode === 'desktop' && button.dataset.id) void downloadGog(button.dataset.id);
+  else if (action === 'install-steam' && mode === 'desktop' && button.dataset.id) void downloadSteam(button.dataset.id);
   else if (action === 'cancel-epic-download' && mode === 'desktop') void epicCancelDownload();
+  else if (action === 'cancel-gog-download' && mode === 'desktop') void gogCancelDownload();
+  else if (action === 'cancel-steam-download' && mode === 'desktop') void steamCancel();
   else if (action === 'install-update' && mode === 'desktop') void installAvailableUpdate();
   else if (action === 'review-candidate' && mode === 'desktop') {
     const candidate = scanCandidates[Number(button.dataset.index)];
@@ -485,7 +624,7 @@ document.addEventListener('click', event => {
   else if (action === 'settings') {
     notify(mode === 'demo' ? 'Preview settings' : 'Library settings', mode === 'demo'
       ? 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.'
-      : 'Connect Epic Games to add owned games, or find games already installed on this PC.');
+      : 'Connect a store account to add owned games, or find games already installed on this PC.');
     if (mode === 'desktop') {
       const actions = document.createElement('div'); actions.className = 'dialog-actions';
       const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
@@ -494,9 +633,26 @@ document.addEventListener('click', event => {
       const epic = document.createElement('button'); epic.textContent = 'Connect Epic Games'; epic.dataset.action = 'connect-epic';
       const syncEpicButton = document.createElement('button'); syncEpicButton.textContent = 'Refresh Epic library'; syncEpicButton.dataset.action = 'sync-epic';
       const disconnectEpicButton = document.createElement('button'); disconnectEpicButton.textContent = 'Sign out of Epic'; disconnectEpicButton.dataset.action = 'disconnect-epic';
+      const gog = document.createElement('button'); gog.textContent = 'Connect GOG'; gog.dataset.action = 'connect-gog';
+      const syncGogButton = document.createElement('button'); syncGogButton.textContent = 'Refresh GOG library'; syncGogButton.dataset.action = 'sync-gog';
+      const disconnectGogButton = document.createElement('button'); disconnectGogButton.textContent = 'Sign out of GOG'; disconnectGogButton.dataset.action = 'disconnect-gog';
+      const steam = document.createElement('button'); steam.textContent = 'Connect Steam'; steam.dataset.action = 'connect-steam';
+      const syncSteamButton = document.createElement('button'); syncSteamButton.textContent = 'Refresh Steam library'; syncSteamButton.dataset.action = 'sync-steam';
+      const disconnectSteamButton = document.createElement('button'); disconnectSteamButton.textContent = 'Sign out of Steam'; disconnectSteamButton.dataset.action = 'disconnect-steam';
       const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'artwork-settings';
       const update = document.createElement('button'); update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
-      actions.append(epic, syncEpicButton, disconnectEpicButton, stores, add, scan, artwork, update); required('form', notice).before(actions);
+      const accounts = document.createElement('section'); accounts.className = 'account-settings';
+      const heading = document.createElement('h3'); heading.textContent = 'Store accounts'; accounts.append(heading);
+      for (const [name, buttons] of [
+        ['Steam', [steam, syncSteamButton, disconnectSteamButton]],
+        ['Epic Games', [epic, syncEpicButton, disconnectEpicButton]],
+        ['GOG', [gog, syncGogButton, disconnectGogButton]],
+      ] as const) {
+        const row = document.createElement('div'); row.className = 'account-row';
+        const label = document.createElement('strong'); label.textContent = name;
+        row.append(label, ...buttons); accounts.append(row);
+      }
+      actions.append(accounts, stores, add, scan, artwork, update); required('form', notice).before(actions);
     }
   }
 });

@@ -25,6 +25,9 @@ export function desktopErrorMessage(value: unknown): string {
       if (/command\s+epic_connect\s+not found|unknown command.*epic_connect/i.test(value)) {
         return 'This copy of Lezu does not include Epic sign-in. Open the latest Lezu build.';
       }
+      if (/command\s+(gog_connect|steam_connect)\s+not found|unknown command.*(gog_connect|steam_connect)/i.test(value)) {
+        return 'This copy of Lezu does not include this store sign-in. Open the latest Lezu build.';
+      }
       return 'The desktop action failed. ' + value.slice(0, 300);
     }
   }
@@ -58,6 +61,54 @@ export async function epicCancelDownload(): Promise<void> {
 
 export async function epicLaunch(gameId: string): Promise<void> {
   return invoke<void>('epic_launch', { gameId });
+}
+
+export async function gogConnect(code: string): Promise<void> {
+  return invoke<void>('gog_connect', { code });
+}
+
+export async function gogSync(): Promise<{ connected: boolean; count: number }> {
+  return invoke<{ connected: boolean; count: number }>('gog_sync');
+}
+
+export async function gogDisconnect(): Promise<void> {
+  return invoke<void>('gog_disconnect');
+}
+
+export async function gogInstall(gameId: string, destination: string): Promise<void> {
+  return invoke<void>('gog_install', { gameId, destination });
+}
+
+export async function gogCancelDownload(): Promise<void> {
+  return invoke<void>('gog_cancel_download');
+}
+
+export async function gogLaunch(gameId: string): Promise<void> {
+  return invoke<void>('gog_launch', { gameId });
+}
+
+export async function steamConnect(): Promise<void> {
+  return invoke<void>('steam_connect');
+}
+
+export async function steamCancel(): Promise<void> {
+  return invoke<void>('steam_cancel');
+}
+
+export async function steamSync(): Promise<{ connected: boolean; count: number }> {
+  return invoke<{ connected: boolean; count: number }>('steam_sync');
+}
+
+export async function steamDisconnect(): Promise<void> {
+  return invoke<void>('steam_disconnect');
+}
+
+export async function steamInstall(gameId: string, destination: string): Promise<void> {
+  return invoke<void>('steam_install', { gameId, destination });
+}
+
+export async function steamLaunch(gameId: string): Promise<void> {
+  return invoke<void>('steam_launch', { gameId });
 }
 
 export async function addManualGame(path: string, title: string, workingDirectory: string): Promise<string> {

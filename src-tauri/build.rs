@@ -17,6 +17,18 @@ fn main() {
             "epic_install",
             "epic_cancel_download",
             "epic_launch",
+            "gog_connect",
+            "gog_sync",
+            "gog_disconnect",
+            "gog_install",
+            "gog_cancel_download",
+            "gog_launch",
+            "steam_connect",
+            "steam_cancel",
+            "steam_sync",
+            "steam_disconnect",
+            "steam_install",
+            "steam_launch",
         ]),
     ))
     .expect("failed to build Lezu desktop resources");

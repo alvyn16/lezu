@@ -11,8 +11,8 @@ export function details(game: Game, mode: LibraryMode = 'demo') {
   return `<section class="details-hero" aria-label="${escape(game.title)}">
     ${heroArt(game)}<div class="hero-shade"></div>${gameTitle(game, 'details-logo')}
     <p class="game-meta">${[game.developer, game.year, game.tags[0], provider?.name ?? 'Manual'].filter(Boolean).map(escape).join('<span>·</span>')}</p>
-    <div class="hero-actions">${!game.installed && game.owned && game.source === 'epic'
-      ? `<button class="primary" data-action="install-epic" data-id="${escape(game.id)}">${icon('download')} Download</button>`
+    <div class="hero-actions">${!game.installed && game.owned && (game.source === 'epic' || game.source === 'gog' || game.source === 'steam')
+      ? `<button class="primary" data-action="install-${game.source}" data-id="${escape(game.id)}">${icon('download')} Download</button>`
       : `<button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This game is not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button>`}<button class="icon-button" data-action="folder" aria-label="Open game folder">${icon('folder')}</button><button class="icon-button" data-action="more" aria-label="More game actions">${icon('more')}</button></div>
   </section>
   <div class="details-body">

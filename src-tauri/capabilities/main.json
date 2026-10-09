@@ -20,12 +20,24 @@
     "allow-epic-install",
     "allow-epic-cancel-download",
     "allow-epic-launch",
+    "allow-gog-connect",
+    "allow-gog-sync",
+    "allow-gog-disconnect",
+    "allow-gog-install",
+    "allow-gog-cancel-download",
+    "allow-gog-launch",
+    "allow-steam-connect",
+    "allow-steam-cancel",
+    "allow-steam-sync",
+    "allow-steam-disconnect",
+    "allow-steam-install",
+    "allow-steam-launch",
     "dialog:allow-open",
     "updater:default",
     "process:allow-restart",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://legendary.gl/epiclogin" }]
+      "allow": [{ "url": "https://legendary.gl/epiclogin" }, { "url": "https://auth.gog.com/auth?*" }]
     }
   ]
 }
