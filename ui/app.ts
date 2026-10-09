@@ -345,9 +345,9 @@ async function disconnectSteam() {
 }
 const gogLoginUrl = 'https://auth.gog.com/auth?client_id=46899977096215655&redirect_uri=https%3A%2F%2Fembed.gog.com%2Fon_login_success%3Forigin%3Dclient&response_type=code&layout=client2';
 function showGogSignIn() {
-  notify('Connect GOG', 'Open GOG sign-in, then paste the final redirect URL or its code here. Lezu uses the code once to load your owned Windows games.');
+  notify('Connect GOG', 'After sign-in, GOG may leave a blank browser page. Copy its full address-bar URL containing code= and paste it below. Do not paste your email or two-step verification code.');
   const fields = document.createElement('div'); fields.className = 'gog-auth';
-  const label = document.createElement('label'); label.textContent = 'GOG redirect URL or code';
+  const label = document.createElement('label'); label.textContent = 'Final GOG address-bar URL';
   const input = document.createElement('input'); input.type = 'text'; input.id = 'gog-code'; input.autocomplete = 'off'; input.spellcheck = false; input.maxLength = 2048; input.placeholder = 'Paste the final GOG URL or code';
   label.append(input); fields.append(label);
   const actions = document.createElement('div'); actions.className = 'dialog-actions';

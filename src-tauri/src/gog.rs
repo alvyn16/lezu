@@ -27,6 +27,7 @@ const ENGINE: EngineSpec = EngineSpec {
 
 #[derive(Debug, Deserialize)]
 struct Credentials {
+    #[serde(default)]
     access_token: String,
     #[serde(default)]
     error: bool,
@@ -116,19 +117,22 @@ fn credentials(
     }
     let account: Option<Credentials> = serde_json::from_slice(&output.stdout)
         .map_err(|_| error("gog_auth", "GOG sign-in returned an unexpected response."))?;
-    account
-        .filter(|value| !value.error && !value.access_token.is_empty())
-        .ok_or_else(|| {
-            error(
-                "gog_auth",
-                "Connect your GOG account before refreshing its library.",
-            )
-        })
+    match account {
+        Some(value) if value.error && code.is_some() => Err(error(
+            "gog_code_expired",
+            "GOG rejected this code. Open GOG sign-in again and copy the final address-bar URL immediately; do not use an email or two-step code.",
+        )),
+        Some(value) if !value.error && !value.access_token.is_empty() => Ok(value),
+        _ => Err(error(
+            "gog_auth",
+            "Connect your GOG account before refreshing its library.",
+        )),
+    }
 }
 
 fn code_from_input(input: &str) -> Result<String, CommandError> {
     let trimmed = input.trim();
-    let code = if trimmed.starts_with("https://") {
+    let code = if trimmed.to_ascii_lowercase().starts_with("https://") {
         let url = reqwest::Url::parse(trimmed)
             .map_err(|_| error("gog_code", "Paste the GOG redirect URL or its code."))?;
         if url.host_str() != Some("embed.gog.com") || url.path() != "/on_login_success" {
@@ -138,6 +142,8 @@ fn code_from_input(input: &str) -> Result<String, CommandError> {
             .find(|(key, _)| key == "code")
             .map(|(_, value)| value.to_string())
             .unwrap_or_default()
+    } else if let Some(code) = trimmed.strip_prefix("code=") {
+        code.to_owned()
     } else {
         trimmed.to_owned()
     };
@@ -147,7 +153,10 @@ fn code_from_input(input: &str) -> Result<String, CommandError> {
             .chars()
             .all(|value| value.is_ascii_alphanumeric() || value == '-' || value == '_')
     {
-        return Err(error("gog_code", "Paste a valid GOG authorization code."));
+        return Err(error(
+            "gog_code",
+            "Paste the final GOG address-bar URL after sign-in, not your email or two-step code.",
+        ));
     }
     Ok(code)
 }
@@ -513,7 +522,10 @@ mod tests {
                 .unwrap(),
             "ABC123"
         );
+        assert_eq!(code_from_input("code=ABC123").unwrap(), "ABC123");
         assert!(code_from_input("https://example.com/?code=ABC123").is_err());
+        let rejection: Credentials = serde_json::from_str(r#"{"error":true}"#).unwrap();
+        assert!(rejection.error);
     }
     #[test]
     fn sync_retains_installed_flag_only_for_existing_folder() {

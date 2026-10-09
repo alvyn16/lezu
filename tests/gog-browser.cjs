@@ -25,7 +25,7 @@ async page => {
   await page.getByRole('button', {name:'Settings'}).click();
   await page.getByRole('button', {name:'Connect GOG'}).click();
   await page.getByRole('button', {name:'Open GOG sign-in'}).click();
-  await page.getByLabel('GOG redirect URL or code').fill('https://embed.gog.com/on_login_success?origin=client&code=ABC123');
+  await page.getByLabel('Final GOG address-bar URL').fill('https://embed.gog.com/on_login_success?origin=client&code=ABC123');
   await page.getByRole('button', {name:'Connect account'}).click();
   await page.getByRole('heading', {name:'GOG library updated'}).waitFor();
   await page.getByRole('button', {name:'Close'}).click();
