@@ -189,6 +189,37 @@ fn parse_games(text: &str) -> Result<Vec<OwnedGame>, CommandError> {
     Ok(games)
 }
 
+fn authorization_code(input: &str) -> Result<String, CommandError> {
+    let trimmed = input.trim();
+    let value = if trimmed.starts_with('{') {
+        let response: serde_json::Value = serde_json::from_str(trimmed).map_err(|_| {
+            error(
+                "epic_code",
+                "Paste the authorizationCode from the Epic sign-in page.",
+            )
+        })?;
+        response
+            .get("authorizationCode")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("")
+            .to_owned()
+    } else {
+        trimmed.trim_matches('"').to_owned()
+    };
+    if value.is_empty()
+        || value.len() > 512
+        || !value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(error(
+            "epic_code",
+            "Paste a valid authorizationCode from the Epic sign-in page.",
+        ));
+    }
+    Ok(value)
+}
+
 fn sync_games(
     store: &LibraryStore,
     games: &[OwnedGame],
@@ -268,15 +299,31 @@ fn sync_games(
 pub async fn epic_connect(
     app: tauri::AppHandle,
     coordinator: State<'_, EpicCoordinator>,
+    code: String,
 ) -> Result<(), CommandError> {
     let _guard = coordinator.begin()?;
+    let code = authorization_code(&code)?;
     let base = app
         .path()
         .app_local_data_dir()
         .map_err(|_| error("engine_storage", "Could not locate Lezu data."))?;
     tauri::async_runtime::spawn_blocking(move || {
         let engine = engine_path(&base)?;
-        run(&engine, &["auth"])?;
+        run(&engine, &["auth", "--code", &code])?;
+        let status = run(&engine, &["status", "--offline", "--json"])?;
+        let status: serde_json::Value = serde_json::from_str(&status)
+            .map_err(|_| error("epic_response", "Could not verify the Epic sign-in."))?;
+        if status
+            .get("account")
+            .and_then(serde_json::Value::as_str)
+            .filter(|name| !name.is_empty() && *name != "<not logged in>")
+            .is_none()
+        {
+            return Err(error(
+                "epic_auth",
+                "Epic did not accept the code. Open the sign-in page again for a new code.",
+            ));
+        }
         Ok(())
     })
     .await
@@ -590,6 +637,16 @@ mod tests {
         assert_eq!(parse_percent("Downloaded 12.8%"), Some(12));
         assert_eq!(parse_percent("Downloaded 101%"), None);
         assert_eq!(parse_percent("waiting"), None);
+    }
+    #[test]
+    fn accepts_only_epic_authorization_codes() {
+        assert_eq!(authorization_code("abc123").unwrap(), "abc123");
+        assert_eq!(
+            authorization_code(r#"{"authorizationCode":"abc123"}"#).unwrap(),
+            "abc123"
+        );
+        assert!(authorization_code("https://example.com").is_err());
+        assert!(authorization_code("{invalid").is_err());
     }
     #[test]
     fn owned_sync_updates_install_status_and_removes_stale_games() {

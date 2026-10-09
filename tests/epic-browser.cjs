@@ -17,6 +17,7 @@ async page => {
         }]);
         if (command === 'plugin:event|listen') return Promise.resolve(1);
         if (command === 'plugin:event|unlisten') return Promise.resolve();
+        if (command === 'plugin:opener|open_url') return Promise.resolve();
         if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
         if (command === 'epic_install') { window.__epicInstalled = true; return Promise.resolve(); }
         if (command === 'epic_connect') return Promise.resolve();
@@ -38,6 +39,11 @@ async page => {
   await page.getByRole('button', {name:'Close'}).click();
   await page.getByRole('button', {name:'Settings'}).click();
   await page.getByRole('button', {name:'Connect Epic Games'}).click();
+  await page.getByRole('button', {name:'Open Epic sign-in'}).click();
+  await page.getByLabel('Epic authorization code').fill('abc123');
+  await page.getByRole('button', {name:'Connect account'}).click();
   await page.getByRole('heading', {name:'Epic library updated'}).waitFor();
+  const auth = (await page.evaluate(() => window.__epicCalls)).find(call => call.command === 'epic_connect');
+  if (auth?.args.code !== 'abc123') throw Error('Epic authorization code did not reach the desktop command');
   return {ownedDownload:'passed',accountSync:'passed'};
 }

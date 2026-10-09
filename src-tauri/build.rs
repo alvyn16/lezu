@@ -11,6 +11,12 @@ fn main() {
             "discover_stores",
             "import_store_games",
             "refresh_artwork",
+            "epic_connect",
+            "epic_sync",
+            "epic_disconnect",
+            "epic_install",
+            "epic_cancel_download",
+            "epic_launch",
         ]),
     ))
     .expect("failed to build Lezu desktop resources");

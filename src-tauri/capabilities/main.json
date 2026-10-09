@@ -14,8 +14,18 @@
     "allow-discover-stores",
     "allow-import-store-games",
     "allow-refresh-artwork",
+    "allow-epic-connect",
+    "allow-epic-sync",
+    "allow-epic-disconnect",
+    "allow-epic-install",
+    "allow-epic-cancel-download",
+    "allow-epic-launch",
     "dialog:allow-open",
     "updater:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://legendary.gl/epiclogin" }]
+    }
   ]
 }

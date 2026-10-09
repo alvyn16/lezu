@@ -18,6 +18,16 @@ export async function getRuntimeInfo(): Promise<RuntimeInfo | null> {
 export interface DesktopError { code: string; message: string; retryable: boolean }
 
 export function desktopErrorMessage(value: unknown): string {
+  if (typeof value === 'string') {
+    try {
+      return desktopErrorMessage(JSON.parse(value));
+    } catch {
+      if (/command\s+epic_connect\s+not found|unknown command.*epic_connect/i.test(value)) {
+        return 'This copy of Lezu does not include Epic sign-in. Open the latest Lezu build.';
+      }
+      return 'The desktop action failed. ' + value.slice(0, 300);
+    }
+  }
   if (value && typeof value === 'object' && 'message' in value && typeof value.message === 'string') return value.message;
   return 'The desktop action could not be completed.';
 }
@@ -26,8 +36,8 @@ export async function listLibrary() {
   return invoke<import('../domain/models').Game[]>('list_library');
 }
 
-export async function epicConnect(): Promise<void> {
-  return invoke<void>('epic_connect');
+export async function epicConnect(code: string): Promise<void> {
+  return invoke<void>('epic_connect', { code });
 }
 
 export async function epicSync(): Promise<{ connected: boolean; count: number }> {

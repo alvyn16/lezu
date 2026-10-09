@@ -10,6 +10,7 @@ import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { open as openFile } from '@tauri-apps/plugin-dialog';
+import { openUrl } from '@tauri-apps/plugin-opener';
 function required<T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T {
   const element = root.querySelector<T>(selector);
   if (!element) throw new Error(`Missing interface element: ${selector}`);
@@ -44,6 +45,7 @@ function notify(title: string, copy: string) {
   notice.querySelector('.dialog-actions')?.remove();
   notice.querySelector('.scan-results')?.remove();
   notice.querySelector('.artwork-settings')?.remove();
+  notice.querySelector('.epic-auth')?.remove();
   required('#notice-title').textContent = title;
   required('#notice-copy').textContent = copy;
   if (!notice.open) notice.showModal();
@@ -253,10 +255,23 @@ async function checkForUpdates() {
     notify('Update check failed', desktopErrorMessage(reason));
   }
 }
-async function connectEpic() {
-  notify('Connect Epic Games', 'Sign in using the Epic window opened by the verified Legendary engine. Lezu will then load your owned Windows games.');
+function showEpicSignIn() {
+  notify('Connect Epic Games', 'Open Epic sign-in, sign in to your account, then paste the authorizationCode shown on the page. Lezu uses it once and keeps the account session on this PC.');
+  const fields = document.createElement('div'); fields.className = 'epic-auth';
+  const address = document.createElement('p'); address.textContent = 'legendary.gl/epiclogin';
+  const label = document.createElement('label'); label.textContent = 'Epic authorization code';
+  const input = document.createElement('input'); input.type = 'text'; input.id = 'epic-code'; input.autocomplete = 'off'; input.spellcheck = false; input.maxLength = 2048; input.placeholder = 'Paste authorizationCode or the JSON response';
+  label.append(input); fields.append(address, label);
+  const actions = document.createElement('div'); actions.className = 'dialog-actions';
+  const open = document.createElement('button'); open.type = 'button'; open.textContent = 'Open Epic sign-in'; open.dataset.action = 'open-epic-login';
+  const connect = document.createElement('button'); connect.type = 'button'; connect.className = 'primary'; connect.textContent = 'Connect account'; connect.dataset.action = 'submit-epic-code';
+  actions.append(open, connect); fields.append(actions);
+  required('form', notice).before(fields);
+}
+async function connectEpic(code: string) {
+  notify('Connecting Epic Games', 'Verifying your one-time code and loading your owned games…');
   try {
-    await epicConnect();
+    await epicConnect(code);
     await syncEpic();
   } catch (reason) {
     notify('Epic sign-in failed', desktopErrorMessage(reason));
@@ -432,7 +447,13 @@ document.addEventListener('click', event => {
   else if (action === 'artwork-settings' && mode === 'desktop') showArtworkSettings();
   else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
   else if (action === 'check-update' && mode === 'desktop') void checkForUpdates();
-  else if (action === 'connect-epic' && mode === 'desktop') void connectEpic();
+  else if (action === 'connect-epic' && mode === 'desktop') showEpicSignIn();
+  else if (action === 'open-epic-login' && mode === 'desktop') void openUrl('https://legendary.gl/epiclogin').catch(reason => notify('Could not open Epic sign-in', desktopErrorMessage(reason)));
+  else if (action === 'submit-epic-code' && mode === 'desktop') {
+    const code = required<HTMLInputElement>('#epic-code', notice).value.trim();
+    if (!code) { required<HTMLInputElement>('#epic-code', notice).focus(); return; }
+    void connectEpic(code);
+  }
   else if (action === 'sync-epic' && mode === 'desktop') void syncEpic();
   else if (action === 'disconnect-epic' && mode === 'desktop') void disconnectEpic();
   else if (action === 'install-epic' && mode === 'desktop' && button.dataset.id) void downloadEpic(button.dataset.id);
