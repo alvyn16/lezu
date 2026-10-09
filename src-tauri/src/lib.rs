@@ -1,6 +1,7 @@
 mod artwork;
 mod commands;
 mod discovery;
+mod epic;
 mod launch;
 mod library;
 mod library_sync;
@@ -33,6 +34,7 @@ fn runtime_info(window: tauri::WebviewWindow) -> Result<RuntimeInfo, &'static st
 pub fn run() {
     tauri::Builder::default()
         .manage(discovery::ScanCoordinator::default())
+        .manage(epic::EpicCoordinator::default())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -57,6 +59,12 @@ pub fn run() {
             store_discovery::discover_stores,
             store_discovery::import_store_games,
             artwork::refresh_artwork,
+            epic::epic_connect,
+            epic::epic_sync,
+            epic::epic_disconnect,
+            epic::epic_install,
+            epic::epic_cancel_download,
+            epic::epic_launch,
         ])
         .run(tauri::generate_context!())
         .expect("Lezu could not start");

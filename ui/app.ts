@@ -5,7 +5,7 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
@@ -27,6 +27,8 @@ const launchRequests = new Set<string>();
 let scanCandidates: ScanCandidate[] = [];
 let storeCandidates: StoreCandidate[] = [];
 let availableUpdate: Awaited<ReturnType<typeof check>> = null;
+let activeDownload: string | null = null;
+let downloadProgress: number | null = null;
 let scanSequence = 0;
 let activeScanSequence: number | null = null;
 let state = initialState();
@@ -251,6 +253,66 @@ async function checkForUpdates() {
     notify('Update check failed', desktopErrorMessage(reason));
   }
 }
+async function connectEpic() {
+  notify('Connect Epic Games', 'Sign in using the Epic window opened by the verified Legendary engine. Lezu will then load your owned Windows games.');
+  try {
+    await epicConnect();
+    await syncEpic();
+  } catch (reason) {
+    notify('Epic sign-in failed', desktopErrorMessage(reason));
+  }
+}
+async function syncEpic() {
+  notify('Loading Epic library', 'Fetching your owned Windows games…');
+  try {
+    const result = await epicSync();
+    await refreshLibrary();
+    notify('Epic library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+  } catch (reason) {
+    notify('Epic library unavailable', desktopErrorMessage(reason));
+  }
+}
+async function disconnectEpic() {
+  notify('Signing out of Epic', 'Removing the Epic session and owned-game entries from Lezu…');
+  try {
+    await epicDisconnect();
+    await refreshLibrary();
+    notify('Epic signed out', 'Installed game files were left in place.');
+  } catch (reason) { notify('Epic sign-out failed', desktopErrorMessage(reason)); }
+}
+function showDownload() {
+  const title = games.find(game => game.id === activeDownload)?.title ?? 'Epic game';
+  notify('Downloading ' + title, downloadProgress === null
+    ? 'Preparing the download…' : `Downloaded ${downloadProgress}% of game data.`);
+  const actions = document.createElement('div'); actions.className = 'dialog-actions';
+  const cancel = document.createElement('button'); cancel.textContent = 'Cancel download'; cancel.dataset.action = 'cancel-epic-download';
+  actions.append(cancel); required('form', notice).before(actions);
+}
+async function downloadEpic(id: string) {
+  if (activeDownload) { showDownload(); return; }
+  const selected = games.find(game => game.id === id);
+  if (!selected?.owned || selected.source !== 'epic') return;
+  try {
+    const folder = await openFile({ multiple: false, directory: true, title: `Choose where to install ${selected.title}` });
+    if (typeof folder !== 'string') return;
+    activeDownload = id;
+    downloadProgress = null;
+    showDownload();
+    const unlisten = await listen<{ gameId: string; percent: number | null }>('epic-download-progress', event => {
+      if (event.payload.gameId !== activeDownload) return;
+      downloadProgress = event.payload.percent;
+      if (notice.open) required('#notice-copy').textContent = downloadProgress === null
+        ? 'Downloading…' : `Downloaded ${downloadProgress}% of game data.`;
+    });
+    try {
+      await epicInstall(id, folder);
+      await refreshLibrary();
+      notify('Download complete', `${selected.title} is installed.`);
+    } finally { unlisten(); }
+  } catch (reason) {
+    notify('Download stopped', desktopErrorMessage(reason));
+  } finally { activeDownload = null; downloadProgress = null; }
+}
 async function installAvailableUpdate() {
   const update = availableUpdate;
   if (!update) return;
@@ -299,7 +361,15 @@ addGameForm.addEventListener('submit', event => {
 });
 async function playGame(id: string) {
   if (launchRequests.has(id)) return;
-  const installationId = games.find(game => game.id === id)?.installationId;
+  const selected = games.find(game => game.id === id);
+  if (selected?.source === 'epic' && selected.owned && selected.installed) {
+    launchRequests.add(id);
+    try { await epicLaunch(id); }
+    catch (reason) { notify('Game could not start', desktopErrorMessage(reason)); }
+    finally { launchRequests.delete(id); }
+    return;
+  }
+  const installationId = selected?.installationId;
   if (!installationId) { notify('Installation unavailable', 'Select an installed game before playing.'); return; }
   launchRequests.add(id);
   try { await launchInstallation(installationId); }
@@ -318,7 +388,11 @@ document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button) return;
   const { nav, source, play, game, action, screenshot } = button.dataset;
-  if (nav === 'downloads') notify('Downloads unavailable', 'Downloads aren’t available yet.');
+  if (nav === 'downloads') {
+    if (mode === 'demo') notify('Downloads unavailable', 'The browser preview uses sample games. Downloads are available in the Windows app for connected Epic games.');
+    else if (activeDownload) showDownload();
+    else notify('Downloads', 'No game is downloading right now. Open an owned Epic game to start a download.');
+  }
   else if (nav) {
     const fromSidebar = !!button.closest('nav');
     state = navigate(state, nav); render(); window.scrollTo(0, 0);
@@ -358,6 +432,11 @@ document.addEventListener('click', event => {
   else if (action === 'artwork-settings' && mode === 'desktop') showArtworkSettings();
   else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
   else if (action === 'check-update' && mode === 'desktop') void checkForUpdates();
+  else if (action === 'connect-epic' && mode === 'desktop') void connectEpic();
+  else if (action === 'sync-epic' && mode === 'desktop') void syncEpic();
+  else if (action === 'disconnect-epic' && mode === 'desktop') void disconnectEpic();
+  else if (action === 'install-epic' && mode === 'desktop' && button.dataset.id) void downloadEpic(button.dataset.id);
+  else if (action === 'cancel-epic-download' && mode === 'desktop') void epicCancelDownload();
   else if (action === 'install-update' && mode === 'desktop') void installAvailableUpdate();
   else if (action === 'review-candidate' && mode === 'desktop') {
     const candidate = scanCandidates[Number(button.dataset.index)];
@@ -385,15 +464,18 @@ document.addEventListener('click', event => {
   else if (action === 'settings') {
     notify(mode === 'demo' ? 'Preview settings' : 'Library settings', mode === 'demo'
       ? 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.'
-      : 'Find installed games in Steam, Epic Games, and GOG, or scan another folder. Review new games before adding them.');
+      : 'Connect Epic Games to add owned games, or find games already installed on this PC.');
     if (mode === 'desktop') {
       const actions = document.createElement('div'); actions.className = 'dialog-actions';
       const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
       const scan = document.createElement('button'); scan.textContent = 'Scan a folder'; scan.dataset.action = 'scan-folder';
       const stores = document.createElement('button'); stores.textContent = 'Find installed games'; stores.dataset.action = 'scan-stores';
+      const epic = document.createElement('button'); epic.textContent = 'Connect Epic Games'; epic.dataset.action = 'connect-epic';
+      const syncEpicButton = document.createElement('button'); syncEpicButton.textContent = 'Refresh Epic library'; syncEpicButton.dataset.action = 'sync-epic';
+      const disconnectEpicButton = document.createElement('button'); disconnectEpicButton.textContent = 'Sign out of Epic'; disconnectEpicButton.dataset.action = 'disconnect-epic';
       const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'artwork-settings';
       const update = document.createElement('button'); update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
-      actions.append(stores, add, scan, artwork, update); required('form', notice).before(actions);
+      actions.append(epic, syncEpicButton, disconnectEpicButton, stores, add, scan, artwork, update); required('form', notice).before(actions);
     }
   }
 });
@@ -415,7 +497,7 @@ document.addEventListener('error', event => {
 }, true);
 render();
 if (isDesktop()) {
-  required('.preview-label').textContent = 'Desktop · local library';
+  required('.preview-label').textContent = 'Desktop · your library';
   void refreshLibrary();
   getRuntimeInfo().then(info => {
     if (info?.libraryMode !== 'desktop') notify('Desktop version mismatch', 'The desktop host and library interface are out of sync. Restart Lezu.');

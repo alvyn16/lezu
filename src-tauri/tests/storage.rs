@@ -26,7 +26,7 @@ fn creates_and_reopens_library_without_losing_records() {
         let version: i64 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
     }
     std::fs::remove_file(path).unwrap();
 }
@@ -58,9 +58,45 @@ fn upgrades_existing_v1_library_without_losing_games() {
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .unwrap(),
-        2
+        3
     );
     assert!(db.prepare("SELECT store_id FROM installations").is_ok());
+    drop(db);
+    drop(store);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn upgrades_v2_library_with_owned_game_table() {
+    let path = std::env::temp_dir().join(format!("lezu-storage-{}.db", uuid::Uuid::new_v4()));
+    let db = Connection::open(&path).unwrap();
+    db.execute_batch(
+        "CREATE TABLE games (id TEXT PRIMARY KEY, title TEXT NOT NULL, source TEXT NOT NULL, added_at INTEGER NOT NULL);
+         INSERT INTO games VALUES ('old', 'Existing Game', 'steam', 0);
+         PRAGMA user_version = 2;",
+    ).unwrap();
+    drop(db);
+    let store = library::LibraryStore::open(&path).unwrap();
+    let db = store.0.lock().unwrap();
+    db.execute(
+        "INSERT INTO owned_games(provider,provider_id,game_id) VALUES('steam','123','old')",
+        [],
+    )
+    .unwrap();
+    let installed: i64 = db
+        .query_row(
+            "SELECT installed FROM owned_games WHERE provider_id='123'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(installed, 0);
+    let title: String = db
+        .query_row("SELECT title FROM games WHERE id='old'", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(title, "Existing Game");
     drop(db);
     drop(store);
     std::fs::remove_file(path).unwrap();

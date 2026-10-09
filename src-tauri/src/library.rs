@@ -42,7 +42,14 @@ impl LibraryStore {
                         image BLOB NOT NULL,
                         PRIMARY KEY(game_id, kind)
                     );
-                    PRAGMA user_version = 2;",
+                    CREATE TABLE owned_games (
+                        provider TEXT NOT NULL,
+                        provider_id TEXT NOT NULL,
+                        game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                        installed INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(provider, provider_id)
+                    );
+                    PRAGMA user_version = 3;",
                 )?;
                 migration.commit()?;
             }
@@ -57,11 +64,30 @@ impl LibraryStore {
                          image BLOB NOT NULL,
                          PRIMARY KEY(game_id, kind)
                      );
-                     PRAGMA user_version = 2;",
+                     CREATE TABLE owned_games (
+                         provider TEXT NOT NULL,
+                         provider_id TEXT NOT NULL,
+                         game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                         installed INTEGER NOT NULL DEFAULT 0,
+                         PRIMARY KEY(provider, provider_id)
+                     );
+                     PRAGMA user_version = 3;",
                 )?;
                 migration.commit()?;
             }
-            2 => {}
+            2 => {
+                connection.execute_batch(
+                    "CREATE TABLE owned_games (
+                         provider TEXT NOT NULL,
+                         provider_id TEXT NOT NULL,
+                         game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                         installed INTEGER NOT NULL DEFAULT 0,
+                         PRIMARY KEY(provider, provider_id)
+                     );
+                     PRAGMA user_version = 3;",
+                )?;
+            }
+            3 => {}
             future => {
                 return Err(
                     format!("Library schema version {future} is newer than this app").into(),

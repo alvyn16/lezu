@@ -36,6 +36,7 @@ pub struct GameView {
     title: String,
     source: String,
     installed: bool,
+    owned: bool,
     installation_id: Option<String>,
     played: Option<String>,
     last_played: Option<String>,
@@ -67,7 +68,8 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
     let mut statement = connection
         .prepare(
             "SELECT g.id, g.title, g.source, i.id, i.install_state,
-                    cover.mime, cover.image, hero.mime, hero.image
+                    cover.mime, cover.image, hero.mime, hero.image,
+                    owned.provider_id, owned.installed
              FROM games g LEFT JOIN installations i ON i.id = (
                  SELECT candidate.id FROM installations candidate
                  WHERE candidate.game_id = g.id
@@ -77,6 +79,7 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
              )
              LEFT JOIN artwork cover ON cover.game_id = g.id AND cover.kind = 'cover'
              LEFT JOIN artwork hero ON hero.game_id = g.id AND hero.kind = 'hero'
+             LEFT JOIN owned_games owned ON owned.game_id = g.id
              ORDER BY g.title COLLATE NOCASE, g.id",
         )
         .map_err(|_| database_error())?;
@@ -91,7 +94,9 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
                 id: row.get(0)?,
                 title: row.get(1)?,
                 source: row.get(2)?,
-                installed: state.as_deref() == Some("installed"),
+                installed: state.as_deref() == Some("installed")
+                    || row.get::<_, Option<i64>>(10)? == Some(1),
+                owned: row.get::<_, Option<String>>(9)?.is_some(),
                 installation_id: row.get(3)?,
                 played: None,
                 last_played: None,

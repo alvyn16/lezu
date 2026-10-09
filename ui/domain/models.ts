@@ -7,6 +7,7 @@ export interface Game {
   title: string;
   source: ProviderId | 'manual';
   installed: boolean;
+  owned?: boolean;
   installationId?: string | null;
   played: string | null;
   lastPlayed: string | null;

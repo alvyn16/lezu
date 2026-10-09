@@ -20,7 +20,7 @@ export function gameCard(game: Game, mode: LibraryMode = 'demo') {
       ${game.installed ? `<button class="cover-play primary" data-play="${game.id}" aria-label="Play ${escape(game.title)}">${icon('play')} Play</button>` : ''}
     </div>
     <h3 title="${escape(game.title)}">${escape(game.title)}</h3>
-    <p class="card-caption">${providerMark(game.source)} ${provider?.name ?? 'Manual'} <span>· ${game.installed ? (game.size ?? (mode === 'demo' ? 'Demo game' : 'Installed')) : 'Not installed'}</span></p>
+    <p class="card-caption">${providerMark(game.source)} ${provider?.name ?? 'Manual'} <span>· ${game.installed ? (game.size ?? (mode === 'demo' ? 'Demo game' : 'Installed')) : game.owned ? 'Owned · Not installed' : 'Not installed'}</span></p>
   </article>`;
 }
 export function shelf(games: readonly Game[], mode: LibraryMode = 'demo') {
@@ -40,7 +40,9 @@ export function home(game: Game | null, games: readonly Game[], state: LibrarySt
   return `<section class="home-hero" aria-label="Continue playing">
     ${heroArt(game)}<div class="hero-shade"></div>
     ${game ? `${gameTitle(game, 'home-logo')}
-      <div class="hero-actions"><button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This demo game is marked as not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button><button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
+      <div class="hero-actions">${!game.installed && game.owned && game.source === 'epic'
+        ? `<button class="primary" data-action="install-epic" data-id="${escape(game.id)}">${icon('download')} Download</button>`
+        : `<button class="primary" data-play="${game.id}" ${!game.installed ? 'disabled title="This game is not installed"' : ''}>${icon('play')} ${game.installed ? 'Play' : 'Not installed'}</button>`}<button class="icon-button" data-game="${game.id}" aria-label="About ${escape(game.title)}">${icon('info')}</button></div>`
       : mode === 'desktop' ? '<div class="hero-empty"><p>Your library is empty.</p><button class="primary" data-action="add-manual">Add a game</button></div>' : '<p class="hero-empty">Turn on a store below to show its demo games.</p>'}
     </section>
     <section class="ready-section" aria-labelledby="ready-heading"><div class="section-head"><h2 id="ready-heading">Ready to Play</h2><button class="text-button" data-nav="all">See All <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button></div>${shelf(games.filter(game => game.installed), mode)}</section>
@@ -48,5 +50,8 @@ export function home(game: Game | null, games: readonly Game[], state: LibrarySt
 }
 export function library(games: readonly Game[], state: LibraryState, mode: LibraryMode = 'demo') {
   const title = state.query ? 'Search results' : state.installedOnly ? 'Installed' : providers.find(p => p.id === state.source)?.name ?? 'All Games';
-  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${shelf(games, mode)}</section>`;
+  const content = mode === 'desktop' && state.source === 'epic' && !games.length && !state.query
+    ? '<div class="empty-state" role="status"><h2>Your Epic library is empty</h2><p>Connect your Epic account to see owned games.</p><button data-action="connect-epic">Connect Epic Games</button></div>'
+    : shelf(games, mode);
+  return `<section class="library-section"><div class="section-head"><h2>${title}</h2><p class="results-count" role="status">${games.length} ${games.length === 1 ? 'game' : 'games'}</p></div>${content}</section>`;
 }

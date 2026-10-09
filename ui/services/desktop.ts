@@ -26,6 +26,30 @@ export async function listLibrary() {
   return invoke<import('../domain/models').Game[]>('list_library');
 }
 
+export async function epicConnect(): Promise<void> {
+  return invoke<void>('epic_connect');
+}
+
+export async function epicSync(): Promise<{ connected: boolean; count: number }> {
+  return invoke<{ connected: boolean; count: number }>('epic_sync');
+}
+
+export async function epicDisconnect(): Promise<void> {
+  return invoke<void>('epic_disconnect');
+}
+
+export async function epicInstall(gameId: string, destination: string): Promise<void> {
+  return invoke<void>('epic_install', { gameId, destination });
+}
+
+export async function epicCancelDownload(): Promise<void> {
+  return invoke<void>('epic_cancel_download');
+}
+
+export async function epicLaunch(gameId: string): Promise<void> {
+  return invoke<void>('epic_launch', { gameId });
+}
+
 export async function addManualGame(path: string, title: string, workingDirectory: string): Promise<string> {
   return invoke<string>('add_manual_game', { executablePath: path, title, workingDirectory });
 }
