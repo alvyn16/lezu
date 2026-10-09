@@ -2,6 +2,7 @@ async page => {
   await page.addInitScript(() => {
     window.isTauri = true;
     window.__storeImports = [];
+    window.__artworkCalls = [];
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
       transformCallback() { return 1; },
@@ -18,7 +19,10 @@ async page => {
           window.__storeImports.push(args.candidates);
           return Promise.resolve(args.candidates.length);
         }
-        if (command === 'refresh_artwork') return Promise.resolve({updated:0,unavailable:1});
+        if (command === 'refresh_artwork') {
+          window.__artworkCalls.push(args);
+          return Promise.resolve({updated:0,unavailable:1});
+        }
         throw Error('Unexpected desktop command: ' + command);
       },
     };
@@ -35,8 +39,8 @@ async page => {
   await page.getByRole('button', {name:'Close'}).click();
   await page.getByRole('button', {name:'Settings'}).click();
   await page.getByRole('button', {name:'Find game covers'}).click();
-  await page.getByLabel('IGDB Client ID').waitFor();
-  await page.getByRole('button', {name:'Refresh covers'}).click();
   await page.getByRole('heading', {name:'Artwork refreshed'}).waitFor();
-  return {storeDiscovery:'passed',reviewedImport:'passed',artworkSettings:'passed'};
+  const artworkCalls = await page.evaluate(() => window.__artworkCalls);
+  if (artworkCalls.length < 1 || artworkCalls.some(args => args && ('clientId' in args || 'clientSecret' in args))) throw Error('Artwork still requires credentials');
+  return {storeDiscovery:'passed',reviewedImport:'passed',keylessArtwork:'passed'};
 }

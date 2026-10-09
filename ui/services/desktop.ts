@@ -161,6 +161,6 @@ export async function importStoreGames(candidates: StoreCandidate[]): Promise<nu
 }
 
 export interface ArtworkReport { updated: number; unavailable: number }
-export async function refreshArtwork(clientId?: string, clientSecret?: string): Promise<ArtworkReport> {
-  return invoke<ArtworkReport>('refresh_artwork', { clientId, clientSecret });
+export async function refreshArtwork(): Promise<ArtworkReport> {
+  return invoke<ArtworkReport>('refresh_artwork');
 }

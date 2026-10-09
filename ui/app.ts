@@ -46,7 +46,6 @@ function notify(title: string, copy: string) {
   notice.querySelector('.notice-image')?.remove();
   notice.querySelector('.dialog-actions')?.remove();
   notice.querySelector('.scan-results')?.remove();
-  notice.querySelector('.artwork-settings')?.remove();
   notice.querySelector('.epic-auth')?.remove();
   notice.querySelector('.gog-auth')?.remove();
   notice.querySelector('.steam-auth')?.remove();
@@ -218,30 +217,12 @@ async function addStoreGames(selected: StoreCandidate[]) {
     notify('Could not add games', desktopErrorMessage(reason));
   }
 }
-function showArtworkSettings() {
-  notify('Find game covers', 'Steam covers can be recovered automatically. For Epic, GOG, and manually added games, you can optionally enter IGDB credentials for this refresh. They are not saved.');
-  const fields = document.createElement('div'); fields.className = 'artwork-settings';
-  for (const [id, labelText, type] of [
-    ['igdb-client-id', 'IGDB Client ID', 'text'],
-    ['igdb-secret', 'IGDB Client Secret', 'password'],
-  ]) {
-    const label = document.createElement('label'); label.textContent = labelText;
-    const input = document.createElement('input'); input.id = id; input.type = type; input.autocomplete = 'off';
-    label.append(input); fields.append(label);
-  }
-  const actions = document.createElement('div'); actions.className = 'dialog-actions';
-  const button = document.createElement('button'); button.textContent = 'Refresh covers'; button.className = 'primary';
-  button.dataset.action = 'refresh-artwork'; actions.append(button);
-  required('form', notice).before(fields, actions);
-}
 async function updateArtwork() {
-  const clientId = required<HTMLInputElement>('#igdb-client-id').value.trim();
-  const clientSecret = required<HTMLInputElement>('#igdb-secret').value.trim();
-  notify('Finding game covers', 'Checking local Steam artwork and available cover sources…');
+  notify('Finding game covers', 'Checking game folders and store artwork…');
   try {
-    const report = await refreshArtwork(clientId || undefined, clientSecret || undefined);
+    const report = await refreshArtwork();
     await refreshLibrary();
-    notify('Artwork refreshed', report.updated + ' images added. ' + report.unavailable + ' images are still unavailable.');
+    notify('Artwork refreshed', report.updated + ' images added. ' + report.unavailable + ' images are still unavailable. For games without store artwork, add cover.jpg or hero.jpg to the game folder and try again.');
   } catch (reason) {
     notify('Artwork refresh failed', desktopErrorMessage(reason));
   }
@@ -288,6 +269,7 @@ async function syncEpic() {
     const result = await epicSync();
     await refreshLibrary();
     notify('Epic library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
   } catch (reason) {
     notify('Epic library unavailable', desktopErrorMessage(reason));
   }
@@ -336,6 +318,7 @@ async function syncSteam() {
     const result = await steamSync();
     await refreshLibrary();
     notify('Steam library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
   } catch (reason) { notify('Steam library unavailable', desktopErrorMessage(reason)); }
 }
 async function disconnectSteam() {
@@ -367,6 +350,7 @@ async function syncGog() {
     const result = await gogSync();
     await refreshLibrary();
     notify('GOG library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
+    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
   } catch (reason) { notify('GOG library unavailable', desktopErrorMessage(reason)); }
 }
 async function disconnectGog() {
@@ -566,7 +550,6 @@ document.addEventListener('click', event => {
     if (candidate) void addStoreGames([candidate]);
   }
   else if (action === 'import-all-stores' && mode === 'desktop') void addStoreGames(storeCandidates);
-  else if (action === 'artwork-settings' && mode === 'desktop') showArtworkSettings();
   else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
   else if (action === 'check-update' && mode === 'desktop') void checkForUpdates();
   else if (action === 'connect-epic' && mode === 'desktop') showEpicSignIn();
@@ -639,7 +622,7 @@ document.addEventListener('click', event => {
       const steam = document.createElement('button'); steam.textContent = 'Connect Steam'; steam.dataset.action = 'connect-steam';
       const syncSteamButton = document.createElement('button'); syncSteamButton.textContent = 'Refresh Steam library'; syncSteamButton.dataset.action = 'sync-steam';
       const disconnectSteamButton = document.createElement('button'); disconnectSteamButton.textContent = 'Sign out of Steam'; disconnectSteamButton.dataset.action = 'disconnect-steam';
-      const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'artwork-settings';
+      const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'refresh-artwork';
       const update = document.createElement('button'); update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
       const accounts = document.createElement('section'); accounts.className = 'account-settings';
       const heading = document.createElement('h3'); heading.textContent = 'Store accounts'; accounts.append(heading);

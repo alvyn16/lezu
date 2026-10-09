@@ -48,9 +48,6 @@
 .scan-result strong, .scan-result small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scan-result small { color: var(--muted); }
 .scan-result button { flex: none; }
-.artwork-settings { display: grid; gap: 12px; margin-bottom: 18px; }
-.artwork-settings label { display: grid; gap: 6px; font-size: var(--font-caption); }
-.artwork-settings input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-small); color: var(--text); background: #ffffff18; font: inherit; }
 .epic-auth { display: grid; gap: 12px; margin: 8px 0 18px; }
 .epic-auth p { margin: 0; color: var(--muted); font-size: var(--font-caption); }
 .epic-auth label { display: grid; gap: 7px; font-size: var(--font-caption); }

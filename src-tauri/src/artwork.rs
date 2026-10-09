@@ -15,30 +15,13 @@ use std::{
 };
 use tauri::{Manager, State};
 
-const MAX_IMAGE_BYTES: usize = 2_000_000;
+const MAX_IMAGE_BYTES: usize = 5_000_000;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtworkReport {
     updated: usize,
     unavailable: usize,
-}
-
-#[derive(Deserialize)]
-struct IgdbGame {
-    name: String,
-    cover: Option<IgdbCover>,
-    screenshots: Option<Vec<IgdbCover>>,
-}
-
-#[derive(Deserialize)]
-struct IgdbCover {
-    image_id: String,
-}
-
-#[derive(Deserialize)]
-struct TwitchToken {
-    access_token: String,
 }
 
 #[derive(Deserialize)]
@@ -267,80 +250,16 @@ fn steam_artwork(
     )
 }
 
-fn igdb_token(client: &Client, client_id: &str, secret: &str) -> Option<String> {
-    let response = client
-        .post("https://id.twitch.tv/oauth2/token")
-        .query(&[
-            ("client_id", client_id),
-            ("client_secret", secret),
-            ("grant_type", "client_credentials"),
-        ])
-        .send()
-        .ok()?
-        .error_for_status()
-        .ok()?;
-    response
-        .json::<TwitchToken>()
-        .ok()
-        .map(|token| token.access_token)
-}
-
-fn igdb_artwork(
-    client: &Client,
-    client_id: &str,
-    token: &str,
-    title: &str,
-    kind: &str,
-) -> Option<(String, Vec<u8>)> {
-    let safe_title = title.replace(['"', '\\', '\n', '\r'], " ");
-    let query = format!(
-        "fields name,cover.image_id,screenshots.image_id; search \"{safe_title}\"; limit 10;"
-    );
-    let results = client
-        .post("https://api.igdb.com/v4/games")
-        .header("Client-ID", client_id)
-        .header("Authorization", format!("Bearer {token}"))
-        .body(query)
-        .send()
-        .ok()?
-        .error_for_status()
-        .ok()?
-        .json::<Vec<IgdbGame>>()
-        .ok()?;
-    let game = results
-        .into_iter()
-        .find(|game| game.name.eq_ignore_ascii_case(title))?;
-    let image_id = if kind == "cover" {
-        game.cover?.image_id
-    } else {
-        game.screenshots?.into_iter().next()?.image_id
-    };
-    if !image_id.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
-        return None;
-    }
-    let size = if kind == "cover" {
-        "cover_big"
-    } else {
-        "screenshot_big"
-    };
-    download_image(
-        client,
-        &format!("https://images.igdb.com/igdb/image/upload/t_{size}/{image_id}.jpg"),
-    )
-}
-
 #[tauri::command]
 pub async fn refresh_artwork(
     app: tauri::AppHandle,
     store: State<'_, LibraryStore>,
-    client_id: Option<String>,
-    client_secret: Option<String>,
 ) -> Result<ArtworkReport, CommandError> {
     let targets = {
         let connection = store.0.lock().map_err(|_| database_error())?;
         let mut statement = connection
             .prepare(
-                "SELECT g.id, g.title, g.source, COALESCE(i.store_id,o.provider_id), i.working_dir,
+                "SELECT g.id, g.source, COALESCE(i.store_id,o.provider_id), i.working_dir,
                     cover.game_id IS NULL, hero.game_id IS NULL, p.value FROM games g
              LEFT JOIN installations i ON i.id = (
                  SELECT candidate.id FROM installations candidate WHERE candidate.game_id = g.id
@@ -350,7 +269,7 @@ pub async fn refresh_artwork(
              LEFT JOIN preferences p ON p.key = 'gog-cover:' || o.provider_id
              LEFT JOIN artwork cover ON cover.game_id = g.id AND cover.kind = 'cover'
              LEFT JOIN artwork hero ON hero.game_id = g.id AND hero.kind = 'hero'
-             WHERE cover.game_id IS NULL OR hero.game_id IS NULL ORDER BY g.added_at LIMIT 100",
+             WHERE cover.game_id IS NULL OR hero.game_id IS NULL ORDER BY g.added_at",
             )
             .map_err(|_| database_error())?;
         let rows = statement
@@ -358,12 +277,11 @@ pub async fn refresh_artwork(
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(2)?,
                     row.get::<_, Option<String>>(3)?,
-                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, bool>(4)?,
                     row.get::<_, bool>(5)?,
-                    row.get::<_, bool>(6)?,
-                    row.get::<_, Option<String>>(7)?,
+                    row.get::<_, Option<String>>(6)?,
                 ))
             })
             .map_err(|_| database_error())?
@@ -371,26 +289,10 @@ pub async fn refresh_artwork(
             .map_err(|_| database_error())?;
         rows
     };
-    let supplied = client_id
-        .as_deref()
-        .is_some_and(|text| !text.trim().is_empty())
-        || client_secret
-            .as_deref()
-            .is_some_and(|text| !text.trim().is_empty());
-    if supplied
-        && (!client_id.as_deref().is_some_and(|text| !text.is_empty())
-            || !client_secret
-                .as_deref()
-                .is_some_and(|text| !text.is_empty()))
-    {
-        return Err(error(
-            "igdb_credentials",
-            "Enter both IGDB Client ID and secret.",
-        ));
-    }
-    let downloaded = tauri::async_runtime::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || {
         let client = Client::builder()
             .timeout(Duration::from_secs(12))
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|_| error("artwork_network", "Artwork networking is unavailable."))?;
         let roots = StoreRoots::windows_defaults();
@@ -399,18 +301,9 @@ pub async fn refresh_artwork(
             .app_local_data_dir()
             .map_err(|_| error("artwork_storage", "Could not locate Lezu data."))?;
         let epic = epic_images(&base);
-        let token = match (client_id.as_deref(), client_secret.as_deref()) {
-            (Some(id), Some(secret)) if !id.is_empty() && !secret.is_empty() => {
-                Some(igdb_token(&client, id, secret).ok_or_else(|| {
-                    error("igdb_credentials", "IGDB did not accept these credentials.")
-                })?)
-            }
-            _ => None,
-        };
-        let mut images = Vec::new();
+        let mut updated = 0;
         let mut total = 0;
-        for (id, title, source, store_id, working_dir, need_cover, need_hero, gog_cover) in targets
-        {
+        for (id, source, store_id, working_dir, need_cover, need_hero, gog_cover) in targets {
             for (kind, needed) in [("cover", need_cover), ("hero", need_hero)] {
                 if !needed {
                     continue;
@@ -441,39 +334,26 @@ pub async fn refresh_artwork(
                         } else {
                             None
                         }
-                    })
-                    .or_else(|| match (client_id.as_deref(), token.as_deref()) {
-                        (Some(client_id), Some(token)) => {
-                            igdb_artwork(&client, client_id, token, &title, kind)
-                        }
-                        _ => None,
                     });
                 if let Some((mime, bytes)) = image {
-                    images.push((id.clone(), kind, mime, bytes));
+                    let store = app.state::<LibraryStore>();
+                    let connection = store.0.lock().map_err(|_| database_error())?;
+                    updated += connection
+                        .execute(
+                            "INSERT OR IGNORE INTO artwork(game_id,kind,mime,image) VALUES(?1,?2,?3,?4)",
+                            params![id, kind, mime, bytes],
+                        )
+                        .map_err(|_| database_error())?;
                 }
             }
         }
-        Ok::<_, CommandError>((images, total))
+        Ok::<_, CommandError>(ArtworkReport {
+            updated,
+            unavailable: total - updated,
+        })
     })
     .await
-    .map_err(|_| error("artwork_failed", "Artwork refresh stopped unexpectedly."))??;
-    let (images, total) = downloaded;
-    let updated = images.len();
-    let mut connection = store.0.lock().map_err(|_| database_error())?;
-    let transaction = connection.transaction().map_err(|_| database_error())?;
-    for (id, kind, mime, bytes) in images {
-        transaction
-            .execute(
-                "INSERT OR IGNORE INTO artwork(game_id,kind,mime,image) VALUES(?1,?2,?3,?4)",
-                params![id, kind, mime, bytes],
-            )
-            .map_err(|_| database_error())?;
-    }
-    transaction.commit().map_err(|_| database_error())?;
-    Ok(ArtworkReport {
-        updated,
-        unavailable: total - updated,
-    })
+    .map_err(|_| error("artwork_failed", "Artwork refresh stopped unexpectedly."))?
 }
 
 #[cfg(test)]
