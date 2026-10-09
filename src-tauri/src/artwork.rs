@@ -122,6 +122,53 @@ fn trusted_store_url(url: &str, source: &str) -> bool {
     })
 }
 
+fn gog_cover_url(raw: &str) -> Option<String> {
+    let full = if raw.starts_with("//") {
+        format!("https:{raw}")
+    } else {
+        raw.to_owned()
+    };
+    if !trusted_store_url(&full, "gog") {
+        return None;
+    }
+    let mut url = reqwest::Url::parse(&full).ok()?;
+    if ![".jpg", ".jpeg", ".png", ".webp"]
+        .iter()
+        .any(|suffix| url.path().ends_with(suffix))
+    {
+        let path = format!("{}_product_card_v2_mobile_slider_639.jpg", url.path());
+        url.set_path(&path);
+    }
+    Some(url.to_string())
+}
+
+fn gog_hero_url(client: &Client, product_id: &str) -> Option<String> {
+    if product_id.is_empty() || !product_id.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let response = client
+        .get(format!(
+            "https://api.gog.com/products/{product_id}?locale=en-US"
+        ))
+        .send()
+        .ok()?
+        .error_for_status()
+        .ok()?;
+    let mut bytes = Vec::new();
+    response.take(1_000_001).read_to_end(&mut bytes).ok()?;
+    if bytes.len() > 1_000_000 {
+        return None;
+    }
+    let product: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    let raw = product.get("images")?.get("background")?.as_str()?;
+    let full = if raw.starts_with("//") {
+        format!("https:{raw}")
+    } else {
+        raw.to_owned()
+    };
+    trusted_store_url(&full, "gog").then_some(full)
+}
+
 fn image_mime(bytes: &[u8]) -> Option<&'static str> {
     if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
         Some("image/jpeg")
@@ -294,12 +341,13 @@ pub async fn refresh_artwork(
         let mut statement = connection
             .prepare(
                 "SELECT g.id, g.title, g.source, COALESCE(i.store_id,o.provider_id), i.working_dir,
-                    cover.game_id IS NULL, hero.game_id IS NULL FROM games g
+                    cover.game_id IS NULL, hero.game_id IS NULL, p.value FROM games g
              LEFT JOIN installations i ON i.id = (
                  SELECT candidate.id FROM installations candidate WHERE candidate.game_id = g.id
                  ORDER BY candidate.rowid LIMIT 1
              )
              LEFT JOIN owned_games o ON o.game_id = g.id AND o.provider = g.source
+             LEFT JOIN preferences p ON p.key = 'gog-cover:' || o.provider_id
              LEFT JOIN artwork cover ON cover.game_id = g.id AND cover.kind = 'cover'
              LEFT JOIN artwork hero ON hero.game_id = g.id AND hero.kind = 'hero'
              WHERE cover.game_id IS NULL OR hero.game_id IS NULL ORDER BY g.added_at LIMIT 100",
@@ -315,6 +363,7 @@ pub async fn refresh_artwork(
                     row.get::<_, Option<String>>(4)?,
                     row.get::<_, bool>(5)?,
                     row.get::<_, bool>(6)?,
+                    row.get::<_, Option<String>>(7)?,
                 ))
             })
             .map_err(|_| database_error())?
@@ -360,7 +409,8 @@ pub async fn refresh_artwork(
         };
         let mut images = Vec::new();
         let mut total = 0;
-        for (id, title, source, store_id, working_dir, need_cover, need_hero) in targets {
+        for (id, title, source, store_id, working_dir, need_cover, need_hero, gog_cover) in targets
+        {
             for (kind, needed) in [("cover", need_cover), ("hero", need_hero)] {
                 if !needed {
                     continue;
@@ -381,6 +431,13 @@ pub async fn refresh_artwork(
                                 .and_then(|images| epic_image_url(images, kind))
                                 .filter(|url| trusted_store_url(url, "epic"))
                                 .and_then(|url| download_image(&client, url))
+                        } else if source == "gog" {
+                            let url = if kind == "cover" {
+                                gog_cover.as_deref().and_then(gog_cover_url)
+                            } else {
+                                store_id.as_deref().and_then(|id| gog_hero_url(&client, id))
+                            };
+                            url.and_then(|url| download_image(&client, &url))
                         } else {
                             None
                         }
@@ -462,5 +519,15 @@ mod tests {
         ));
         assert!(!trusted_store_url("https://evil.example/tall.jpg", "epic"));
         fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn gog_library_image_becomes_cover_without_a_key() {
+        assert_eq!(
+            gog_cover_url("//images-2.gog.com/abc123").as_deref(),
+            Some("https://images-2.gog.com/abc123_product_card_v2_mobile_slider_639.jpg")
+        );
+        assert!(gog_cover_url("http://images-2.gog.com/abc123").is_none());
+        assert!(gog_cover_url("//evil.example/abc123").is_none());
     }
 }

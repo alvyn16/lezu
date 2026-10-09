@@ -37,8 +37,11 @@ struct Credentials {
 struct Product {
     id: serde_json::Value,
     title: String,
+    image: Option<String>,
     works_on: Option<Platforms>,
 }
+
+type OwnedProduct = (String, String, Option<String>);
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 struct Platforms {
@@ -161,7 +164,7 @@ fn code_from_input(input: &str) -> Result<String, CommandError> {
     Ok(code)
 }
 
-fn library(base: &Path, engine: &Path) -> Result<Vec<(String, String)>, CommandError> {
+fn library(base: &Path, engine: &Path) -> Result<Vec<OwnedProduct>, CommandError> {
     let token = credentials(base, engine, None)?.access_token;
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
@@ -197,7 +200,7 @@ fn library(base: &Path, engine: &Path) -> Result<Vec<(String, String)>, CommandE
                 _ => continue,
             };
             if !id.is_empty() && !item.title.trim().is_empty() {
-                games.push((id, item.title));
+                games.push((id, item.title, item.image));
             }
         }
         if page >= data.total_pages {
@@ -210,10 +213,16 @@ fn library(base: &Path, engine: &Path) -> Result<Vec<(String, String)>, CommandE
     ))
 }
 
-fn save_library(store: &LibraryStore, games: &[(String, String)]) -> Result<usize, CommandError> {
+fn save_library(store: &LibraryStore, games: &[OwnedProduct]) -> Result<usize, CommandError> {
     let mut connection = store.0.lock().map_err(|_| database_error())?;
     let transaction = connection.transaction().map_err(|_| database_error())?;
-    for (provider_id, title) in games {
+    for (provider_id, title, image) in games {
+        if let Some(image) = image.as_ref().filter(|image| !image.trim().is_empty()) {
+            transaction.execute(
+                "INSERT INTO preferences(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                params![format!("gog-cover:{provider_id}"), image],
+            ).map_err(|_| database_error())?;
+        }
         let saved_path: Option<String> = transaction
             .query_row(
                 "SELECT value FROM preferences WHERE key=?1",
@@ -247,7 +256,7 @@ fn save_library(store: &LibraryStore, games: &[(String, String)]) -> Result<usiz
             let id = transaction
                 .query_row(
                     "SELECT game_id FROM installations WHERE source='gog' AND store_id=?1 LIMIT 1",
-                    [provider_id],
+                    [&provider_id],
                     |row| row.get::<_, String>(0),
                 )
                 .optional()
@@ -259,7 +268,7 @@ fn save_library(store: &LibraryStore, games: &[(String, String)]) -> Result<usiz
     }
     let current = games
         .iter()
-        .map(|(id, _)| id.as_str())
+        .map(|(id, _, _)| id.as_str())
         .collect::<HashSet<_>>();
     let stale = {
         let mut statement = transaction
@@ -279,7 +288,13 @@ fn save_library(store: &LibraryStore, games: &[(String, String)]) -> Result<usiz
             transaction
                 .execute(
                     "DELETE FROM owned_games WHERE provider='gog' AND provider_id=?1",
-                    [provider_id],
+                    [&provider_id],
+                )
+                .map_err(|_| database_error())?;
+            transaction
+                .execute(
+                    "DELETE FROM preferences WHERE key=?1",
+                    [format!("gog-cover:{provider_id}")],
                 )
                 .map_err(|_| database_error())?;
             transaction.execute("DELETE FROM games WHERE id=?1 AND NOT EXISTS(SELECT 1 FROM installations WHERE game_id=?1)", [game_id]).map_err(|_| database_error())?;
@@ -543,8 +558,23 @@ mod tests {
                 [folder.to_string_lossy().to_string()],
             )
             .unwrap();
-        let games = vec![("11".to_owned(), "Game One".to_owned())];
+        let games = vec![(
+            "11".to_owned(),
+            "Game One".to_owned(),
+            Some("//images-2.gog.com/hash".to_owned()),
+        )];
         assert_eq!(save_library(&store, &games).unwrap(), 1);
+        let cover: String = store
+            .0
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT value FROM preferences WHERE key='gog-cover:11'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(cover, "//images-2.gog.com/hash");
         let installed: i64 = store
             .0
             .lock()
