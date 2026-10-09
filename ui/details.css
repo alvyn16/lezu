@@ -30,10 +30,31 @@
 #notice:has(.notice-image) { width: min(1000px, calc(100% - 32px)); }
 .dialog-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .dialog-actions button { border: 1px solid var(--line); padding: 10px 14px; border-radius: var(--radius-small); }
-.account-settings { display: grid; gap: 8px; width: 100%; margin-bottom: 8px; }
-.account-settings h3 { margin: 0 0 2px; font-size: var(--font-heading); }
-.account-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.account-row strong { min-width: 92px; font-size: var(--font-caption); }
+#notice.settings-dialog { width: min(760px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 32px)); padding: 0; overflow-y: auto; background: #202126; box-shadow: 0 22px 70px #0009; }
+.settings-dialog #notice-title { padding: 24px 28px 0; font-size: 24px; }
+.settings-dialog #notice-copy { margin: 6px 28px 22px; color: #bfc2ca; font-size: var(--font-body); }
+.settings-content { display: grid; gap: 22px; padding: 0 28px 24px; }
+.settings-section { display: grid; gap: 10px; }
+.settings-section h3 { font-size: var(--font-body); font-weight: 650; }
+.settings-accounts { display: grid; gap: 1px; overflow: hidden; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff20; }
+.settings-account { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 66px; padding: 10px 14px; background: #292b31; }
+.settings-account-name { display: grid; gap: 2px; min-width: 112px; }
+.settings-account-name strong { font-size: var(--font-body); font-weight: 600; }
+.settings-account-name span { color: #bfc2ca; font-size: var(--font-caption); }
+.settings-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.settings-account-actions button, .settings-update { min-height: 34px; padding: 6px 11px; border: 1px solid #ffffff27; border-radius: 7px; background: #ffffff0c; white-space: nowrap; }
+.settings-account-actions button:hover, .settings-update:hover { background: #ffffff23; }
+.settings-account-actions button:first-child { background: #ffffffeb; color: #1b1c20; font-weight: 600; }
+.settings-account-actions button:first-child:hover { background: #fff; }
+.settings-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.settings-tool { display: grid; gap: 4px; min-height: 70px; padding: 12px 14px; border: 1px solid #ffffff20; border-radius: 9px; background: #292b31; text-align: left; }
+.settings-tool:hover { border-color: #ffffff55; background: #34363d; }
+.settings-tool strong { font-size: var(--font-body); font-weight: 600; }
+.settings-tool span { color: #bfc2ca; font-size: var(--font-caption); }
+.settings-update { justify-self: start; margin-top: -4px; }
+.settings-dialog > form { position: sticky; bottom: 0; display: flex; justify-content: flex-end; padding: 14px 28px; border-top: 1px solid #ffffff1d; background: #202126; }
+@media (max-width: 650px) { .settings-account { align-items: flex-start; flex-direction: column; gap: 8px; } .settings-account-actions { justify-content: flex-start; } }
+@media (max-width: 480px) { .settings-dialog #notice-title { padding: 20px 18px 0; } .settings-dialog #notice-copy { margin: 6px 18px 18px; } .settings-content { padding: 0 18px 20px; } .settings-tools { grid-template-columns: 1fr; } .settings-dialog > form { padding: 12px 18px; } }
 #add-game { width: min(480px, calc(100% - 32px)); }
 #add-game form { display: grid; gap: 16px; }
 #add-game label { display: grid; gap: 6px; font-size: var(--font-caption); }

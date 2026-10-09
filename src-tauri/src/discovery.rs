@@ -136,23 +136,32 @@ pub fn scan_folder_with_progress(
                     continue;
                 }
             };
-            let metadata = match fs::symlink_metadata(entry.path()) {
-                Ok(metadata) => metadata,
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
                 Err(_) => {
                     report.warnings += 1;
                     continue;
                 }
             };
-            if is_reparse_point(&metadata) {
+            if file_type.is_symlink() {
                 continue;
             }
-            if metadata.is_dir() {
+            if file_type.is_dir() {
+                let path = entry.path();
+                match fs::symlink_metadata(&path) {
+                    Ok(metadata) if is_reparse_point(&metadata) => continue,
+                    Err(_) => {
+                        report.warnings += 1;
+                        continue;
+                    }
+                    _ => {}
+                }
                 if depth < MAX_DEPTH {
-                    folders.push_back((entry.path(), depth + 1));
+                    folders.push_back((path, depth + 1));
                 } else {
                     report.truncated = true;
                 }
-            } else if metadata.is_file() && likely_game_executable(&entry.path()) {
+            } else if file_type.is_file() && likely_game_executable(&entry.path()) {
                 let path = entry.path();
                 let normalized = path.to_string_lossy().to_lowercase();
                 if seen.insert(normalized) {

@@ -43,6 +43,8 @@ const addGameDialog = required<HTMLDialogElement>('#add-game');
 const addGameForm = required<HTMLFormElement>('#add-game-form');
 const search = required<HTMLInputElement>('#search');
 function notify(title: string, copy: string) {
+  notice.classList.remove('settings-dialog');
+  notice.querySelector('.settings-content')?.remove();
   notice.querySelector('.notice-image')?.remove();
   notice.querySelector('.dialog-actions')?.remove();
   notice.querySelector('.scan-results')?.remove();
@@ -605,37 +607,55 @@ document.addEventListener('click', event => {
   }
   else if (action === 'reset') { state = initialState(); render(); search.focus(); }
   else if (action === 'settings') {
-    notify(mode === 'demo' ? 'Preview settings' : 'Library settings', mode === 'demo'
+    notify(mode === 'demo' ? 'Preview settings' : 'Settings', mode === 'demo'
       ? 'Browse demo games using search and store filters. Scanning, game launching, and downloads aren’t available yet. Changes reset when you refresh.'
       : 'Connect a store account to add owned games, or find games already installed on this PC.');
     if (mode === 'desktop') {
-      const actions = document.createElement('div'); actions.className = 'dialog-actions';
-      const add = document.createElement('button'); add.textContent = 'Add a game'; add.dataset.action = 'add-manual';
-      const scan = document.createElement('button'); scan.textContent = 'Scan a folder'; scan.dataset.action = 'scan-folder';
-      const stores = document.createElement('button'); stores.textContent = 'Find installed games'; stores.dataset.action = 'scan-stores';
-      const epic = document.createElement('button'); epic.textContent = 'Connect Epic Games'; epic.dataset.action = 'connect-epic';
-      const syncEpicButton = document.createElement('button'); syncEpicButton.textContent = 'Refresh Epic library'; syncEpicButton.dataset.action = 'sync-epic';
-      const disconnectEpicButton = document.createElement('button'); disconnectEpicButton.textContent = 'Sign out of Epic'; disconnectEpicButton.dataset.action = 'disconnect-epic';
-      const gog = document.createElement('button'); gog.textContent = 'Connect GOG'; gog.dataset.action = 'connect-gog';
-      const syncGogButton = document.createElement('button'); syncGogButton.textContent = 'Refresh GOG library'; syncGogButton.dataset.action = 'sync-gog';
-      const disconnectGogButton = document.createElement('button'); disconnectGogButton.textContent = 'Sign out of GOG'; disconnectGogButton.dataset.action = 'disconnect-gog';
-      const steam = document.createElement('button'); steam.textContent = 'Connect Steam'; steam.dataset.action = 'connect-steam';
-      const syncSteamButton = document.createElement('button'); syncSteamButton.textContent = 'Refresh Steam library'; syncSteamButton.dataset.action = 'sync-steam';
-      const disconnectSteamButton = document.createElement('button'); disconnectSteamButton.textContent = 'Sign out of Steam'; disconnectSteamButton.dataset.action = 'disconnect-steam';
-      const artwork = document.createElement('button'); artwork.textContent = 'Find game covers'; artwork.dataset.action = 'refresh-artwork';
-      const update = document.createElement('button'); update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
-      const accounts = document.createElement('section'); accounts.className = 'account-settings';
-      const heading = document.createElement('h3'); heading.textContent = 'Store accounts'; accounts.append(heading);
-      for (const [name, buttons] of [
-        ['Steam', [steam, syncSteamButton, disconnectSteamButton]],
-        ['Epic Games', [epic, syncEpicButton, disconnectEpicButton]],
-        ['GOG', [gog, syncGogButton, disconnectGogButton]],
+      notice.classList.add('settings-dialog');
+      const content = document.createElement('div'); content.className = 'settings-content';
+      const accounts = document.createElement('section'); accounts.className = 'settings-section';
+      const accountHeading = document.createElement('h3'); accountHeading.textContent = 'Store accounts';
+      const accountList = document.createElement('div'); accountList.className = 'settings-accounts';
+      for (const [name, source, connect, sync, disconnect] of [
+        ['Steam', 'steam', 'connect-steam', 'sync-steam', 'disconnect-steam'],
+        ['Epic Games', 'epic', 'connect-epic', 'sync-epic', 'disconnect-epic'],
+        ['GOG', 'gog', 'connect-gog', 'sync-gog', 'disconnect-gog'],
       ] as const) {
-        const row = document.createElement('div'); row.className = 'account-row';
+        const row = document.createElement('div'); row.className = 'settings-account';
+        const identity = document.createElement('div'); identity.className = 'settings-account-name';
         const label = document.createElement('strong'); label.textContent = name;
-        row.append(label, ...buttons); accounts.append(row);
+        const count = document.createElement('span');
+        const total = games.filter(game => game.source === source).length;
+        count.textContent = `${total} ${total === 1 ? 'game' : 'games'} in library`;
+        identity.append(label, count);
+        const controls = document.createElement('div'); controls.className = 'settings-account-actions';
+        for (const [text, action] of [['Connect', connect], ['Refresh', sync], ['Sign out', disconnect]] as const) {
+          const control = document.createElement('button'); control.type = 'button'; control.textContent = text;
+          control.dataset.action = action;
+          control.setAttribute('aria-label', `${text} ${name}`);
+          controls.append(control);
+        }
+        row.append(identity, controls); accountList.append(row);
       }
-      actions.append(accounts, stores, add, scan, artwork, update); required('form', notice).before(actions);
+      accounts.append(accountHeading, accountList);
+      const librarySection = document.createElement('section'); librarySection.className = 'settings-section';
+      const libraryHeading = document.createElement('h3'); libraryHeading.textContent = 'On this PC';
+      const tools = document.createElement('div'); tools.className = 'settings-tools';
+      for (const [title, description, action] of [
+        ['Find installed games', 'Check Steam, Epic Games, and GOG folders.', 'scan-stores'],
+        ['Scan a folder', 'Search a folder and its subfolders.', 'scan-folder'],
+        ['Add a game', 'Choose an executable yourself.', 'add-manual'],
+        ['Find game covers', 'Refresh missing artwork in your library.', 'refresh-artwork'],
+      ] as const) {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'settings-tool'; button.dataset.action = action;
+        const heading = document.createElement('strong'); heading.textContent = title;
+        const copy = document.createElement('span'); copy.textContent = description;
+        button.append(heading, copy); tools.append(button);
+      }
+      librarySection.append(libraryHeading, tools);
+      const update = document.createElement('button'); update.type = 'button'; update.className = 'settings-update';
+      update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
+      content.append(accounts, librarySection, update); required('form', notice).before(content);
     }
   }
 });
