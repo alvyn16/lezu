@@ -11,7 +11,8 @@ async page => {
         window.__gogCalls.push({ command, args });
         if (command === 'runtime_info') return Promise.resolve({appVersion:'0.1.0',platform:'windows',libraryMode:'desktop'});
         if (command === 'list_library') return Promise.resolve([{id:'gog-owned',title:'Owned GOG Game',source:'gog',owned:true,installed:window.__gogInstalled,installationId:null,played:null,lastPlayed:null,size:null,developer:null,year:null,tags:[],description:null,theme:{page:'#30343b',sidebar:'#23272d'},screenshots:[],cover:null,hero:null,logo:null}]);
-        if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
+        if (command === 'get_install_location') return Promise.resolve('C:\\Games');
+        if (command === 'plugin:dialog|open') throw Error('Download opened a folder picker');
         if (command === 'plugin:opener|open_url') return Promise.resolve();
         if (command === 'begin_download') { window.__gogHistory = [{id:'gog-job',gameId:args.gameId,title:'Owned GOG Game',provider:'gog',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('gog-job'); }
         if (command === 'list_downloads') return Promise.resolve([...window.__gogHistory]);

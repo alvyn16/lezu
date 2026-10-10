@@ -12,6 +12,8 @@
     "allow-set-download-progress",
     "allow-finish-download",
     "allow-clear-download-history",
+    "allow-get-install-location",
+    "allow-set-install-location",
     "allow-add-manual-game",
     "allow-launch-installation",
     "allow-reveal-installation",

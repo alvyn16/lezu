@@ -9,6 +9,8 @@ fn main() {
             "set_download_progress",
             "finish_download",
             "clear_download_history",
+            "get_install_location",
+            "set_install_location",
             "add_manual_game",
             "launch_installation",
             "reveal_installation",

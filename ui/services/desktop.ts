@@ -64,6 +64,8 @@ export const setDownloadProgress = (id: string, progress: number) => invoke<void
 export const finishDownload = (id: string, status: 'completed' | 'failed' | 'cancelled', message?: string) =>
   invoke<void>('finish_download', { id, status, message: message ?? null });
 export const clearDownloadHistory = () => invoke<number>('clear_download_history');
+export const getInstallLocation = (provider: 'steam' | 'epic' | 'gog') => invoke<string>('get_install_location', { provider });
+export const setInstallLocation = (provider: 'steam' | 'epic' | 'gog', path: string) => invoke<string>('set_install_location', { provider, path });
 
 export async function epicConnect(code: string): Promise<void> {
   return invoke<void>('epic_connect', { code });

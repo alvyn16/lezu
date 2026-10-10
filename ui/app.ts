@@ -6,7 +6,7 @@ import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { downloads } from './downloads.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, finishDownload, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, finishDownload, getInstallLocation, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setInstallLocation, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -37,7 +37,7 @@ let storeCandidates: StoreCandidate[] = [];
 let availableUpdate: Awaited<ReturnType<typeof check>> = null;
 let activeDownload: string | null = null;
 let activeDownloadJob: string | null = null;
-let choosingDownloadFolder = false;
+let startingDownload = false;
 let downloadRecords: DownloadRecord[] = [];
 let downloadsLoading = false;
 let downloadsProblem: string | null = null;
@@ -480,19 +480,23 @@ function wasCancelled(reason: unknown) {
   return !!reason && typeof reason === 'object' && 'code' in reason && reason.code === 'download_cancelled';
 }
 async function runDownload(id: string, source: 'steam' | 'epic' | 'gog') {
-  if (activeDownload || choosingDownloadFolder) { if (activeDownload) openDownloads(); return; }
+  if (activeDownload || startingDownload) { if (activeDownload) openDownloads(); return; }
   const selected = games.find(game => game.id === id);
   if (!selected?.owned || selected.source !== source) return;
   let job: string;
   let folder: string;
-  choosingDownloadFolder = true;
+  startingDownload = true;
   try {
-    const picked = await openFile({ multiple: false, directory: true, title: `Choose a library folder for ${selected.title}` });
-    if (typeof picked !== 'string') return;
-    folder = picked;
+    folder = await getInstallLocation(source);
     job = await beginDownload(id, folder);
-  } catch (reason) { notify('Could not start download', desktopErrorMessage(reason)); return; }
-  finally { choosingDownloadFolder = false; }
+  } catch (reason) {
+    notify('Could not start download', desktopErrorMessage(reason));
+    const actions = document.createElement('div'); actions.className = 'dialog-actions';
+    const settings = document.createElement('button'); settings.textContent = 'Install locations'; settings.dataset.action = 'settings';
+    actions.append(settings); required('form', notice).before(actions);
+    return;
+  }
+  finally { startingDownload = false; }
   activeDownload = id; activeDownloadJob = job;
   openDownloads();
   let unlisten: (() => void) | null = null;
@@ -702,6 +706,15 @@ document.addEventListener('click', event => {
   else if (action === 'clear-download-history' && mode === 'desktop') {
     void clearDownloadHistory().then(() => refreshDownloadHistory()).catch(reason => { downloadsProblem = desktopErrorMessage(reason); render(); });
   }
+  else if (action === 'choose-install-location' && mode === 'desktop') {
+    const provider = button.dataset.provider;
+    if (provider !== 'steam' && provider !== 'epic' && provider !== 'gog') return;
+    const pathLabel = required<HTMLElement>(`[data-install-path="${provider}"]`, notice);
+    void openFile({ multiple: false, directory: true, title: `Choose ${provider === 'epic' ? 'Epic Games' : provider === 'gog' ? 'GOG' : 'Steam'} install location` })
+      .then(path => typeof path === 'string' ? setInstallLocation(provider, path) : null)
+      .then(path => { if (path && pathLabel.isConnected) pathLabel.textContent = displayWindowsPath(path); })
+      .catch(reason => { if (pathLabel.isConnected) pathLabel.textContent = desktopErrorMessage(reason); });
+  }
   else if (action === 'retry-download-history' && mode === 'desktop') void refreshDownloadHistory();
   else if (action === 'install-update' && mode === 'desktop') void installAvailableUpdate();
   else if (action === 'review-candidate' && mode === 'desktop') {
@@ -779,6 +792,25 @@ document.addEventListener('click', event => {
         button.append(heading, copy); tools.append(button);
       }
       librarySection.append(libraryHeading, tools);
+      const locations = document.createElement('section'); locations.className = 'settings-section';
+      const locationsHeading = document.createElement('h3'); locationsHeading.textContent = 'Install locations';
+      const locationsHelp = document.createElement('p'); locationsHelp.className = 'settings-help';
+      locationsHelp.textContent = 'Downloads install here automatically. Steam uses an existing Steam library.';
+      const locationList = document.createElement('div'); locationList.className = 'settings-accounts';
+      for (const [name, provider] of [['Steam', 'steam'], ['Epic Games', 'epic'], ['GOG', 'gog']] as const) {
+        const row = document.createElement('div'); row.className = 'settings-account';
+        const identity = document.createElement('div'); identity.className = 'settings-account-name settings-location-name';
+        const label = document.createElement('strong'); label.textContent = name;
+        const pathLabel = document.createElement('span'); pathLabel.dataset.installPath = provider; pathLabel.textContent = 'Finding location…';
+        identity.append(label, pathLabel);
+        const change = document.createElement('button'); change.type = 'button'; change.className = 'settings-location-change'; change.textContent = 'Change';
+        change.dataset.action = 'choose-install-location'; change.dataset.provider = provider;
+        change.setAttribute('aria-label', `Change ${name} install location`);
+        row.append(identity, change); locationList.append(row);
+        void getInstallLocation(provider).then(path => { if (pathLabel.isConnected) pathLabel.textContent = displayWindowsPath(path); })
+          .catch(reason => { if (pathLabel.isConnected) pathLabel.textContent = desktopErrorMessage(reason); });
+      }
+      locations.append(locationsHeading, locationsHelp, locationList);
       const artworkSection = document.createElement('section'); artworkSection.className = 'settings-section';
       const artworkHeading = document.createElement('h3'); artworkHeading.textContent = 'Artwork fallback';
       const artworkCopy = document.createElement('p'); artworkCopy.className = 'settings-help'; artworkCopy.textContent = 'SteamGridDB is optional. Local files and store artwork work without a key.';
@@ -792,7 +824,7 @@ document.addEventListener('click', event => {
       void steamGridDbKeyStatus().then(configured => { if (keyStatus.isConnected) keyStatus.textContent = configured ? 'API key saved on this PC.' : 'No API key configured.'; }).catch(() => { if (keyStatus.isConnected) keyStatus.textContent = 'Could not read key status.'; });
       const update = document.createElement('button'); update.type = 'button'; update.className = 'settings-update';
       update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
-      content.append(accounts, librarySection, artworkSection, update); required('form', notice).before(content);
+      content.append(accounts, locations, librarySection, artworkSection, update); required('form', notice).before(content);
     }
   }
 });

@@ -65,6 +65,8 @@ pub fn run() {
             downloads::set_download_progress,
             downloads::finish_download,
             downloads::clear_download_history,
+            downloads::get_install_location,
+            downloads::set_install_location,
             commands::add_manual_game,
             launch::launch_installation,
             launch::reveal_installation,

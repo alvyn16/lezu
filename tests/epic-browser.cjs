@@ -19,7 +19,8 @@ async page => {
         if (command === 'plugin:event|listen') return Promise.resolve(1);
         if (command === 'plugin:event|unlisten') return Promise.resolve();
         if (command === 'plugin:opener|open_url') return Promise.resolve();
-        if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
+        if (command === 'get_install_location') return Promise.resolve('C:\\Games');
+        if (command === 'plugin:dialog|open') throw Error('Download opened a folder picker');
         if (command === 'begin_download') { window.__epicHistory = [{id:'epic-job',gameId:args.gameId,title:'Owned Epic Game',provider:'epic',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('epic-job'); }
         if (command === 'list_downloads') return Promise.resolve([...window.__epicHistory]);
         if (command === 'finish_download') { window.__epicHistory[0].status = args.status; return Promise.resolve(); }

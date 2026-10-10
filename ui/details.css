@@ -41,9 +41,11 @@
 .settings-account-name { display: grid; gap: 2px; min-width: 112px; }
 .settings-account-name strong { font-size: var(--font-body); font-weight: 600; }
 .settings-account-name span { color: #bfc2ca; font-size: var(--font-caption); }
+.settings-location-name { min-width: 0; flex: 1; }
+.settings-location-name span { overflow-wrap: anywhere; }
 .settings-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
-.settings-account-actions button, .settings-update { min-height: 34px; padding: 6px 11px; border: 1px solid #ffffff27; border-radius: 7px; background: #ffffff0c; white-space: nowrap; }
-.settings-account-actions button:hover, .settings-update:hover { background: #ffffff23; }
+.settings-account-actions button, .settings-update, .settings-location-change { min-height: 34px; padding: 6px 11px; border: 1px solid #ffffff27; border-radius: 7px; background: #ffffff0c; white-space: nowrap; }
+.settings-account-actions button:hover, .settings-update:hover, .settings-location-change:hover { background: #ffffff23; }
 .settings-account-actions button:first-child { background: #ffffffeb; color: #1b1c20; font-weight: 600; }
 .settings-account-actions button:first-child:hover { background: #fff; }
 .settings-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

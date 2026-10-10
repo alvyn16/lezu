@@ -11,7 +11,8 @@ async page => {
         window.__steamCalls.push({ command, args });
         if (command === 'runtime_info') return Promise.resolve({appVersion:'0.1.0',platform:'windows',libraryMode:'desktop'});
         if (command === 'list_library') return Promise.resolve([{id:'steam-owned',title:'Owned Steam Game',source:'steam',owned:true,installed:window.__steamInstalled,installationId:null,played:null,lastPlayed:null,size:null,developer:null,year:null,tags:[],description:null,theme:{page:'#30343b',sidebar:'#23272d'},screenshots:[],cover:null,hero:null,logo:null}]);
-        if (command === 'plugin:dialog|open') return Promise.resolve('C:\\SteamLibrary');
+        if (command === 'get_install_location') return Promise.resolve('C:\\SteamLibrary');
+        if (command === 'plugin:dialog|open') throw Error('Download opened a folder picker');
         if (command === 'plugin:event|listen') return Promise.resolve(1);
         if (command === 'plugin:event|unlisten') return Promise.resolve();
         if (command === 'begin_download') { window.__steamHistory = [{id:'steam-job',gameId:args.gameId,title:'Owned Steam Game',provider:'steam',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('steam-job'); }

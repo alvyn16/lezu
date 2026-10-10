@@ -9,7 +9,8 @@ async page => {
       invoke(command, args) {
         if (command === 'runtime_info') return Promise.resolve({appVersion:'0.1.0',platform:'windows',libraryMode:'desktop'});
         if (command === 'list_library') return Promise.resolve([{id:'owned',title:'Download Test Game',source:'gog',owned:true,installed:window.__installed,installationId:null,played:null,lastPlayed:null,size:null,developer:null,year:null,tags:[],description:null,theme:{page:'#30343b',sidebar:'#23272d'},screenshots:[],cover:null,hero:null,logo:null}]);
-        if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
+        if (command === 'get_install_location') return Promise.resolve('C:\\Games');
+        if (command === 'plugin:dialog|open') throw Error('Download opened a folder picker');
         if (command === 'list_downloads') return Promise.resolve([...window.__history]);
         if (command === 'begin_download') {
           const id = `job-${window.__history.length + 1}`;

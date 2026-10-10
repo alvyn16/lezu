@@ -2,6 +2,7 @@ async page => {
   await page.addInitScript(() => {
     window.isTauri = true;
     window.__savedArtKey = '';
+    window.__installLocations = {steam:'C:\\SteamLibrary',epic:'C:\\Games\\Epic Games',gog:'C:\\Games\\GOG'};
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
       transformCallback() { return 1; },
@@ -12,6 +13,9 @@ async page => {
         if (command === 'plugin:event|unlisten') return Promise.resolve();
         if (command === 'steamgriddb_key_status') return Promise.resolve(Boolean(window.__savedArtKey));
         if (command === 'set_steamgriddb_key') { window.__savedArtKey = args.key; return Promise.resolve(Boolean(args.key)); }
+        if (command === 'get_install_location') return Promise.resolve(window.__installLocations[args.provider]);
+        if (command === 'plugin:dialog|open') return Promise.resolve('D:\\Games');
+        if (command === 'set_install_location') { window.__installLocations[args.provider] = args.path; return Promise.resolve(args.path); }
         throw Error('Unexpected desktop command: ' + command);
       },
     };
@@ -23,6 +27,9 @@ async page => {
   for (const label of ['Connect Steam', 'Refresh Steam', 'Sign out Steam', 'Connect Epic Games', 'Connect GOG', 'Find installed games', 'Scan a folder', 'Add a game', 'Refresh artwork', 'Save key', 'Remove', 'Check for updates']) {
     if (await dialog.getByRole('button', { name: label }).count() !== 1) throw Error(`Missing settings action: ${label}`);
   }
+  await dialog.getByRole('button', {name:'Change GOG install location'}).click();
+  await dialog.getByText('D:\\Games').waitFor();
+  if (await page.evaluate(() => window.__installLocations.gog) !== 'D:\\Games') throw Error('GOG install location was not saved');
   await dialog.getByLabel('SteamGridDB API key').fill('example-key');
   await dialog.getByRole('button', { name: 'Save key' }).click();
   await dialog.getByText('API key saved on this PC.').waitFor();

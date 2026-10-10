@@ -1,10 +1,15 @@
 use crate::{
     commands::{database_error, error, CommandError},
     library::LibraryStore,
+    store_discovery::StoreRoots,
 };
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tauri::State;
 
 #[derive(Debug, Serialize)]
@@ -26,6 +31,132 @@ fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_secs() as i64)
+}
+
+fn checked_provider(provider: &str) -> Result<(), CommandError> {
+    if matches!(provider, "steam" | "epic" | "gog") {
+        Ok(())
+    } else {
+        Err(error(
+            "download_provider",
+            "Choose Steam, Epic Games, or GOG.",
+        ))
+    }
+}
+
+fn valid_install_folder(provider: &str, path: &Path) -> Result<(), CommandError> {
+    if !path.is_absolute() || !path.is_dir() {
+        return Err(error(
+            "install_folder",
+            "The install location is unavailable. Choose another folder in Settings.",
+        ));
+    }
+    if provider == "steam" && !path.join("steamapps").is_dir() {
+        return Err(error(
+            "steam_folder",
+            "Choose a Steam library containing a steamapps folder in Settings.",
+        ));
+    }
+    Ok(())
+}
+
+fn detected_steam_library() -> Option<PathBuf> {
+    let roots = StoreRoots::windows_defaults();
+    for root in &roots.steam {
+        if root.join("steamapps").is_dir() {
+            return Some(root.clone());
+        }
+        let Ok(text) = fs::read_to_string(root.join("steamapps").join("libraryfolders.vdf")) else {
+            continue;
+        };
+        for line in text.lines() {
+            let parts: Vec<&str> = line.split('"').collect();
+            if parts
+                .get(1)
+                .is_some_and(|label| label.eq_ignore_ascii_case("path"))
+            {
+                if let Some(value) = parts.get(3) {
+                    let path = PathBuf::from(value.replace("\\\\", "\\"));
+                    if path.join("steamapps").is_dir() {
+                        return Some(path);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn default_install_folder(provider: &str) -> Result<PathBuf, CommandError> {
+    if provider == "steam" {
+        return detected_steam_library().ok_or_else(|| error(
+            "steam_folder", "No Steam library was found. Choose a Steam library in Settings before downloading."
+        ));
+    }
+    let home = env::var_os("USERPROFILE")
+        .or_else(|| env::var_os("LOCALAPPDATA"))
+        .ok_or_else(|| {
+            error(
+                "install_folder",
+                "Could not locate your Windows user folder.",
+            )
+        })?;
+    let path = PathBuf::from(home)
+        .join("Games")
+        .join("Lezu")
+        .join(if provider == "epic" {
+            "Epic Games"
+        } else {
+            "GOG"
+        });
+    fs::create_dir_all(&path).map_err(|_| {
+        error(
+            "install_folder",
+            "Could not create the default game folder. Choose another in Settings.",
+        )
+    })?;
+    Ok(path)
+}
+
+#[tauri::command]
+pub fn get_install_location(
+    store: State<'_, LibraryStore>,
+    provider: String,
+) -> Result<String, CommandError> {
+    checked_provider(&provider)?;
+    let saved: Option<String> = store
+        .0
+        .lock()
+        .map_err(|_| database_error())?
+        .query_row(
+            "SELECT value FROM preferences WHERE key=?1",
+            [format!("install-location:{provider}")],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| database_error())?;
+    let path = saved
+        .map(PathBuf::from)
+        .map(Ok)
+        .unwrap_or_else(|| default_install_folder(&provider))?;
+    valid_install_folder(&provider, &path)?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn set_install_location(
+    store: State<'_, LibraryStore>,
+    provider: String,
+    path: String,
+) -> Result<String, CommandError> {
+    checked_provider(&provider)?;
+    let path = PathBuf::from(path);
+    valid_install_folder(&provider, &path)?;
+    store.0.lock().map_err(|_| database_error())?.execute(
+        "INSERT INTO preferences(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        params![format!("install-location:{provider}"), path.to_string_lossy()],
+    ).map_err(|_| database_error())?;
+    Ok(path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -156,4 +287,20 @@ pub fn clear_download_history(store: State<'_, LibraryStore>) -> Result<usize, C
             [],
         )
         .map_err(|_| database_error())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::valid_install_folder;
+
+    #[test]
+    fn steam_location_requires_a_library_root() {
+        let root = std::env::temp_dir().join(format!("lezu-install-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        assert!(valid_install_folder("steam", &root).is_err());
+        assert!(valid_install_folder("epic", &root).is_ok());
+        std::fs::create_dir(root.join("steamapps")).unwrap();
+        assert!(valid_install_folder("steam", &root).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }
