@@ -171,18 +171,6 @@ fn gog_image_url(raw: &str) -> Option<reqwest::Url> {
     reqwest::Url::parse(&full).ok()
 }
 
-fn gog_cover_url(raw: &str) -> Option<String> {
-    let mut url = gog_image_url(raw)?;
-    if ![".jpg", ".jpeg", ".png", ".webp"]
-        .iter()
-        .any(|suffix| url.path().ends_with(suffix))
-    {
-        let path = format!("{}_product_card_v2_mobile_slider_639.jpg", url.path());
-        url.set_path(&path);
-    }
-    Some(url.to_string())
-}
-
 fn gog_vertical_url(raw: &str) -> Option<String> {
     let mut url = gog_image_url(raw)?;
     if ![".jpg", ".jpeg", ".png", ".webp", ".avif"]
@@ -223,10 +211,7 @@ fn gog_artwork(
     let images = product.and_then(|value| value.get("images"));
     let mut urls = Vec::new();
     if kind == "cover" {
-        if let Some(raw) = library_image {
-            urls.extend(gog_vertical_url(raw));
-        }
-        for key in ["verticalCover", "logo2x", "logo"] {
+        for key in ["verticalCover", "coverVertical"] {
             if let Some(url) = images
                 .and_then(|value| value.get(key))
                 .and_then(|value| value.as_str())
@@ -236,7 +221,16 @@ fn gog_artwork(
             }
         }
         if let Some(raw) = library_image {
-            urls.extend(gog_cover_url(raw));
+            urls.extend(gog_vertical_url(raw));
+        }
+        for key in ["logo2x", "logo"] {
+            if let Some(url) = images
+                .and_then(|value| value.get(key))
+                .and_then(|value| value.as_str())
+                .and_then(gog_image_url)
+            {
+                urls.push(url.to_string());
+            }
         }
     } else if let Some(url) = images
         .and_then(|value| value.get("background"))
@@ -245,7 +239,51 @@ fn gog_artwork(
     {
         urls.push(url.to_string());
     }
-    urls.iter().find_map(|url| download_image(client, url))
+    if kind == "cover" {
+        let mut best: Option<(String, Vec<u8>)> = None;
+        for url in &urls {
+            let Some(candidate) = download_image(client, url) else {
+                continue;
+            };
+            if !is_portrait(&candidate.1) {
+                continue;
+            }
+            if best
+                .as_ref()
+                .is_none_or(|current| cover_pixels(&candidate.1) > cover_pixels(&current.1))
+            {
+                best = Some(candidate);
+            }
+            if best.as_ref().is_some_and(|image| is_sharp_cover(&image.1)) {
+                break;
+            }
+        }
+        best
+    } else {
+        urls.iter().find_map(|url| download_image(client, url))
+    }
+}
+
+fn cover_pixels(bytes: &[u8]) -> usize {
+    imagesize::blob_size(bytes)
+        .ok()
+        .map_or(0, |size| size.width.saturating_mul(size.height))
+}
+
+fn cover_quality(bytes: &[u8]) -> (bool, usize) {
+    (is_portrait(bytes), cover_pixels(bytes))
+}
+
+fn is_portrait(bytes: &[u8]) -> bool {
+    imagesize::blob_size(bytes)
+        .ok()
+        .is_some_and(|size| size.height > size.width)
+}
+
+fn is_sharp_cover(bytes: &[u8]) -> bool {
+    imagesize::blob_size(bytes)
+        .ok()
+        .is_some_and(|size| size.width >= 550 && size.height >= 750)
 }
 
 fn image_mime(bytes: &[u8]) -> Option<&'static str> {
@@ -537,15 +575,24 @@ pub async fn refresh_artwork(
                         _ => None,
                     }
                 } else { None };
-                let fallback = if local.is_none() && native.is_none() {
+                let native_needs_upgrade = kind == "cover" && native.as_ref()
+                    .is_some_and(|(_, bytes)| !is_sharp_cover(bytes));
+                let fallback = if local.is_none() && (native.is_none() || native_needs_upgrade) {
                     steamgriddb_key.as_deref().and_then(|key| {
                         steamgriddb::artwork_urls(&client, key, &source, store_id.as_deref(), &title, kind)
-                            .iter().find_map(|url| download_image(&client, url))
+                            .iter().filter_map(|url| download_image(&client, url))
+                            .find(|(_, bytes)| kind != "cover" || is_portrait(bytes))
                     })
                 } else { None };
+                let prefer_fallback = match (&native, &fallback) {
+                    (None, Some(_)) => true,
+                    (Some((_, existing)), Some((_, alternative))) if kind == "cover" =>
+                        cover_quality(alternative) > cover_quality(existing),
+                    _ => false,
+                };
                 let found = local.map(|image| ("local", image))
-                    .or_else(|| native.map(|image| (source.as_str(), image)))
-                    .or_else(|| fallback.map(|image| ("steamgriddb", image)));
+                    .or_else(|| if prefer_fallback { fallback.map(|image| ("steamgriddb", image)) }
+                        else { native.map(|image| (source.as_str(), image)) });
                 if let Some((source_type, (mime, bytes))) = found {
                     let store = app.state::<LibraryStore>();
                     let connection = store.0.lock().map_err(|_| database_error())?;
@@ -581,6 +628,24 @@ mod tests {
         assert_eq!(image_mime(b"\x89PNG\r\n\x1a\nimage"), Some("image/png"));
         assert_eq!(image_mime(b"not an image"), None);
         assert_eq!(image_mime(b"\0\0\0\x18ftypavifmore"), Some("image/avif"));
+    }
+
+    #[test]
+    fn portrait_resolution_beats_thumbnails_and_wide_logos() {
+        fn png(width: u32, height: u32) -> Vec<u8> {
+            let mut bytes = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+            bytes.extend(width.to_be_bytes());
+            bytes.extend(height.to_be_bytes());
+            bytes.extend([8, 2, 0, 0, 0]);
+            bytes
+        }
+        let thumbnail = png(200, 300);
+        let sharp = png(600, 900);
+        let logo = png(1200, 400);
+        assert!(!is_sharp_cover(&thumbnail));
+        assert!(is_sharp_cover(&sharp));
+        assert!(cover_quality(&sharp) > cover_quality(&thumbnail));
+        assert!(cover_quality(&sharp) > cover_quality(&logo));
     }
 
     #[test]
@@ -631,13 +696,9 @@ mod tests {
     }
 
     #[test]
-    fn gog_library_image_becomes_cover_without_a_key() {
-        assert_eq!(
-            gog_cover_url("//images-2.gog.com/abc123").as_deref(),
-            Some("https://images-2.gog.com/abc123_product_card_v2_mobile_slider_639.jpg")
-        );
-        assert!(gog_cover_url("http://images-2.gog.com/abc123").is_none());
-        assert!(gog_cover_url("//evil.example/abc123").is_none());
+    fn gog_library_image_becomes_vertical_cover_without_a_key() {
+        assert!(gog_vertical_url("http://images-2.gog.com/abc123").is_none());
+        assert!(gog_vertical_url("//evil.example/abc123").is_none());
         assert_eq!(
             gog_vertical_url("//images-2.gog.com/abc123").as_deref(),
             Some("https://images-2.gog.com/abc123_glx_vertical_cover.webp")

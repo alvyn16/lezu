@@ -26,6 +26,7 @@ rusqlite = { version = "0.40", default-features = false, features = ["bundled"] 
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
 tauri-plugin-opener = "2"
+imagesize = "0.15.0"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = ["Win32_Graphics_Dwm", "Win32_Foundation"] }
