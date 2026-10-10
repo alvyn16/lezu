@@ -38,7 +38,7 @@ async page => {
   if (imported.length !== 1 || imported[0][0].storeId !== '42') throw Error('Store import contract failed');
   await page.getByRole('button', {name:'Close'}).click();
   await page.getByRole('button', {name:'Settings'}).click();
-  await page.getByRole('button', {name:'Find game covers'}).click();
+  await page.getByRole('button', {name:'Refresh artwork'}).click();
   await page.getByRole('heading', {name:'Artwork refreshed'}).waitFor();
   const artworkCalls = await page.evaluate(() => window.__artworkCalls);
   if (artworkCalls.length < 1 || artworkCalls.some(args => args && ('clientId' in args || 'clientSecret' in args))) throw Error('Artwork still requires credentials');

@@ -8,6 +8,7 @@ mod launch;
 mod library;
 mod library_sync;
 mod steam;
+mod steamgriddb;
 mod store_discovery;
 mod window;
 
@@ -65,6 +66,8 @@ pub fn run() {
             store_discovery::discover_stores,
             store_discovery::import_store_games,
             artwork::refresh_artwork,
+            artwork::steamgriddb_key_status,
+            artwork::set_steamgriddb_key,
             epic::epic_connect,
             epic::epic_sync,
             epic::epic_disconnect,

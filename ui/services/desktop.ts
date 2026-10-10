@@ -161,6 +161,12 @@ export async function importStoreGames(candidates: StoreCandidate[]): Promise<nu
 }
 
 export interface ArtworkReport { updated: number; unavailable: number }
-export async function refreshArtwork(): Promise<ArtworkReport> {
-  return invoke<ArtworkReport>('refresh_artwork');
+export async function refreshArtwork(gameId?: string, force = false): Promise<ArtworkReport> {
+  return invoke<ArtworkReport>('refresh_artwork', { gameId: gameId ?? null, force });
+}
+export async function steamGridDbKeyStatus(): Promise<boolean> {
+  return invoke<boolean>('steamgriddb_key_status');
+}
+export async function setSteamGridDbKey(key: string): Promise<boolean> {
+  return invoke<boolean>('set_steamgriddb_key', { key });
 }

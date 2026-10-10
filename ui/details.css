@@ -51,6 +51,12 @@
 .settings-tool:hover { border-color: #ffffff55; background: #34363d; }
 .settings-tool strong { font-size: var(--font-body); font-weight: 600; }
 .settings-tool span { color: #bfc2ca; font-size: var(--font-caption); }
+.settings-help { margin: 0; color: #bfc2ca; font-size: var(--font-caption); line-height: 1.45; }
+.settings-key-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-key-row input { flex: 1 1 220px; min-width: 0; min-height: 36px; padding: 7px 11px; border: 1px solid #ffffff35; border-radius: 7px; background: #17181c; color: #fff; font: inherit; }
+.settings-key-row input::placeholder { color: #bfc2ca; }
+.settings-key-row button { min-height: 36px; padding: 6px 11px; border: 1px solid #ffffff35; border-radius: 7px; background: #ffffff0c; }
+.settings-key-row button:hover { background: #ffffff23; }
 .settings-update { justify-self: start; margin-top: -4px; }
 .settings-dialog > form { position: sticky; bottom: 0; display: flex; justify-content: flex-end; padding: 14px 28px; border-top: 1px solid #ffffff1d; background: #202126; }
 @media (max-width: 650px) { .settings-account { align-items: flex-start; flex-direction: column; gap: 8px; } .settings-account-actions { justify-content: flex-start; } }

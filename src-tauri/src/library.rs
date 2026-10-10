@@ -40,6 +40,7 @@ impl LibraryStore {
                         kind TEXT NOT NULL,
                         mime TEXT NOT NULL,
                         image BLOB NOT NULL,
+                        source_type TEXT NOT NULL DEFAULT 'legacy',
                         PRIMARY KEY(game_id, kind)
                     );
                     CREATE TABLE owned_games (
@@ -49,7 +50,7 @@ impl LibraryStore {
                         installed INTEGER NOT NULL DEFAULT 0,
                         PRIMARY KEY(provider, provider_id)
                     );
-                    PRAGMA user_version = 3;",
+                    PRAGMA user_version = 4;",
                 )?;
                 migration.commit()?;
             }
@@ -71,23 +72,42 @@ impl LibraryStore {
                          installed INTEGER NOT NULL DEFAULT 0,
                          PRIMARY KEY(provider, provider_id)
                      );
-                     PRAGMA user_version = 3;",
+                     ALTER TABLE artwork ADD COLUMN source_type TEXT NOT NULL DEFAULT 'legacy';
+                     PRAGMA user_version = 4;",
                 )?;
                 migration.commit()?;
             }
             2 => {
-                connection.execute_batch(
-                    "CREATE TABLE owned_games (
+                let migration = connection.transaction()?;
+                migration.execute_batch(
+                    "CREATE TABLE IF NOT EXISTS artwork (
+                         game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                         kind TEXT NOT NULL,
+                         mime TEXT NOT NULL,
+                         image BLOB NOT NULL,
+                         PRIMARY KEY(game_id, kind)
+                     );
+                     CREATE TABLE owned_games (
                          provider TEXT NOT NULL,
                          provider_id TEXT NOT NULL,
                          game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
                          installed INTEGER NOT NULL DEFAULT 0,
                          PRIMARY KEY(provider, provider_id)
                      );
-                     PRAGMA user_version = 3;",
+                     ALTER TABLE artwork ADD COLUMN source_type TEXT NOT NULL DEFAULT 'legacy';
+                     PRAGMA user_version = 4;",
                 )?;
+                migration.commit()?;
             }
-            3 => {}
+            3 => {
+                let migration = connection.transaction()?;
+                migration.execute_batch(
+                    "ALTER TABLE artwork ADD COLUMN source_type TEXT NOT NULL DEFAULT 'legacy';
+                     PRAGMA user_version = 4;",
+                )?;
+                migration.commit()?;
+            }
+            4 => {}
             future => {
                 return Err(
                     format!("Library schema version {future} is newer than this app").into(),

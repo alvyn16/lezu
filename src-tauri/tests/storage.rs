@@ -26,7 +26,7 @@ fn creates_and_reopens_library_without_losing_records() {
         let version: i64 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
     }
     std::fs::remove_file(path).unwrap();
 }
@@ -58,7 +58,7 @@ fn upgrades_existing_v1_library_without_losing_games() {
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .unwrap(),
-        3
+        4
     );
     assert!(db.prepare("SELECT store_id FROM installations").is_ok());
     drop(db);
@@ -97,6 +97,34 @@ fn upgrades_v2_library_with_owned_game_table() {
         })
         .unwrap();
     assert_eq!(title, "Existing Game");
+    drop(db);
+    drop(store);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn upgrades_v3_artwork_without_losing_images() {
+    let path = std::env::temp_dir().join(format!("lezu-storage-{}.db", uuid::Uuid::new_v4()));
+    let db = Connection::open(&path).unwrap();
+    db.execute_batch(
+        "CREATE TABLE artwork (game_id TEXT NOT NULL, kind TEXT NOT NULL, mime TEXT NOT NULL,
+          image BLOB NOT NULL, PRIMARY KEY(game_id, kind));
+         INSERT INTO artwork VALUES ('game', 'cover', 'image/png', X'89504E47');
+         PRAGMA user_version = 3;",
+    )
+    .unwrap();
+    drop(db);
+    let store = library::LibraryStore::open(&path).unwrap();
+    let db = store.0.lock().unwrap();
+    let (source, image): (String, Vec<u8>) = db
+        .query_row(
+            "SELECT source_type, image FROM artwork WHERE game_id='game' AND kind='cover'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(source, "legacy");
+    assert_eq!(image, [0x89, 0x50, 0x4e, 0x47]);
     drop(db);
     drop(store);
     std::fs::remove_file(path).unwrap();

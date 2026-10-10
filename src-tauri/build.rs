@@ -11,6 +11,8 @@ fn main() {
             "discover_stores",
             "import_store_games",
             "refresh_artwork",
+            "steamgriddb_key_status",
+            "set_steamgriddb_key",
             "epic_connect",
             "epic_sync",
             "epic_disconnect",

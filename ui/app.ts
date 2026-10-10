@@ -5,7 +5,7 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setSteamGridDbKey, steamGridDbKeyStatus, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -219,12 +219,12 @@ async function addStoreGames(selected: StoreCandidate[]) {
     notify('Could not add games', desktopErrorMessage(reason));
   }
 }
-async function updateArtwork() {
-  notify('Finding game covers', 'Checking game folders and store artwork…');
+async function updateArtwork(gameId?: string) {
+  notify('Refreshing artwork', gameId ? 'Checking this game’s artwork sources…' : 'Checking artwork sources for every game…');
   try {
-    const report = await refreshArtwork();
+    const report = await refreshArtwork(gameId, true);
     await refreshLibrary();
-    notify('Artwork refreshed', report.updated + ' images added. ' + report.unavailable + ' images are still unavailable. For games without store artwork, add cover.jpg or hero.jpg to the game folder and try again.');
+    notify('Artwork refreshed', report.updated + ' images updated. ' + report.unavailable + ' images are still unavailable. Add cover.jpg or hero.jpg to a game folder, or configure SteamGridDB in Settings, and try again.');
   } catch (reason) {
     notify('Artwork refresh failed', desktopErrorMessage(reason));
   }
@@ -553,6 +553,20 @@ document.addEventListener('click', event => {
   }
   else if (action === 'import-all-stores' && mode === 'desktop') void addStoreGames(storeCandidates);
   else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
+  else if (action === 'refresh-game-artwork' && mode === 'desktop' && state.selectedId) void updateArtwork(state.selectedId);
+  else if (action === 'save-steamgriddb-key' && mode === 'desktop') {
+    const key = required<HTMLInputElement>('#steamgriddb-key', notice).value.trim();
+    void setSteamGridDbKey(key).then(() => {
+      required<HTMLInputElement>('#steamgriddb-key', notice).value = '';
+      required<HTMLElement>('#steamgriddb-status', notice).textContent = key ? 'API key saved on this PC.' : 'API key removed.';
+    }).catch(reason => { required<HTMLElement>('#steamgriddb-status', notice).textContent = desktopErrorMessage(reason); });
+  }
+  else if (action === 'clear-steamgriddb-key' && mode === 'desktop') {
+    void setSteamGridDbKey('').then(() => {
+      required<HTMLInputElement>('#steamgriddb-key', notice).value = '';
+      required<HTMLElement>('#steamgriddb-status', notice).textContent = 'API key removed.';
+    }).catch(reason => { required<HTMLElement>('#steamgriddb-status', notice).textContent = desktopErrorMessage(reason); });
+  }
   else if (action === 'check-update' && mode === 'desktop') void checkForUpdates();
   else if (action === 'connect-epic' && mode === 'desktop') showEpicSignIn();
   else if (action === 'open-epic-login' && mode === 'desktop') void openUrl('https://legendary.gl/epiclogin').catch(reason => notify('Could not open Epic sign-in', desktopErrorMessage(reason)));
@@ -594,7 +608,12 @@ document.addEventListener('click', event => {
     notify('Game actions', 'Choose the game shown on Home.');
     const actions = document.createElement('div'); actions.className = 'dialog-actions';
     const feature = document.createElement('button'); feature.textContent = 'Feature on Home'; feature.dataset.action = 'feature';
-    actions.append(feature); required('form', notice).before(actions);
+    actions.append(feature);
+    if (mode === 'desktop') {
+      const refresh = document.createElement('button'); refresh.type = 'button'; refresh.textContent = 'Refresh artwork'; refresh.dataset.action = 'refresh-game-artwork';
+      actions.append(refresh);
+    }
+    required('form', notice).before(actions);
   }
   else if (action === 'feature') {
     state = { ...navigate(state, 'home'), featuredId: state.selectedId };
@@ -645,7 +664,7 @@ document.addEventListener('click', event => {
         ['Find installed games', 'Check Steam, Epic Games, and GOG folders.', 'scan-stores'],
         ['Scan a folder', 'Search a folder and its subfolders.', 'scan-folder'],
         ['Add a game', 'Choose an executable yourself.', 'add-manual'],
-        ['Find game covers', 'Refresh missing artwork in your library.', 'refresh-artwork'],
+        ['Refresh artwork', 'Recheck covers and backgrounds for every game.', 'refresh-artwork'],
       ] as const) {
         const button = document.createElement('button'); button.type = 'button'; button.className = 'settings-tool'; button.dataset.action = action;
         const heading = document.createElement('strong'); heading.textContent = title;
@@ -653,9 +672,20 @@ document.addEventListener('click', event => {
         button.append(heading, copy); tools.append(button);
       }
       librarySection.append(libraryHeading, tools);
+      const artworkSection = document.createElement('section'); artworkSection.className = 'settings-section';
+      const artworkHeading = document.createElement('h3'); artworkHeading.textContent = 'Artwork fallback';
+      const artworkCopy = document.createElement('p'); artworkCopy.className = 'settings-help'; artworkCopy.textContent = 'SteamGridDB is optional. Local files and store artwork work without a key.';
+      const keyRow = document.createElement('div'); keyRow.className = 'settings-key-row';
+      const keyInput = document.createElement('input'); keyInput.id = 'steamgriddb-key'; keyInput.type = 'password'; keyInput.placeholder = 'SteamGridDB API key'; keyInput.autocomplete = 'off'; keyInput.setAttribute('aria-label', 'SteamGridDB API key');
+      const saveKey = document.createElement('button'); saveKey.type = 'button'; saveKey.textContent = 'Save key'; saveKey.dataset.action = 'save-steamgriddb-key';
+      const clearKey = document.createElement('button'); clearKey.type = 'button'; clearKey.textContent = 'Remove'; clearKey.dataset.action = 'clear-steamgriddb-key';
+      keyRow.append(keyInput, saveKey, clearKey);
+      const keyStatus = document.createElement('p'); keyStatus.id = 'steamgriddb-status'; keyStatus.className = 'settings-help'; keyStatus.textContent = 'Checking key status…';
+      artworkSection.append(artworkHeading, artworkCopy, keyRow, keyStatus);
+      void steamGridDbKeyStatus().then(configured => { if (keyStatus.isConnected) keyStatus.textContent = configured ? 'API key saved on this PC.' : 'No API key configured.'; }).catch(() => { if (keyStatus.isConnected) keyStatus.textContent = 'Could not read key status.'; });
       const update = document.createElement('button'); update.type = 'button'; update.className = 'settings-update';
       update.textContent = 'Check for updates'; update.dataset.action = 'check-update';
-      content.append(accounts, librarySection, update); required('form', notice).before(content);
+      content.append(accounts, librarySection, artworkSection, update); required('form', notice).before(content);
     }
   }
 });
