@@ -3,6 +3,7 @@ async page => {
     window.isTauri = true;
     window.__steamCalls = [];
     window.__steamInstalled = false;
+    window.__steamHistory = [];
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
       transformCallback(callback) { window.__steamEvent = callback; return 1; },
@@ -13,6 +14,9 @@ async page => {
         if (command === 'plugin:dialog|open') return Promise.resolve('C:\\SteamLibrary');
         if (command === 'plugin:event|listen') return Promise.resolve(1);
         if (command === 'plugin:event|unlisten') return Promise.resolve();
+        if (command === 'begin_download') { window.__steamHistory = [{id:'steam-job',gameId:args.gameId,title:'Owned Steam Game',provider:'steam',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('steam-job'); }
+        if (command === 'list_downloads') return Promise.resolve([...window.__steamHistory]);
+        if (command === 'finish_download') { window.__steamHistory[0].status = args.status; return Promise.resolve(); }
         if (command === 'steam_connect') return new Promise(resolve => { window.__finishSteamLogin = resolve; });
         if (command === 'steam_sync') return Promise.resolve({connected:true,count:1});
         if (command === 'steam_install') { window.__steamInstalled = true; return Promise.resolve(); }
@@ -33,10 +37,11 @@ async page => {
   await page.getByRole('heading', {name:'Steam library updated'}).waitFor();
   await page.getByRole('button', {name:'Close'}).click();
   await page.locator('nav [data-nav="steam"]').click();
-  await page.getByRole('button', {name:'View Owned Steam Game'}).click();
+  await page.getByRole('button', {name:'View Owned Steam Game'}).click({position:{x:20,y:20}});
   await page.getByRole('button', {name:'Download', exact:true}).click();
-  await page.getByRole('heading', {name:'Download complete'}).waitFor();
-  await page.getByRole('button', {name:'Close'}).click();
+  await page.getByText('Completed', {exact:true}).waitFor();
+  await page.locator('nav [data-nav="steam"]').click();
+  await page.getByRole('button', {name:'View Owned Steam Game'}).click({position:{x:20,y:20}});
   await page.getByRole('button', {name:'More game actions'}).click();
   await page.getByRole('button', {name:'Refresh artwork'}).click();
   await page.getByRole('heading', {name:'Artwork refreshed'}).waitFor();

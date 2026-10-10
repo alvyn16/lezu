@@ -26,7 +26,7 @@ fn creates_and_reopens_library_without_losing_records() {
         let version: i64 = db
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
     std::fs::remove_file(path).unwrap();
 }
@@ -58,7 +58,7 @@ fn upgrades_existing_v1_library_without_losing_games() {
     assert_eq!(
         db.pragma_query_value(None, "user_version", |row| row.get::<_, i64>(0))
             .unwrap(),
-        4
+        5
     );
     assert!(db.prepare("SELECT store_id FROM installations").is_ok());
     drop(db);
@@ -148,5 +148,33 @@ fn refuses_unknown_schema_without_modifying_it() {
         .unwrap();
     assert_eq!(version, 42);
     drop(db);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn reopening_marks_active_download_interrupted_and_keeps_history() {
+    let path = std::env::temp_dir().join(format!("lezu-storage-{}.db", uuid::Uuid::new_v4()));
+    {
+        let store = library::LibraryStore::open(&path).unwrap();
+        let db = store.0.lock().unwrap();
+        db.execute(
+            "INSERT INTO download_history(id,game_id,title,provider,destination,status,started_at)
+                    VALUES('job','game','Example','gog','C:\\Games','downloading',1)",
+            [],
+        )
+        .unwrap();
+    }
+    {
+        let store = library::LibraryStore::open(&path).unwrap();
+        let db = store.0.lock().unwrap();
+        let status: String = db
+            .query_row(
+                "SELECT status FROM download_history WHERE id='job'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(status, "interrupted");
+    }
     std::fs::remove_file(path).unwrap();
 }

@@ -45,6 +45,26 @@ export async function getLibraryArtwork(gameIds: string[], kind: 'cover' | 'hero
   return invoke<LibraryArtwork[]>('get_library_artwork', { gameIds, kind });
 }
 
+export interface DownloadRecord {
+  id: string;
+  gameId: string;
+  title: string;
+  provider: 'steam' | 'epic' | 'gog';
+  destination: string;
+  status: 'downloading' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
+  progress: number | null;
+  startedAt: number;
+  finishedAt: number | null;
+  error: string | null;
+}
+
+export const listDownloads = () => invoke<DownloadRecord[]>('list_downloads');
+export const beginDownload = (gameId: string, destination: string) => invoke<string>('begin_download', { gameId, destination });
+export const setDownloadProgress = (id: string, progress: number) => invoke<void>('set_download_progress', { id, progress });
+export const finishDownload = (id: string, status: 'completed' | 'failed' | 'cancelled', message?: string) =>
+  invoke<void>('finish_download', { id, status, message: message ?? null });
+export const clearDownloadHistory = () => invoke<number>('clear_download_history');
+
 export async function epicConnect(code: string): Promise<void> {
   return invoke<void>('epic_connect', { code });
 }

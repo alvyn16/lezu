@@ -25,7 +25,7 @@ export interface Game {
 }
 
 export interface LibraryState {
-  view: 'home' | 'library' | 'details';
+  view: 'home' | 'library' | 'details' | 'downloads';
   query: string;
   source: ProviderId | 'all';
   installedOnly: boolean;

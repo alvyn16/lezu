@@ -1,6 +1,7 @@
 mod artwork;
 mod commands;
 mod discovery;
+mod downloads;
 mod engine;
 mod epic;
 mod gog;
@@ -59,6 +60,11 @@ pub fn run() {
             runtime_info,
             commands::list_library,
             commands::get_library_artwork,
+            downloads::list_downloads,
+            downloads::begin_download,
+            downloads::set_download_progress,
+            downloads::finish_download,
+            downloads::clear_download_history,
             commands::add_manual_game,
             launch::launch_installation,
             launch::reveal_installation,

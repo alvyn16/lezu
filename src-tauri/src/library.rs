@@ -108,12 +108,38 @@ impl LibraryStore {
                 migration.commit()?;
             }
             4 => {}
+            5 => {}
             future => {
                 return Err(
                     format!("Library schema version {future} is newer than this app").into(),
                 )
             }
         }
+        if version < 5 {
+            let migration = connection.transaction()?;
+            migration.execute_batch(
+                "CREATE TABLE download_history (
+                    id TEXT PRIMARY KEY,
+                    game_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    destination TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('downloading','completed','failed','cancelled','interrupted')),
+                    progress INTEGER CHECK(progress IS NULL OR (progress >= 0 AND progress <= 100)),
+                    started_at INTEGER NOT NULL,
+                    finished_at INTEGER,
+                    error TEXT
+                );
+                CREATE INDEX download_history_started ON download_history(started_at DESC);
+                PRAGMA user_version = 5;",
+            )?;
+            migration.commit()?;
+        }
+        connection.execute(
+            "UPDATE download_history SET status='interrupted', finished_at=strftime('%s','now'),
+             error='Lezu closed before this download finished.' WHERE status='downloading'",
+            [],
+        )?;
         Ok(Self(Mutex::new(connection)))
     }
 }

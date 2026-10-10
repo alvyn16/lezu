@@ -3,6 +3,7 @@ async page => {
     window.isTauri = true;
     window.__epicCalls = [];
     window.__epicInstalled = false;
+    window.__epicHistory = [];
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
       transformCallback() { return 1; },
@@ -19,6 +20,9 @@ async page => {
         if (command === 'plugin:event|unlisten') return Promise.resolve();
         if (command === 'plugin:opener|open_url') return Promise.resolve();
         if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
+        if (command === 'begin_download') { window.__epicHistory = [{id:'epic-job',gameId:args.gameId,title:'Owned Epic Game',provider:'epic',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('epic-job'); }
+        if (command === 'list_downloads') return Promise.resolve([...window.__epicHistory]);
+        if (command === 'finish_download') { window.__epicHistory[0].status = args.status; return Promise.resolve(); }
         if (command === 'epic_install') { window.__epicInstalled = true; return Promise.resolve(); }
         if (command === 'epic_connect') return Promise.resolve();
         if (command === 'epic_sync') return Promise.resolve({connected:true,count:1});
@@ -30,13 +34,12 @@ async page => {
   await page.locator('nav [data-nav="epic"]').click();
   await page.getByRole('button', {name:'View Owned Epic Game'}).click();
   await page.getByRole('button', {name:'Download', exact:true}).click();
-  await page.getByRole('heading', {name:'Download complete'}).waitFor();
+  await page.getByText('Completed', {exact:true}).waitFor();
   const calls = await page.evaluate(() => window.__epicCalls);
   const install = calls.find(call => call.command === 'epic_install');
   if (!install || install.args.gameId !== 'epic-owned' || install.args.destination !== 'C:\\Games') {
     throw Error('Owned game did not call Epic download with selected folder');
   }
-  await page.getByRole('button', {name:'Close'}).click();
   await page.getByRole('button', {name:'Settings'}).click();
   await page.getByRole('button', {name:'Connect Epic Games'}).click();
   await page.getByRole('button', {name:'Open Epic sign-in'}).click();

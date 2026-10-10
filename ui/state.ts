@@ -26,7 +26,7 @@ export function counts(games: readonly Game[], state: LibraryState) {
 }
 export function navigate(state: LibraryState, destination: string): LibraryState {
   const isSource = isProviderId(destination);
-  return { ...state, view: destination === 'home' ? 'home' : 'library', selectedId: null,
+  return { ...state, view: destination === 'home' ? 'home' : destination === 'downloads' ? 'downloads' : 'library', selectedId: null,
     query: '', source: isSource ? destination : 'all', installedOnly: destination === 'installed' };
 }
 export function openGame(state: LibraryState, id: string): LibraryState { return { ...state, view: 'details', selectedId: id }; }

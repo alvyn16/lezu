@@ -4,8 +4,9 @@ import type { Game, LibraryMode } from './domain/models';
 import { initialState, visibleGames, activeGame, counts, navigate, toggleSource, openGame } from './state.js';
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
+import { downloads } from './downloads.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setSteamGridDbKey, steamGridDbKeyStatus, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, finishDownload, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -35,8 +36,13 @@ let scanCandidates: ScanCandidate[] = [];
 let storeCandidates: StoreCandidate[] = [];
 let availableUpdate: Awaited<ReturnType<typeof check>> = null;
 let activeDownload: string | null = null;
+let activeDownloadJob: string | null = null;
+let choosingDownloadFolder = false;
+let downloadRecords: DownloadRecord[] = [];
+let downloadsLoading = false;
+let downloadsProblem: string | null = null;
+let downloadsRequest = 0;
 let steamSigningIn = false;
-let downloadProgress: number | null = null;
 let scanSequence = 0;
 let activeScanSequence: number | null = null;
 let state = initialState();
@@ -70,25 +76,27 @@ function dismissActiveScan() {
 notice.addEventListener('cancel', dismissActiveScan);
 notice.addEventListener('close', () => { if (steamSigningIn) void steamCancel(); });
 function render(focusKey?: string) {
-  const game = activeGame(games, state);
+  const game = state.view === 'downloads' ? null : activeGame(games, state);
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
   document.documentElement.style.setProperty('--sidebar', game?.theme.sidebar ?? '#23272d');
   document.documentElement.style.setProperty('--theme-art', game?.hero ? `url("${asset(game.hero)}")` : 'none');
-  if (libraryLoading) required('#screen').innerHTML = '<section class="library-section"><div class="empty-state" role="status"><h2>Loading your library…</h2></div></section>';
+  if (state.view === 'downloads') required('#screen').innerHTML = downloads(downloadRecords, mode, downloadsLoading, downloadsProblem);
+  else if (libraryLoading) required('#screen').innerHTML = '<section class="library-section"><div class="empty-state" role="status"><h2>Loading your library…</h2></div></section>';
   else if (state.view === 'details' && game) required('#screen').innerHTML = details(game, mode);
   else if (state.view === 'home' && !state.query) required('#screen').innerHTML = home(game, visibleGames(games, state), state, mode);
   else required('#screen').innerHTML = library(visibleGames(games, state), state, mode);
   document.querySelectorAll<HTMLElement>('.cover-shelf').forEach(enableWheelScrolling);
   const context = state.view === 'details' ? previousState : state;
-  const selected = context.view === 'home' ? 'home' : context.installedOnly ? 'installed' : context.source;
+  const selected = state.view === 'downloads' ? 'downloads' : context.view === 'home' ? 'home' : context.installedOnly ? 'installed' : context.source;
   document.querySelectorAll<HTMLElement>('[data-nav]').forEach(button => {
     button.removeAttribute('aria-current');
     if (button.closest('nav') && button.dataset.nav === selected) button.setAttribute('aria-current', 'page');
   });
   for (const [id, count] of Object.entries(counts(games, state))) required(`[data-count="${id}"]`).textContent = String(count);
-  required('#location').innerHTML = state.view === 'details' && game ? detailsLocation(game) : `<h1>${selected === 'home' ? 'Home' : 'Library'}</h1>`;
+  required('#location').innerHTML = state.view === 'details' && game ? detailsLocation(game) : `<h1>${selected === 'home' ? 'Home' : selected === 'downloads' ? 'Downloads' : 'Library'}</h1>`;
   document.title = `${state.view === 'details' && game ? game.title : 'Lezu'} — ${mode === 'desktop' ? 'Game library' : 'UI preview'}`;
   search.value = state.query;
+  required<HTMLElement>('.search').hidden = state.view === 'downloads';
   if (focusKey) document.querySelector<HTMLElement>(`[data-source="${focusKey}"]`)?.focus({ preventScroll: true });
   if (mode === 'desktop' && game && !game.hero) void loadHero(game.id);
 }
@@ -441,67 +449,80 @@ async function disconnectGog() {
   try { await gogDisconnect(); await refreshLibrary(); notify('GOG signed out', 'Installed game files were left in place.'); }
   catch (reason) { notify('GOG sign-out failed', desktopErrorMessage(reason)); }
 }
-function showDownload() {
-  const selected = games.find(game => game.id === activeDownload);
-  const title = selected?.title ?? 'game';
-  notify('Downloading ' + title, downloadProgress === null
-    ? 'Downloading game files…' : `Downloaded ${downloadProgress}% of game data.`);
-  const actions = document.createElement('div'); actions.className = 'dialog-actions';
-  const cancel = document.createElement('button'); cancel.textContent = 'Cancel download'; cancel.dataset.action = selected?.source === 'gog' ? 'cancel-gog-download' : selected?.source === 'steam' ? 'cancel-steam-download' : 'cancel-epic-download';
-  actions.append(cancel); required('form', notice).before(actions);
-}
-async function downloadGog(id: string) {
-  if (activeDownload) { showDownload(); return; }
-  const selected = games.find(game => game.id === id);
-  if (!selected?.owned || selected.source !== 'gog') return;
+async function refreshDownloadHistory() {
+  if (mode !== 'desktop') return;
+  const request = ++downloadsRequest;
+  downloadsLoading = true; downloadsProblem = null;
+  if (state.view === 'downloads') render();
   try {
-    const folder = await openFile({ multiple: false, directory: true, title: `Choose a library folder for ${selected.title}` });
-    if (typeof folder !== 'string') return;
-    activeDownload = id; downloadProgress = null; showDownload();
-    await gogInstall(id, folder);
-    await refreshLibrary();
-    notify('Download complete', `${selected.title} is installed.`);
-  } catch (reason) { notify('Download stopped', desktopErrorMessage(reason)); }
-  finally { activeDownload = null; downloadProgress = null; }
-}
-async function downloadSteam(id: string) {
-  if (activeDownload) { showDownload(); return; }
-  const selected = games.find(game => game.id === id);
-  if (!selected?.owned || selected.source !== 'steam') return;
-  try {
-    const folder = await openFile({ multiple: false, directory: true, title: `Choose a Steam library folder for ${selected.title}` });
-    if (typeof folder !== 'string') return;
-    activeDownload = id; downloadProgress = null; showDownload();
-    await steamInstall(id, folder);
-    await refreshLibrary();
-    notify('Download complete', `${selected.title} is installed.`);
-  } catch (reason) { notify('Download stopped', desktopErrorMessage(reason)); }
-  finally { activeDownload = null; downloadProgress = null; }
-}
-async function downloadEpic(id: string) {
-  if (activeDownload) { showDownload(); return; }
-  const selected = games.find(game => game.id === id);
-  if (!selected?.owned || selected.source !== 'epic') return;
-  try {
-    const folder = await openFile({ multiple: false, directory: true, title: `Choose where to install ${selected.title}` });
-    if (typeof folder !== 'string') return;
-    activeDownload = id;
-    downloadProgress = null;
-    showDownload();
-    const unlisten = await listen<{ gameId: string; percent: number | null }>('epic-download-progress', event => {
-      if (event.payload.gameId !== activeDownload) return;
-      downloadProgress = event.payload.percent;
-      if (notice.open) required('#notice-copy').textContent = downloadProgress === null
-        ? 'Downloading…' : `Downloaded ${downloadProgress}% of game data.`;
-    });
-    try {
-      await epicInstall(id, folder);
-      await refreshLibrary();
-      notify('Download complete', `${selected.title} is installed.`);
-    } finally { unlisten(); }
+    const records = await listDownloads();
+    if (request !== downloadsRequest) return;
+    downloadRecords = records;
   } catch (reason) {
-    notify('Download stopped', desktopErrorMessage(reason));
-  } finally { activeDownload = null; downloadProgress = null; }
+    if (request !== downloadsRequest) return;
+    downloadsProblem = desktopErrorMessage(reason);
+  } finally {
+    if (request === downloadsRequest) {
+      downloadsLoading = false;
+      if (state.view === 'downloads') render();
+    }
+  }
+}
+function openDownloads() {
+  state = navigate(state, 'downloads');
+  render(); window.scrollTo(0, 0);
+  void refreshDownloadHistory();
+}
+function wasCancelled(reason: unknown) {
+  if (typeof reason === 'string') {
+    try { return wasCancelled(JSON.parse(reason)); } catch { return false; }
+  }
+  return !!reason && typeof reason === 'object' && 'code' in reason && reason.code === 'download_cancelled';
+}
+async function runDownload(id: string, source: 'steam' | 'epic' | 'gog') {
+  if (activeDownload || choosingDownloadFolder) { if (activeDownload) openDownloads(); return; }
+  const selected = games.find(game => game.id === id);
+  if (!selected?.owned || selected.source !== source) return;
+  let job: string;
+  let folder: string;
+  choosingDownloadFolder = true;
+  try {
+    const picked = await openFile({ multiple: false, directory: true, title: `Choose a library folder for ${selected.title}` });
+    if (typeof picked !== 'string') return;
+    folder = picked;
+    job = await beginDownload(id, folder);
+  } catch (reason) { notify('Could not start download', desktopErrorMessage(reason)); return; }
+  finally { choosingDownloadFolder = false; }
+  activeDownload = id; activeDownloadJob = job;
+  openDownloads();
+  let unlisten: (() => void) | null = null;
+  let savedProgress = -1;
+  let failure: unknown = null;
+  try {
+    if (source === 'epic') {
+      unlisten = await listen<{ gameId: string; percent: number | null }>('epic-download-progress', event => {
+        if (event.payload.gameId !== activeDownload || !Number.isFinite(event.payload.percent)) return;
+        const percent = Math.max(0, Math.min(100, Math.round(event.payload.percent!)));
+        const current = downloadRecords.find(record => record.id === activeDownloadJob);
+        if (current) current.progress = percent;
+        if (state.view === 'downloads') render();
+        if (percent >= savedProgress + 5 || percent === 100) {
+          savedProgress = percent;
+          void setDownloadProgress(job, percent).catch(() => {});
+        }
+      });
+    }
+    if (source === 'steam') await steamInstall(id, folder);
+    else if (source === 'gog') await gogInstall(id, folder);
+    else await epicInstall(id, folder);
+  } catch (reason) { failure = reason; }
+  finally { unlisten?.(); }
+  const status = failure ? (wasCancelled(failure) ? 'cancelled' : 'failed') : 'completed';
+  try { await finishDownload(job, status, failure ? desktopErrorMessage(failure) : undefined); }
+  catch (reason) { notify('Download history unavailable', desktopErrorMessage(reason)); }
+  activeDownload = null; activeDownloadJob = null;
+  if (!failure) await refreshLibrary();
+  await refreshDownloadHistory();
 }
 async function installAvailableUpdate() {
   const update = availableUpdate;
@@ -593,9 +614,7 @@ document.addEventListener('click', event => {
   if (!button) return;
   const { nav, source, play, game, action, screenshot } = button.dataset;
   if (nav === 'downloads') {
-    if (mode === 'demo') notify('Downloads unavailable', 'The browser preview uses sample games. Downloads are available in the Windows app for connected store accounts.');
-    else if (activeDownload) showDownload();
-    else notify('Downloads', 'No game is downloading right now. Open an owned game to start a download.');
+    openDownloads();
   }
   else if (nav) {
     const fromSidebar = !!button.closest('nav');
@@ -671,12 +690,19 @@ document.addEventListener('click', event => {
   else if (action === 'cancel-steam-login' && mode === 'desktop') { void steamCancel(); notice.close(); }
   else if (action === 'sync-steam' && mode === 'desktop') void syncSteam();
   else if (action === 'disconnect-steam' && mode === 'desktop') void disconnectSteam();
-  else if (action === 'install-epic' && mode === 'desktop' && button.dataset.id) void downloadEpic(button.dataset.id);
-  else if (action === 'install-gog' && mode === 'desktop' && button.dataset.id) void downloadGog(button.dataset.id);
-  else if (action === 'install-steam' && mode === 'desktop' && button.dataset.id) void downloadSteam(button.dataset.id);
-  else if (action === 'cancel-epic-download' && mode === 'desktop') void epicCancelDownload();
-  else if (action === 'cancel-gog-download' && mode === 'desktop') void gogCancelDownload();
-  else if (action === 'cancel-steam-download' && mode === 'desktop') void steamCancel();
+  else if (action === 'install-epic' && mode === 'desktop' && button.dataset.id) void runDownload(button.dataset.id, 'epic');
+  else if (action === 'install-gog' && mode === 'desktop' && button.dataset.id) void runDownload(button.dataset.id, 'gog');
+  else if (action === 'install-steam' && mode === 'desktop' && button.dataset.id) void runDownload(button.dataset.id, 'steam');
+  else if (action === 'cancel-download' && mode === 'desktop' && activeDownload) {
+    button.textContent = 'Cancelling…'; (button as HTMLButtonElement).disabled = true;
+    const selected = games.find(entry => entry.id === activeDownload);
+    const cancel = selected?.source === 'epic' ? epicCancelDownload : selected?.source === 'gog' ? gogCancelDownload : steamCancel;
+    void cancel().catch(reason => notify('Could not cancel download', desktopErrorMessage(reason)));
+  }
+  else if (action === 'clear-download-history' && mode === 'desktop') {
+    void clearDownloadHistory().then(() => refreshDownloadHistory()).catch(reason => { downloadsProblem = desktopErrorMessage(reason); render(); });
+  }
+  else if (action === 'retry-download-history' && mode === 'desktop') void refreshDownloadHistory();
   else if (action === 'install-update' && mode === 'desktop') void installAvailableUpdate();
   else if (action === 'review-candidate' && mode === 'desktop') {
     const candidate = scanCandidates[Number(button.dataset.index)];

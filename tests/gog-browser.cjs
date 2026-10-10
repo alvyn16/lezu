@@ -3,6 +3,7 @@ async page => {
     window.isTauri = true;
     window.__gogCalls = [];
     window.__gogInstalled = false;
+    window.__gogHistory = [];
     window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
     window.__TAURI_INTERNALS__ = {
       transformCallback() { return 1; },
@@ -12,6 +13,9 @@ async page => {
         if (command === 'list_library') return Promise.resolve([{id:'gog-owned',title:'Owned GOG Game',source:'gog',owned:true,installed:window.__gogInstalled,installationId:null,played:null,lastPlayed:null,size:null,developer:null,year:null,tags:[],description:null,theme:{page:'#30343b',sidebar:'#23272d'},screenshots:[],cover:null,hero:null,logo:null}]);
         if (command === 'plugin:dialog|open') return Promise.resolve('C:\\Games');
         if (command === 'plugin:opener|open_url') return Promise.resolve();
+        if (command === 'begin_download') { window.__gogHistory = [{id:'gog-job',gameId:args.gameId,title:'Owned GOG Game',provider:'gog',destination:args.destination,status:'downloading',progress:null,startedAt:1730000000,finishedAt:null,error:null}]; return Promise.resolve('gog-job'); }
+        if (command === 'list_downloads') return Promise.resolve([...window.__gogHistory]);
+        if (command === 'finish_download') { window.__gogHistory[0].status = args.status; return Promise.resolve(); }
         if (command === 'gog_connect') return Promise.resolve();
         if (command === 'gog_sync') return Promise.resolve({connected:true,count:1});
         if (command === 'gog_install') { window.__gogInstalled = true; return Promise.resolve(); }
@@ -32,7 +36,7 @@ async page => {
   await page.locator('nav [data-nav="gog"]').click();
   await page.getByRole('button', {name:'View Owned GOG Game'}).click();
   await page.getByRole('button', {name:'Download', exact:true}).click();
-  await page.getByRole('heading', {name:'Download complete'}).waitFor();
+  await page.getByText('Completed', {exact:true}).waitFor();
   const calls = await page.evaluate(() => window.__gogCalls);
   if (calls.find(call => call.command === 'gog_connect')?.args.code !== 'https://embed.gog.com/on_login_success?origin=client&code=ABC123') throw Error('GOG code missing');
   if (calls.find(call => call.command === 'gog_install')?.args.destination !== 'C:\\Games') throw Error('GOG install folder missing');
