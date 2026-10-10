@@ -12,9 +12,9 @@ test('artwork settings commands are registered and permitted for the main window
   const capability = JSON.parse(readFileSync(new URL('../src-tauri/capabilities/main.json', import.meta.url), 'utf8'));
   const manifest = readFileSync(new URL('../src-tauri/build.rs', import.meta.url), 'utf8');
   const handlers = readFileSync(new URL('../src-tauri/src/lib.rs', import.meta.url), 'utf8');
-  for (const command of ['refresh_artwork', 'steamgriddb_key_status', 'set_steamgriddb_key']) {
+  for (const command of ['refresh_artwork', 'steamgriddb_key_status', 'set_steamgriddb_key', 'get_library_artwork']) {
     assert.ok(capability.permissions.includes(`allow-${command.replaceAll('_', '-')}`));
     assert.ok(manifest.includes(`"${command}"`));
-    assert.ok(handlers.includes(`artwork::${command}`));
+    assert.ok(handlers.includes(`${command === 'get_library_artwork' ? 'commands' : 'artwork'}::${command}`));
   }
 });

@@ -19,6 +19,7 @@ export interface Game {
   theme: { page: string; sidebar: string };
   screenshots: string[];
   cover: string | null;
+  artworkPending?: boolean;
   hero: string | null;
   logo: string | null;
 }

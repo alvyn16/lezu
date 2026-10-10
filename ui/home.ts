@@ -15,7 +15,7 @@ export function gameCard(game: Game, mode: LibraryMode = 'demo') {
   return `<article class="game-card">
     <div class="cover-wrap">
       <button class="cover-button" data-game="${game.id}" aria-label="View ${escape(game.title)}">
-        ${game.cover ? `<img src="${asset(game.cover)}" alt="" loading="lazy">` : `<span class="cover-fallback">${icon('grid')}<span>Artwork unavailable</span></span>`}
+        ${game.cover ? `<img src="${asset(game.cover)}" alt="" loading="lazy">` : `<span class="cover-fallback">${icon('grid')}<span>${game.artworkPending ? 'Loading artwork…' : 'Artwork unavailable'}</span></span>`}
       </button>
       ${game.installed ? `<button class="cover-play primary" data-play="${game.id}" aria-label="Play ${escape(game.title)}">${icon('play')} Play</button>` : ''}
     </div>

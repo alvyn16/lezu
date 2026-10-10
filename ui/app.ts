@@ -5,7 +5,7 @@ import { initialState, visibleGames, activeGame, counts, navigate, toggleSource,
 import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setSteamGridDbKey, steamGridDbKeyStatus, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, cancelScan, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setSteamGridDbKey, steamGridDbKeyStatus, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -25,6 +25,11 @@ function displayWindowsPath(path: string): string {
 required('#app').innerHTML = shell();
 const mode: LibraryMode = isDesktop() ? 'desktop' : 'demo';
 let games: Game[] = mode === 'demo' ? demoGames : [];
+let libraryLoading = mode === 'desktop';
+let libraryRequest = 0;
+let artworkRequest = 0;
+const artworkCache = new Map<string, { cover?: string | null; hero?: string | null }>();
+const loadingHeroes = new Map<string, number>();
 const launchRequests = new Set<string>();
 let scanCandidates: ScanCandidate[] = [];
 let storeCandidates: StoreCandidate[] = [];
@@ -69,7 +74,8 @@ function render(focusKey?: string) {
   document.documentElement.style.setProperty('--page', game?.theme.page ?? '#30343b');
   document.documentElement.style.setProperty('--sidebar', game?.theme.sidebar ?? '#23272d');
   document.documentElement.style.setProperty('--theme-art', game?.hero ? `url("${asset(game.hero)}")` : 'none');
-  if (state.view === 'details' && game) required('#screen').innerHTML = details(game, mode);
+  if (libraryLoading) required('#screen').innerHTML = '<section class="library-section"><div class="empty-state" role="status"><h2>Loading your library…</h2></div></section>';
+  else if (state.view === 'details' && game) required('#screen').innerHTML = details(game, mode);
   else if (state.view === 'home' && !state.query) required('#screen').innerHTML = home(game, visibleGames(games, state), state, mode);
   else required('#screen').innerHTML = library(visibleGames(games, state), state, mode);
   document.querySelectorAll<HTMLElement>('.cover-shelf').forEach(enableWheelScrolling);
@@ -84,13 +90,88 @@ function render(focusKey?: string) {
   document.title = `${state.view === 'details' && game ? game.title : 'Lezu'} — ${mode === 'desktop' ? 'Game library' : 'UI preview'}`;
   search.value = state.query;
   if (focusKey) document.querySelector<HTMLElement>(`[data-source="${focusKey}"]`)?.focus({ preventScroll: true });
+  if (mode === 'desktop' && game && !game.hero) void loadHero(game.id);
 }
-async function refreshLibrary() {
-  if (mode !== 'desktop') return;
+function updateCover(gameId: string, image: string | null) {
+  document.querySelectorAll<HTMLButtonElement>('.cover-button[data-game]').forEach(button => {
+    if (button.dataset.game !== gameId) return;
+    if (!image) {
+      const label = button.querySelector('.cover-fallback span');
+      if (label) label.textContent = 'Artwork unavailable';
+      return;
+    }
+    button.querySelector('.cover-fallback')?.remove();
+    const cover = button.querySelector('img') ?? document.createElement('img');
+    cover.src = asset(image);
+    cover.alt = '';
+    cover.loading = 'lazy';
+    if (!cover.isConnected) button.prepend(cover);
+  });
+}
+async function loadHero(gameId: string) {
+  if (loadingHeroes.get(gameId) === artworkRequest || artworkCache.get(gameId)?.hero !== undefined) return;
+  const request = artworkRequest;
+  loadingHeroes.set(gameId, request);
   try {
-    games = await listLibrary();
+    const image = (await getLibraryArtwork([gameId], 'hero'))?.[0]?.image ?? null;
+    if (request !== artworkRequest) return;
+    artworkCache.set(gameId, { ...artworkCache.get(gameId), hero: image });
+    const game = games.find(entry => entry.id === gameId);
+    if (game) game.hero = image;
+    if (image && activeGame(games, state)?.id === gameId) {
+      document.documentElement.style.setProperty('--theme-art', `url("${asset(image)}")`);
+      const hero = document.querySelector('.home-hero, .details-hero');
+      if (hero && !hero.querySelector('.hero-art')) {
+        const picture = document.createElement('img');
+        picture.className = 'hero-art'; picture.src = asset(image); picture.alt = '';
+        hero.prepend(picture);
+      }
+    }
+  } catch { /* Library metadata remains usable if artwork is unavailable. */ }
+  finally { if (loadingHeroes.get(gameId) === request) loadingHeroes.delete(gameId); }
+}
+async function loadCovers(request: number) {
+  const pending = games.filter(game => artworkCache.get(game.id)?.cover === undefined).map(game => game.id);
+  for (let index = 0; index < pending.length && request === artworkRequest; index += 12) {
+    const ids = pending.slice(index, index + 12);
+    try {
+      const found = await getLibraryArtwork(ids, 'cover');
+      if (request !== artworkRequest) return;
+      const byId = new Map((found ?? []).map(entry => [entry.gameId, entry.image]));
+      for (const id of ids) {
+        const image = byId.get(id) ?? null;
+        artworkCache.set(id, { ...artworkCache.get(id), cover: image });
+        const game = games.find(entry => entry.id === id);
+        if (game) { game.cover = image; game.artworkPending = false; }
+        updateCover(id, image);
+      }
+    } catch {
+      for (const id of ids) {
+        const game = games.find(entry => entry.id === id);
+        if (game) game.artworkPending = false;
+        updateCover(id, null);
+      }
+      return;
+    }
+  }
+}
+async function refreshLibrary(artworkChanged: boolean | string = false) {
+  if (mode !== 'desktop') return;
+  const request = ++libraryRequest;
+  try {
+    const nextGames = await listLibrary();
+    if (request !== libraryRequest) return;
+    if (typeof artworkChanged === 'string') artworkCache.delete(artworkChanged);
+    else if (artworkChanged) artworkCache.clear();
+    artworkRequest++;
+    games = nextGames.map(game => ({ ...game, cover: artworkCache.get(game.id)?.cover ?? null, hero: artworkCache.get(game.id)?.hero ?? null, artworkPending: artworkCache.get(game.id)?.cover === undefined }));
+    libraryLoading = false;
     render();
+    void loadCovers(artworkRequest);
   } catch (reason) {
+    if (request !== libraryRequest) return;
+    libraryLoading = false;
+    render();
     notify('Library unavailable', desktopErrorMessage(reason));
     const actions = document.createElement('div'); actions.className = 'dialog-actions';
     const retry = document.createElement('button'); retry.textContent = 'Try again'; retry.dataset.action = 'refresh-library';
@@ -214,7 +295,7 @@ async function addStoreGames(selected: StoreCandidate[]) {
     const count = await importStoreGames(selected);
     await refreshLibrary();
     notify('Games added', count + ' game' + (count === 1 ? '' : 's') + ' added to your library.');
-    if (count) void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
+    if (count) void refreshArtwork().then(() => refreshLibrary(true)).catch(() => {});
   } catch (reason) {
     notify('Could not add games', desktopErrorMessage(reason));
   }
@@ -223,7 +304,7 @@ async function updateArtwork(gameId?: string) {
   notify('Refreshing artwork', gameId ? 'Checking this game’s artwork sources…' : 'Checking artwork sources for every game…');
   try {
     const report = await refreshArtwork(gameId, true);
-    await refreshLibrary();
+    await refreshLibrary(gameId ?? true);
     notify('Artwork refreshed', report.updated + ' images updated. ' + report.unavailable + ' images are still unavailable. Add cover.jpg or hero.jpg to a game folder, or configure SteamGridDB in Settings, and try again.');
   } catch (reason) {
     notify('Artwork refresh failed', desktopErrorMessage(reason));
@@ -271,7 +352,7 @@ async function syncEpic() {
     const result = await epicSync();
     await refreshLibrary();
     notify('Epic library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
-    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
+    void refreshArtwork().then(() => refreshLibrary(true)).catch(() => {});
   } catch (reason) {
     notify('Epic library unavailable', desktopErrorMessage(reason));
   }
@@ -320,7 +401,7 @@ async function syncSteam() {
     const result = await steamSync();
     await refreshLibrary();
     notify('Steam library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
-    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
+    void refreshArtwork().then(() => refreshLibrary(true)).catch(() => {});
   } catch (reason) { notify('Steam library unavailable', desktopErrorMessage(reason)); }
 }
 async function disconnectSteam() {
@@ -352,7 +433,7 @@ async function syncGog() {
     const result = await gogSync();
     await refreshLibrary();
     notify('GOG library updated', `${result.count} owned ${result.count === 1 ? 'game' : 'games'} found.`);
-    void refreshArtwork().then(() => refreshLibrary()).catch(() => {});
+    void refreshArtwork().then(() => refreshLibrary(true)).catch(() => {});
   } catch (reason) { notify('GOG library unavailable', desktopErrorMessage(reason)); }
 }
 async function disconnectGog() {

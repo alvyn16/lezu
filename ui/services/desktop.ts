@@ -39,6 +39,12 @@ export async function listLibrary() {
   return invoke<import('../domain/models').Game[]>('list_library');
 }
 
+export interface LibraryArtwork { gameId: string; kind: 'cover' | 'hero'; image: string }
+
+export async function getLibraryArtwork(gameIds: string[], kind: 'cover' | 'hero'): Promise<LibraryArtwork[]> {
+  return invoke<LibraryArtwork[]>('get_library_artwork', { gameIds, kind });
+}
+
 export async function epicConnect(code: string): Promise<void> {
   return invoke<void>('epic_connect', { code });
 }

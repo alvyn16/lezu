@@ -58,6 +58,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             runtime_info,
             commands::list_library,
+            commands::get_library_artwork,
             commands::add_manual_game,
             launch::launch_installation,
             launch::reveal_installation,

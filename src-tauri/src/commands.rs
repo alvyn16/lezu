@@ -63,12 +63,65 @@ pub fn list_library(store: State<'_, LibraryStore>) -> Result<Vec<GameView>, Com
     query_library(&store)
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibraryArtwork {
+    game_id: String,
+    kind: String,
+    image: String,
+}
+
+#[tauri::command]
+pub fn get_library_artwork(
+    store: State<'_, LibraryStore>,
+    game_ids: Vec<String>,
+    kind: String,
+) -> Result<Vec<LibraryArtwork>, CommandError> {
+    query_artwork(&store, &game_ids, &kind)
+}
+
+fn query_artwork(
+    store: &LibraryStore,
+    game_ids: &[String],
+    kind: &str,
+) -> Result<Vec<LibraryArtwork>, CommandError> {
+    if game_ids.len() > 24 || (kind != "cover" && kind != "hero") {
+        return Err(error(
+            "invalid_artwork_request",
+            "Choose up to 24 games and a valid artwork type.",
+        ));
+    }
+    let connection = store.0.lock().map_err(|_| database_error())?;
+    let mut statement = connection
+        .prepare("SELECT mime, image FROM artwork WHERE game_id = ?1 AND kind = ?2")
+        .map_err(|_| database_error())?;
+    let mut artwork = Vec::new();
+    for game_id in game_ids {
+        let image = statement
+            .query_row(params![game_id, kind], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+            })
+            .optional()
+            .map_err(|_| database_error())?;
+        if let Some((mime, bytes)) = image {
+            artwork.push(LibraryArtwork {
+                game_id: game_id.clone(),
+                kind: kind.to_owned(),
+                image: format!(
+                    "data:{mime};base64,{}",
+                    base64::engine::general_purpose::STANDARD.encode(bytes)
+                ),
+            });
+        }
+    }
+    Ok(artwork)
+}
+
 fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
     let connection = store.0.lock().map_err(|_| database_error())?;
     let mut statement = connection
         .prepare(
             "SELECT g.id, g.title, g.source, i.id, i.install_state,
-                    cover.mime, cover.image, hero.mime, hero.image,
                     owned.provider_id, owned.installed
              FROM games g LEFT JOIN installations i ON i.id = (
                  SELECT candidate.id FROM installations candidate
@@ -77,8 +130,6 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
                           candidate.rowid
                  LIMIT 1
              )
-             LEFT JOIN artwork cover ON cover.game_id = g.id AND cover.kind = 'cover'
-             LEFT JOIN artwork hero ON hero.game_id = g.id AND hero.kind = 'hero'
              LEFT JOIN owned_games owned ON owned.game_id = g.id
              ORDER BY g.title COLLATE NOCASE, g.id",
         )
@@ -86,17 +137,13 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
     let records = statement
         .query_map([], |row| {
             let state: Option<String> = row.get(4)?;
-            let mime: Option<String> = row.get(5)?;
-            let image: Option<Vec<u8>> = row.get(6)?;
-            let hero_mime: Option<String> = row.get(7)?;
-            let hero_image: Option<Vec<u8>> = row.get(8)?;
             Ok(GameView {
                 id: row.get(0)?,
                 title: row.get(1)?,
                 source: row.get(2)?,
                 installed: state.as_deref() == Some("installed")
-                    || row.get::<_, Option<i64>>(10)? == Some(1),
-                owned: row.get::<_, Option<String>>(9)?.is_some(),
+                    || row.get::<_, Option<i64>>(6)? == Some(1),
+                owned: row.get::<_, Option<String>>(5)?.is_some(),
                 installation_id: row.get(3)?,
                 played: None,
                 last_played: None,
@@ -110,18 +157,8 @@ fn query_library(store: &LibraryStore) -> Result<Vec<GameView>, CommandError> {
                     sidebar: "#23272d",
                 },
                 screenshots: vec![],
-                cover: mime.zip(image).map(|(mime, image)| {
-                    format!(
-                        "data:{mime};base64,{}",
-                        base64::engine::general_purpose::STANDARD.encode(image)
-                    )
-                }),
-                hero: hero_mime.zip(hero_image).map(|(mime, image)| {
-                    format!(
-                        "data:{mime};base64,{}",
-                        base64::engine::general_purpose::STANDARD.encode(image)
-                    )
-                }),
+                cover: None,
+                hero: None,
                 logo: None,
             })
         })
@@ -338,5 +375,27 @@ mod tests {
             assert!(query_library(&store).unwrap().is_empty());
         }
         fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[test]
+    fn library_metadata_does_not_wait_for_cached_artwork() {
+        let directory =
+            std::env::temp_dir().join(format!("lezu-library-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&directory).unwrap();
+        {
+            let store = LibraryStore::open(&directory.join("library.db")).unwrap();
+            let connection = store.0.lock().unwrap();
+            connection.execute("INSERT INTO games(id,title,source,added_at) VALUES('game-1','Example','gog',0)", []).unwrap();
+            connection.execute("INSERT INTO artwork(game_id,kind,mime,image) VALUES('game-1','cover','image/png',?1)", [b"\x89PNG\r\n\x1a\nimage".as_slice()]).unwrap();
+            drop(connection);
+            let games = query_library(&store).unwrap();
+            assert_eq!(games.len(), 1);
+            assert!(games[0].cover.is_none());
+            assert!(games[0].hero.is_none());
+            let art = query_artwork(&store, &["game-1".to_string()], "cover").unwrap();
+            assert_eq!(art.len(), 1);
+            assert!(art[0].image.starts_with("data:image/png;base64,"));
+        }
+        fs::remove_dir_all(directory).unwrap();
     }
 }

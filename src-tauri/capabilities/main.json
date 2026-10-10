@@ -6,6 +6,7 @@
   "permissions": [
     "allow-runtime-info",
     "allow-list-library",
+    "allow-get-library-artwork",
     "allow-add-manual-game",
     "allow-launch-installation",
     "allow-reveal-installation",
