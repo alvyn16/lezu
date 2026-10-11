@@ -81,12 +81,14 @@ pub fn run() {
             epic::epic_sync,
             epic::epic_disconnect,
             epic::epic_install,
+            epic::epic_uninstall,
             epic::epic_cancel_download,
             epic::epic_launch,
             gog::gog_connect,
             gog::gog_sync,
             gog::gog_disconnect,
             gog::gog_install,
+            gog::gog_uninstall,
             gog::gog_cancel_download,
             gog::gog_launch,
             steam::steam_connect,
@@ -94,6 +96,7 @@ pub fn run() {
             steam::steam_sync,
             steam::steam_disconnect,
             steam::steam_install,
+            steam::steam_uninstall,
             steam::steam_launch,
         ])
         .run(tauri::generate_context!())

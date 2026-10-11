@@ -30,6 +30,20 @@
 #notice:has(.notice-image) { width: min(1000px, calc(100% - 32px)); }
 .dialog-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .dialog-actions button { border: 1px solid var(--line); padding: 10px 14px; border-radius: var(--radius-small); }
+#notice.game-actions-dialog, #notice.uninstall-dialog { width: min(500px, calc(100% - 32px)); background: #23252a; border: 1px solid #ffffff24; box-shadow: 0 24px 70px #0009; }
+.game-actions-dialog #notice-copy { color: #c6c8cf; margin-bottom: 18px; }
+.game-action-list { display: grid; gap: 8px; margin: 0 0 20px; }
+.game-action { display: grid; gap: 4px; width: 100%; padding: 14px 16px; text-align: left; border: 1px solid #ffffff20; border-radius: 10px; background: #ffffff0a; }
+.game-action:hover, .game-action:focus-visible { border-color: #ffffff70; background: #ffffff17; }
+.game-action strong { font-size: 15px; font-weight: 650; }
+.game-action span, .game-action-note { color: #b9bdc6; font-size: 13px; line-height: 1.45; }
+.game-action-danger { margin-top: 8px; border-color: #e1777759; }
+.game-action-danger strong { color: #ffacac; }
+.game-action-danger:hover, .game-action-danger:focus-visible { border-color: #ff9e9e; background: #9a303025; }
+.game-action-note { margin: 6px 2px 0; }
+.uninstall-actions { justify-content: flex-end; margin: 18px 0 0; }
+.uninstall-actions .danger-button { color: white; border-color: #c94c4c; background: #a93232; font-weight: 650; }
+.uninstall-actions .danger-button:hover { background: #c43c3c; }
 #notice.settings-dialog { width: min(760px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 32px)); padding: 0; overflow-y: auto; background: #202126; box-shadow: 0 22px 70px #0009; }
 .settings-dialog #notice-title { padding: 24px 28px 0; font-size: 24px; }
 .settings-dialog #notice-copy { margin: 6px 28px 22px; color: #bfc2ca; font-size: var(--font-body); }

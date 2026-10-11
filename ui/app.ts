@@ -6,7 +6,7 @@ import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { downloads } from './downloads.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, finishDownload, getInstallLocation, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setInstallLocation, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, epicUninstall, finishDownload, getInstallLocation, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, gogUninstall, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, steamUninstall, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setInstallLocation, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -54,10 +54,12 @@ const addGameDialog = required<HTMLDialogElement>('#add-game');
 const addGameForm = required<HTMLFormElement>('#add-game-form');
 const search = required<HTMLInputElement>('#search');
 function notify(title: string, copy: string) {
-  notice.classList.remove('settings-dialog');
+  notice.classList.remove('settings-dialog', 'game-actions-dialog', 'uninstall-dialog');
+  required<HTMLElement>('form', notice).hidden = false;
   notice.querySelector('.settings-content')?.remove();
   notice.querySelector('.notice-image')?.remove();
   notice.querySelector('.dialog-actions')?.remove();
+  notice.querySelector('.game-action-list')?.remove();
   notice.querySelector('.scan-results')?.remove();
   notice.querySelector('.epic-auth')?.remove();
   notice.querySelector('.gog-auth')?.remove();
@@ -528,6 +530,65 @@ async function runDownload(id: string, source: 'steam' | 'epic' | 'gog') {
   if (!failure) await refreshLibrary();
   await refreshDownloadHistory();
 }
+function gameActionButton(label: string, description: string, action: string, id: string, danger = false) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `game-action${danger ? ' game-action-danger' : ''}`;
+  button.dataset.action = action;
+  button.dataset.id = id;
+  const heading = document.createElement('strong'); heading.textContent = label;
+  const detail = document.createElement('span'); detail.textContent = description;
+  button.append(heading, detail);
+  return button;
+}
+function showGameActions() {
+  const selected = games.find(game => game.id === state.selectedId);
+  if (!selected) return;
+  const source = selected.source === 'epic' ? 'Epic Games' : selected.source === 'gog' ? 'GOG' : selected.source === 'steam' ? 'Steam' : 'Local game';
+  notify(`Manage ${selected.title}`, `${source} · ${selected.installed ? 'Installed' : 'Not installed'}`);
+  notice.classList.add('game-actions-dialog');
+  const list = document.createElement('div'); list.className = 'game-action-list';
+  list.append(gameActionButton('Feature on Home', 'Show this game in the Home spotlight.', 'feature', selected.id));
+  if (mode === 'desktop') {
+    list.append(gameActionButton('Refresh artwork', 'Find a new cover and background.', 'refresh-game-artwork', selected.id));
+    if (selected.installed && selected.owned && selected.source !== 'manual') {
+      list.append(gameActionButton('Uninstall game', selected.source === 'gog' ? 'Remove a Lezu-managed GOG install. Your owned game stays in the library.' : 'Remove game files and keep it in your owned library.', 'ask-uninstall', selected.id, true));
+    } else if (selected.installed && !selected.owned) {
+      const note = document.createElement('p'); note.className = 'game-action-note';
+      note.textContent = 'This game was added from disk. Uninstall it through its store or Windows to avoid removing unrelated files.';
+      list.append(note);
+    }
+  }
+  required('form', notice).before(list);
+}
+function confirmUninstall(id: string) {
+  const selected = games.find(game => game.id === id);
+  if (!selected?.installed || !selected.owned || selected.source === 'manual') return;
+  notify(`Uninstall ${selected.title}?`, 'This removes the game files from this PC. The game stays in your owned library so you can download it again.');
+  notice.classList.add('uninstall-dialog');
+  const actions = document.createElement('div'); actions.className = 'dialog-actions uninstall-actions';
+  const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel'; cancel.dataset.action = 'dismiss-uninstall';
+  const confirm = document.createElement('button'); confirm.type = 'button'; confirm.className = 'danger-button'; confirm.textContent = 'Uninstall game'; confirm.dataset.action = 'confirm-uninstall'; confirm.dataset.id = id;
+  actions.append(cancel, confirm); required('form', notice).before(actions);
+  required<HTMLElement>('form', notice).hidden = true;
+  cancel.focus();
+}
+async function uninstallGame(id: string) {
+  const selected = games.find(game => game.id === id);
+  if (!selected?.installed || !selected.owned || selected.source === 'manual') return;
+  if (activeDownload === id) { notify('Download in progress', 'Cancel this game’s download before uninstalling.'); return; }
+  notify(`Uninstalling ${selected.title}`, 'Removing game files and checking the installation…');
+  required<HTMLElement>('form', notice).hidden = true;
+  try {
+    if (selected.source === 'steam') await steamUninstall(id);
+    else if (selected.source === 'epic') await epicUninstall(id);
+    else await gogUninstall(id);
+    await refreshLibrary();
+    notify('Game uninstalled', `${selected.title} was removed from this PC. You can download it again from your library.`);
+  } catch (reason) {
+    notify('Uninstall failed', desktopErrorMessage(reason));
+  }
+}
 async function installAvailableUpdate() {
   const update = availableUpdate;
   if (!update) return;
@@ -657,7 +718,7 @@ document.addEventListener('click', event => {
   }
   else if (action === 'import-all-stores' && mode === 'desktop') void addStoreGames(storeCandidates);
   else if (action === 'refresh-artwork' && mode === 'desktop') void updateArtwork();
-  else if (action === 'refresh-game-artwork' && mode === 'desktop' && state.selectedId) void updateArtwork(state.selectedId);
+  else if (action === 'refresh-game-artwork' && mode === 'desktop' && button.dataset.id) void updateArtwork(button.dataset.id);
   else if (action === 'save-steamgriddb-key' && mode === 'desktop') {
     const key = required<HTMLInputElement>('#steamgriddb-key', notice).value.trim();
     void setSteamGridDbKey(key).then(() => {
@@ -724,19 +785,12 @@ document.addEventListener('click', event => {
   else if (action === 'cancel-add') addGameDialog.close();
   else if (action === 'dismiss-notice') dismissActiveScan();
   else if (action === 'refresh-library' && mode === 'desktop') { notice.close(); void refreshLibrary(); }
-  else if (action === 'more') {
-    notify('Game actions', 'Choose the game shown on Home.');
-    const actions = document.createElement('div'); actions.className = 'dialog-actions';
-    const feature = document.createElement('button'); feature.textContent = 'Feature on Home'; feature.dataset.action = 'feature';
-    actions.append(feature);
-    if (mode === 'desktop') {
-      const refresh = document.createElement('button'); refresh.type = 'button'; refresh.textContent = 'Refresh artwork'; refresh.dataset.action = 'refresh-game-artwork';
-      actions.append(refresh);
-    }
-    required('form', notice).before(actions);
-  }
+  else if (action === 'more') showGameActions();
+  else if (action === 'ask-uninstall' && button.dataset.id) confirmUninstall(button.dataset.id);
+  else if (action === 'confirm-uninstall' && button.dataset.id && mode === 'desktop') void uninstallGame(button.dataset.id);
+  else if (action === 'dismiss-uninstall') notice.close();
   else if (action === 'feature') {
-    state = { ...navigate(state, 'home'), featuredId: state.selectedId };
+    state = { ...navigate(state, 'home'), featuredId: button.dataset.id ?? state.selectedId };
     notice.close(); render(); window.scrollTo(0, 0); required('nav [data-nav="home"]').focus();
   }
   else if (screenshot) {

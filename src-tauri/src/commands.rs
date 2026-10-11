@@ -29,6 +29,28 @@ pub(crate) fn database_error() -> CommandError {
     error("database", "The game library could not be read or saved.")
 }
 
+pub(crate) fn mark_game_uninstalled(
+    store: &LibraryStore,
+    provider: &str,
+    game_id: &str,
+) -> Result<(), CommandError> {
+    let mut connection = store.0.lock().map_err(|_| database_error())?;
+    let transaction = connection.transaction().map_err(|_| database_error())?;
+    transaction
+        .execute(
+            "UPDATE owned_games SET installed=0 WHERE provider=?1 AND game_id=?2",
+            params![provider, game_id],
+        )
+        .map_err(|_| database_error())?;
+    transaction
+        .execute(
+            "UPDATE installations SET install_state='missing' WHERE source=?1 AND game_id=?2",
+            params![provider, game_id],
+        )
+        .map_err(|_| database_error())?;
+    transaction.commit().map_err(|_| database_error())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameView {

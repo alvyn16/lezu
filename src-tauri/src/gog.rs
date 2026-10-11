@@ -1,5 +1,5 @@
 use crate::{
-    commands::{database_error, error, CommandError},
+    commands::{database_error, error, mark_game_uninstalled, CommandError},
     engine::{verified_engine, EngineSpec},
     library::LibraryStore,
 };
@@ -24,6 +24,7 @@ const ENGINE: EngineSpec = EngineSpec {
     url: "https://github.com/Heroic-Games-Launcher/heroic-gogdl/releases/download/v1.3.0/gogdl_windows_x86_64.exe",
     sha256: "69ea54467371803f681d6c39805992e3a4b8ddccb44ac8a1de7b1e3c80deaeec",
 };
+const INSTALL_MARKER: &str = ".lezu-gog-install";
 
 #[derive(Debug, Deserialize)]
 struct Credentials {
@@ -419,8 +420,16 @@ pub async fn gog_install(
     let install_id = product_id.clone();
     let target = tauri::async_runtime::spawn_blocking(move || {
         let engine = verified_engine(&base, &ENGINE)?;
+        if target.is_dir()
+            && !target.join(INSTALL_MARKER).is_file()
+            && target.read_dir().map_err(|_| error("gog_storage", "Could not inspect the GOG game folder."))?.next().is_some()
+        {
+            return Err(error("gog_storage", "This GOG folder already contains files not managed by Lezu. Choose another install location."));
+        }
         fs::create_dir_all(&target)
             .map_err(|_| error("gog_storage", "Could not prepare the GOG game folder."))?;
+        fs::write(target.join(INSTALL_MARKER), format!("lezu-gog-install-v1:{install_id}"))
+            .map_err(|_| error("gog_storage", "Could not mark the GOG installation as managed by Lezu."))?;
         let mut child = command(&base, &engine)?
             .arg("download")
             .arg(&install_id)
@@ -458,8 +467,8 @@ pub async fn gog_install(
         if !target
             .read_dir()
             .map_err(|_| error("gog_download", "Could not verify the GOG files."))?
-            .next()
-            .is_some()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name() != INSTALL_MARKER)
         {
             return Err(error(
                 "gog_download",
@@ -479,6 +488,91 @@ pub async fn gog_install(
         )
         .map_err(|_| database_error())?;
     Ok(())
+}
+
+fn refuse_reparse_points(path: &Path) -> Result<(), CommandError> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|_| error("gog_uninstall", "The GOG install folder could not be read."))?;
+    if metadata.file_type().is_symlink() {
+        return Err(error(
+            "gog_uninstall",
+            "The GOG install contains a link. Remove it manually before uninstalling.",
+        ));
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        if metadata.file_attributes() & 0x400 != 0 {
+            return Err(error("gog_uninstall", "The GOG install contains a junction or link. Remove it manually before uninstalling."));
+        }
+    }
+    if metadata.is_dir() {
+        for child in fs::read_dir(path)
+            .map_err(|_| error("gog_uninstall", "The GOG install folder could not be read."))?
+        {
+            let child = child
+                .map_err(|_| error("gog_uninstall", "The GOG install folder could not be read."))?;
+            refuse_reparse_points(&child.path())?;
+        }
+    }
+    Ok(())
+}
+
+fn remove_managed_gog_folder(path: &Path, product_id: &str) -> Result<(), CommandError> {
+    if !product_id.chars().all(|c| c.is_ascii_digit())
+        || !path.is_absolute()
+        || path
+            .file_name()
+            .is_none_or(|name| name.to_string_lossy() != format!("GOG-{product_id}"))
+        || path.parent().is_none_or(|parent| parent.parent().is_none())
+    {
+        return Err(error(
+            "gog_uninstall",
+            "This is not a Lezu-managed GOG installation.",
+        ));
+    }
+    let marker = fs::read_to_string(path.join(INSTALL_MARKER))
+        .map_err(|_| error("gog_uninstall", "Lezu cannot verify that it owns this GOG folder. Uninstall it through its original installer."))?;
+    if marker != format!("lezu-gog-install-v1:{product_id}") {
+        return Err(error(
+            "gog_uninstall",
+            "Lezu cannot verify that it owns this GOG folder.",
+        ));
+    }
+    refuse_reparse_points(path)?;
+    fs::remove_dir_all(path).map_err(|_| {
+        error(
+            "gog_uninstall",
+            "Could not remove every GOG game file. Check the folder and try again.",
+        )
+    })
+}
+
+#[tauri::command]
+pub async fn gog_uninstall(
+    store: State<'_, LibraryStore>,
+    coordinator: State<'_, GogCoordinator>,
+    game_id: String,
+) -> Result<(), CommandError> {
+    let _guard = coordinator.begin()?;
+    let product_id = owned_id(&store, &game_id)?;
+    let path: String = store.0.lock().map_err(|_| database_error())?
+        .query_row("SELECT value FROM preferences WHERE key=?1", [format!("gog-install:{product_id}")], |row| row.get(0))
+        .map_err(|_| error("gog_uninstall", "Lezu has no managed folder for this GOG game. Uninstall it through its original installer."))?;
+    let path = PathBuf::from(path);
+    let uninstall_id = product_id.clone();
+    tauri::async_runtime::spawn_blocking(move || remove_managed_gog_folder(&path, &uninstall_id))
+        .await
+        .map_err(|_| error("gog_uninstall", "GOG uninstall stopped unexpectedly."))??;
+    let connection = store.0.lock().map_err(|_| database_error())?;
+    connection
+        .execute(
+            "DELETE FROM preferences WHERE key=?1",
+            [format!("gog-install:{product_id}")],
+        )
+        .map_err(|_| database_error())?;
+    drop(connection);
+    mark_game_uninstalled(&store, "gog", &game_id)
 }
 
 #[tauri::command]
@@ -529,6 +623,43 @@ pub async fn gog_launch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn managed_gog_uninstall_removes_only_its_own_folder() {
+        let root =
+            std::env::temp_dir().join(format!("lezu-gog-uninstall-{}", uuid::Uuid::new_v4()));
+        let game = root.join("GOG-123");
+        fs::create_dir_all(&game).unwrap();
+        fs::write(game.join("game.dat"), b"fixture").unwrap();
+        fs::write(root.join("other.dat"), b"keep").unwrap();
+        assert!(remove_managed_gog_folder(&game, "456").is_err());
+        assert!(game.join("game.dat").exists());
+        assert!(remove_managed_gog_folder(&game, "123").is_err());
+        fs::write(game.join(INSTALL_MARKER), b"lezu-gog-install-v1:123").unwrap();
+        remove_managed_gog_folder(&game, "123").unwrap();
+        assert!(!game.exists());
+        assert!(root.join("other.dat").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn managed_gog_uninstall_refuses_links() {
+        let root =
+            std::env::temp_dir().join(format!("lezu-gog-uninstall-{}", uuid::Uuid::new_v4()));
+        let game = root.join("GOG-123");
+        let outside = root.join("outside");
+        fs::create_dir_all(&game).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(outside.join("keep.dat"), b"fixture").unwrap();
+        fs::write(game.join(INSTALL_MARKER), b"lezu-gog-install-v1:123").unwrap();
+        #[cfg(windows)]
+        let link_result = std::os::windows::fs::symlink_dir(&outside, game.join("link"));
+        #[cfg(unix)]
+        let link_result = std::os::unix::fs::symlink(&outside, game.join("link"));
+        if link_result.is_ok() {
+            assert!(remove_managed_gog_folder(&game, "123").is_err());
+            assert!(outside.join("keep.dat").exists());
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn accepts_gog_code_or_redirect_url() {
         assert_eq!(code_from_input("ABC123").unwrap(), "ABC123");

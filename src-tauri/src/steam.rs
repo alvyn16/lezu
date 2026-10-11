@@ -1,5 +1,5 @@
 use crate::{
-    commands::{database_error, error, CommandError},
+    commands::{database_error, error, mark_game_uninstalled, CommandError},
     engine::{verified_engine, EngineSpec},
     library::LibraryStore,
 };
@@ -424,6 +424,53 @@ pub async fn steam_install(
     }
     save_library(&store, &games)?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn steam_uninstall(
+    app: tauri::AppHandle,
+    store: State<'_, LibraryStore>,
+    coordinator: State<'_, SteamCoordinator>,
+    game_id: String,
+) -> Result<(), CommandError> {
+    let _guard = coordinator.begin()?;
+    let app_id = owned_app_id(&store, &game_id)?;
+    if !app_id.chars().all(|c| c.is_ascii_digit()) {
+        return Err(error("steam_id", "This Steam game has an invalid app ID."));
+    }
+    let base = base_path(&app)?;
+    let verify_id = app_id.clone();
+    let games = tauri::async_runtime::spawn_blocking(move || {
+        let engine = verified_engine(&base, &ENGINE)?;
+        require_login(&base, &engine)?;
+        let status = command(&base, &engine)
+            .args(["--json", "uninstall", &app_id])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map_err(|_| error("steam_uninstall", "Could not start Steam uninstall."))?;
+        if !status.success() {
+            return Err(error(
+                "steam_uninstall",
+                "Steam could not uninstall this game.",
+            ));
+        }
+        load_games(&base, &engine)
+    })
+    .await
+    .map_err(|_| error("steam_uninstall", "Steam uninstall stopped unexpectedly."))??;
+    if games
+        .iter()
+        .any(|game| game.app_id.to_string() == verify_id && game.is_installed)
+    {
+        return Err(error(
+            "steam_uninstall",
+            "Steam still reports this game as installed. Refresh Steam and try again.",
+        ));
+    }
+    save_library(&store, &games)?;
+    mark_game_uninstalled(&store, "steam", &game_id)
 }
 
 #[tauri::command]

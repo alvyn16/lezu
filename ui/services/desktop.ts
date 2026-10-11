@@ -83,6 +83,8 @@ export async function epicInstall(gameId: string, destination: string): Promise<
   return invoke<void>('epic_install', { gameId, destination });
 }
 
+export const epicUninstall = (gameId: string) => invoke<void>('epic_uninstall', { gameId });
+
 export async function epicCancelDownload(): Promise<void> {
   return invoke<void>('epic_cancel_download');
 }
@@ -106,6 +108,8 @@ export async function gogDisconnect(): Promise<void> {
 export async function gogInstall(gameId: string, destination: string): Promise<void> {
   return invoke<void>('gog_install', { gameId, destination });
 }
+
+export const gogUninstall = (gameId: string) => invoke<void>('gog_uninstall', { gameId });
 
 export async function gogCancelDownload(): Promise<void> {
   return invoke<void>('gog_cancel_download');
@@ -134,6 +138,8 @@ export async function steamDisconnect(): Promise<void> {
 export async function steamInstall(gameId: string, destination: string): Promise<void> {
   return invoke<void>('steam_install', { gameId, destination });
 }
+
+export const steamUninstall = (gameId: string) => invoke<void>('steam_uninstall', { gameId });
 
 export async function steamLaunch(gameId: string): Promise<void> {
   return invoke<void>('steam_launch', { gameId });

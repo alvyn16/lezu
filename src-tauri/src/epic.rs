@@ -1,5 +1,5 @@
 use crate::{
-    commands::{database_error, error, CommandError},
+    commands::{database_error, error, mark_game_uninstalled, CommandError},
     library::LibraryStore,
 };
 use rusqlite::{params, OptionalExtension};
@@ -588,6 +588,52 @@ pub async fn epic_install(
         )
         .map_err(|_| database_error())?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn epic_uninstall(
+    app: tauri::AppHandle,
+    store: State<'_, LibraryStore>,
+    coordinator: State<'_, EpicCoordinator>,
+    game_id: String,
+) -> Result<(), CommandError> {
+    let _guard = coordinator.begin()?;
+    let app_name: String = store
+        .0
+        .lock()
+        .map_err(|_| database_error())?
+        .query_row(
+            "SELECT provider_id FROM owned_games WHERE provider='epic' AND game_id=?1",
+            [&game_id],
+            |row| row.get(0),
+        )
+        .map_err(|_| {
+            error(
+                "not_owned",
+                "Connect Epic and refresh your owned games first.",
+            )
+        })?;
+    let base = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| error("engine_storage", "Could not locate Lezu data."))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let engine = engine_path(&base)?;
+        run(&engine, &["-y", "uninstall", &app_name])?;
+        let list = run(&engine, &["list-installed", "--json"])?;
+        let entries: Vec<InstalledGame> = serde_json::from_str(&list)
+            .map_err(|_| error("epic_response", "Could not verify the Epic uninstall."))?;
+        if entries.iter().any(|game| game.app_name == app_name) {
+            return Err(error(
+                "epic_uninstall",
+                "Epic still reports this game as installed.",
+            ));
+        }
+        Ok::<_, CommandError>(())
+    })
+    .await
+    .map_err(|_| error("epic_uninstall", "Epic uninstall stopped unexpectedly."))??;
+    mark_game_uninstalled(&store, "epic", &game_id)
 }
 
 #[tauri::command]

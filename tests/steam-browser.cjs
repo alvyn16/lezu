@@ -21,6 +21,7 @@ async page => {
         if (command === 'steam_connect') return new Promise(resolve => { window.__finishSteamLogin = resolve; });
         if (command === 'steam_sync') return Promise.resolve({connected:true,count:1});
         if (command === 'steam_install') { window.__steamInstalled = true; return Promise.resolve(); }
+        if (command === 'steam_uninstall') { window.__steamInstalled = false; return Promise.resolve(); }
         if (command === 'refresh_artwork') return Promise.resolve({updated:0,unavailable:2});
         throw Error('Unexpected command: ' + command);
       },
@@ -46,10 +47,21 @@ async page => {
   await page.getByRole('button', {name:'More game actions'}).click();
   await page.getByRole('button', {name:'Refresh artwork'}).click();
   await page.getByRole('heading', {name:'Artwork refreshed'}).waitFor();
+  await page.getByRole('button', {name:'Close'}).click();
+  await page.getByRole('button', {name:'More game actions'}).click();
+  await page.getByRole('button', {name:'Uninstall game'}).click();
+  await page.getByRole('heading', {name:'Uninstall Owned Steam Game?'}).waitFor();
+  await page.getByRole('button', {name:'Cancel'}).click();
+  if (await page.evaluate(() => window.__steamCalls.some(call => call.command === 'steam_uninstall'))) throw Error('Cancel uninstalled the game');
+  await page.getByRole('button', {name:'More game actions'}).click();
+  await page.getByRole('button', {name:'Uninstall game'}).click();
+  await page.getByRole('button', {name:'Uninstall game'}).click();
+  await page.getByRole('heading', {name:'Game uninstalled'}).waitFor();
   const calls = await page.evaluate(() => window.__steamCalls);
   if (!calls.some(call => call.command === 'steam_connect')) throw Error('Steam connect missing');
   if (calls.find(call => call.command === 'steam_install')?.args.destination !== 'C:\\SteamLibrary') throw Error('Steam library folder missing');
   const refresh = calls.find(call => call.command === 'refresh_artwork' && call.args.force);
   if (refresh?.args.gameId !== 'steam-owned') throw Error('Per-game refresh did not target this game');
-  return {qr:'passed',accountSync:'passed',ownedDownload:'passed',perGameArtwork:'passed'};
+  if (calls.filter(call => call.command === 'steam_uninstall').length !== 1) throw Error('Expected one confirmed uninstall');
+  return {qr:'passed',accountSync:'passed',ownedDownload:'passed',perGameArtwork:'passed',uninstall:'passed'};
 }
