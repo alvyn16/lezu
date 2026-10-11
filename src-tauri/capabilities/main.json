@@ -6,6 +6,8 @@
   "permissions": [
     "allow-runtime-info",
     "allow-list-library",
+    "allow-get-featured-game",
+    "allow-set-featured-game",
     "allow-get-library-artwork",
     "allow-list-downloads",
     "allow-begin-download",

@@ -59,6 +59,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             runtime_info,
             commands::list_library,
+            commands::get_featured_game,
+            commands::set_featured_game,
             commands::get_library_artwork,
             downloads::list_downloads,
             downloads::begin_download,

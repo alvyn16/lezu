@@ -3,6 +3,8 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "runtime_info",
             "list_library",
+            "get_featured_game",
+            "set_featured_game",
             "get_library_artwork",
             "list_downloads",
             "begin_download",

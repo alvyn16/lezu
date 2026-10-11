@@ -39,6 +39,9 @@ export async function listLibrary() {
   return invoke<import('../domain/models').Game[]>('list_library');
 }
 
+export const getFeaturedGame = () => invoke<string | null>('get_featured_game');
+export const setFeaturedGame = (gameId: string) => invoke<void>('set_featured_game', { gameId });
+
 export interface LibraryArtwork { gameId: string; kind: 'cover' | 'hero'; image: string }
 
 export async function getLibraryArtwork(gameIds: string[], kind: 'cover' | 'hero'): Promise<LibraryArtwork[]> {

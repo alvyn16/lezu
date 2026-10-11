@@ -6,7 +6,7 @@ import { home, library } from './home.js';
 import { details, detailsLocation } from './details.js';
 import { downloads } from './downloads.js';
 import { enableWheelScrolling } from './shelf-scroll.js';
-import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, epicUninstall, finishDownload, getInstallLocation, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, gogUninstall, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, steamUninstall, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setInstallLocation, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
+import { addManualGame, beginDownload, cancelScan, clearDownloadHistory, desktopErrorMessage, discoverStores, epicCancelDownload, epicConnect, epicDisconnect, epicInstall, epicLaunch, epicSync, epicUninstall, finishDownload, getFeaturedGame, getInstallLocation, gogCancelDownload, gogConnect, gogDisconnect, gogInstall, gogLaunch, gogSync, gogUninstall, steamCancel, steamConnect, steamDisconnect, steamInstall, steamLaunch, steamSync, steamUninstall, getLibraryArtwork, getRuntimeInfo, importStoreGames, isDesktop, launchInstallation, listDownloads, listLibrary, refreshArtwork, revealInstallation, scanFolderPreview, setDownloadProgress, setFeaturedGame, setInstallLocation, setSteamGridDbKey, steamGridDbKeyStatus, type DownloadRecord, type ScanCandidate, type StoreCandidate } from './services/desktop';
 import QRCode from 'qrcode';
 import { listen } from '@tauri-apps/api/event';
 import { check } from '@tauri-apps/plugin-updater';
@@ -561,6 +561,15 @@ function showGameActions() {
   }
   required('form', notice).before(list);
 }
+async function featureGame(id: string) {
+  if (!games.some(game => game.id === id)) return;
+  if (mode === 'desktop') {
+    try { await setFeaturedGame(id); }
+    catch (reason) { notify('Could not feature game', desktopErrorMessage(reason)); return; }
+  }
+  state = { ...navigate(state, 'home'), featuredId: id };
+  notice.close(); render(); window.scrollTo(0, 0); required('nav [data-nav="home"]').focus();
+}
 function confirmUninstall(id: string) {
   const selected = games.find(game => game.id === id);
   if (!selected?.installed || !selected.owned || selected.source === 'manual') return;
@@ -789,10 +798,7 @@ document.addEventListener('click', event => {
   else if (action === 'ask-uninstall' && button.dataset.id) confirmUninstall(button.dataset.id);
   else if (action === 'confirm-uninstall' && button.dataset.id && mode === 'desktop') void uninstallGame(button.dataset.id);
   else if (action === 'dismiss-uninstall') notice.close();
-  else if (action === 'feature') {
-    state = { ...navigate(state, 'home'), featuredId: button.dataset.id ?? state.selectedId };
-    notice.close(); render(); window.scrollTo(0, 0); required('nav [data-nav="home"]').focus();
-  }
+  else if (action === 'feature' && button.dataset.id) void featureGame(button.dataset.id);
   else if (screenshot) {
     notify('Game screenshot', 'Artwork shown from the game’s official media.');
     const image = document.createElement('img'); image.className = 'notice-image'; image.src = asset(screenshot); image.alt = button.getAttribute('aria-label') ?? 'Game screenshot';
@@ -901,7 +907,11 @@ document.addEventListener('error', event => {
 render();
 if (isDesktop()) {
   required('.preview-label').textContent = 'Desktop · your library';
-  void refreshLibrary();
+  void (async () => {
+    try { state = { ...state, featuredId: await getFeaturedGame() }; }
+    catch { state = { ...state, featuredId: null }; }
+    await refreshLibrary();
+  })();
   getRuntimeInfo().then(info => {
     if (info?.libraryMode !== 'desktop') notify('Desktop version mismatch', 'The desktop host and library interface are out of sync. Restart Lezu.');
   }).catch(() => notify('Desktop connection unavailable', 'Lezu could not reach its desktop service. Restart the app to try again.'));

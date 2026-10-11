@@ -51,6 +51,55 @@ pub(crate) fn mark_game_uninstalled(
     transaction.commit().map_err(|_| database_error())
 }
 
+#[tauri::command]
+pub fn get_featured_game(store: State<'_, LibraryStore>) -> Result<Option<String>, CommandError> {
+    read_featured_game(&store)
+}
+
+fn read_featured_game(store: &LibraryStore) -> Result<Option<String>, CommandError> {
+    store
+        .0
+        .lock()
+        .map_err(|_| database_error())?
+        .query_row(
+            "SELECT value FROM preferences WHERE key='featured-game'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|_| database_error())
+}
+
+#[tauri::command]
+pub fn set_featured_game(
+    store: State<'_, LibraryStore>,
+    game_id: String,
+) -> Result<(), CommandError> {
+    save_featured_game(&store, &game_id)
+}
+
+fn save_featured_game(store: &LibraryStore, game_id: &str) -> Result<(), CommandError> {
+    let connection = store.0.lock().map_err(|_| database_error())?;
+    let exists: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM games WHERE id=?1)",
+            [game_id],
+            |row| row.get(0),
+        )
+        .map_err(|_| database_error())?;
+    if !exists {
+        return Err(error(
+            "game_missing",
+            "This game is no longer in your library.",
+        ));
+    }
+    connection.execute(
+        "INSERT INTO preferences(key,value) VALUES('featured-game',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [game_id],
+    ).map_err(|_| database_error())?;
+    Ok(())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GameView {
@@ -324,6 +373,40 @@ pub fn cancel_scan(coordinator: State<'_, ScanCoordinator>) {
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn featured_game_survives_database_reopen_and_rejects_missing_games() {
+        let directory =
+            std::env::temp_dir().join(format!("lezu-featured-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&directory).unwrap();
+        let database = directory.join("library.db");
+        {
+            let store = LibraryStore::open(&database).unwrap();
+            assert!(read_featured_game(&store).unwrap().is_none());
+            assert_eq!(
+                save_featured_game(&store, "missing").unwrap_err().code,
+                "game_missing"
+            );
+            store
+                .0
+                .lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO games(id,title,source,added_at) VALUES('game-1','One','steam',0)",
+                    [],
+                )
+                .unwrap();
+            save_featured_game(&store, "game-1").unwrap();
+        }
+        {
+            let store = LibraryStore::open(&database).unwrap();
+            assert_eq!(
+                read_featured_game(&store).unwrap().as_deref(),
+                Some("game-1")
+            );
+        }
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn manual_import_rejects_duplicates_and_keeps_one_library_card_per_game() {

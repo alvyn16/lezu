@@ -40,3 +40,14 @@ test('store uninstall commands are registered and permitted for the main window'
     assert.ok(handlers.includes(`${provider}::${provider}_uninstall`));
   }
 });
+
+test('featured game preference commands are registered and permitted', () => {
+  const capability = JSON.parse(readFileSync(new URL('../src-tauri/capabilities/main.json', import.meta.url), 'utf8'));
+  const manifest = readFileSync(new URL('../src-tauri/build.rs', import.meta.url), 'utf8');
+  const handlers = readFileSync(new URL('../src-tauri/src/lib.rs', import.meta.url), 'utf8');
+  for (const command of ['get_featured_game', 'set_featured_game']) {
+    assert.ok(capability.permissions.includes(`allow-${command.replaceAll('_', '-')}`));
+    assert.ok(manifest.includes(`"${command}"`));
+    assert.ok(handlers.includes(`commands::${command}`));
+  }
+});
